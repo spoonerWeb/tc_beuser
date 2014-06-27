@@ -22,16 +22,7 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-$extPath = t3lib_extMgm::extPath('tc_beuser');
-require_once($extPath.'class.tx_tcbeuser_grouptree.php');
-require_once($extPath.'class.tx_tcbeuser_recordlist.php');
-require_once(PATH_t3lib.'class.t3lib_iconworks.php');
-require_once(PATH_t3lib.'class.t3lib_tsparser.php');
-require_once(PATH_t3lib.'class.t3lib_tceforms.php');
-require_once(PATH_t3lib.'class.t3lib_userauthgroup.php');
-require_once(PATH_t3lib.'class.t3lib_loadmodules.php');
-require_once(PATH_typo3.'template.php');
-$LANG->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
+$GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
 /**
  * class.tx_tcbeuser_overview.php
  *
@@ -80,6 +71,10 @@ class tx_tcbeuser_overview {
 		$method = trim(strval($method));
 		$groupId = intval($groupId);
 		$open = (bool) $open;
+
+		// We need some uid in rootLine for the access check, so use first webmount
+		$webmounts = $GLOBALS['BE_USER']->returnWebmounts();
+		$this->pageinfo['uid'] = $webmounts[0];
 
 		if ( in_array( $method, $this->availableMethods ) )	{
 			$content = $this->$method( $groupId, $open, $backPath );
@@ -892,9 +887,9 @@ class tx_tcbeuser_overview {
 	/**
 	 * from mod4/index.php
 	 */
-	function editOnClick($params,$backPath='',$requestUri='')	{
-		$retUrl = 'returnUrl='.($requestUri==-1?"'+T3_THIS_LOCATION+'":rawurlencode($requestUri?$requestUri:t3lib_div::getIndpEnv('REQUEST_URI')));
-		return "window.location.href='".$backPath."index.php?".$retUrl.$params."'; return false;";
+	function editOnClick($params, $requestUri = '') {
+		$retUrl = '&returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : t3lib_div::getIndpEnv('REQUEST_URI')));
+		return "window.location.href='". t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $retUrl . $params . "'; return false;";
 	}
 
 	function makeUserControl($userRecord) {
@@ -906,55 +901,59 @@ class tx_tcbeuser_overview {
 
 		if($this->table == 'be_users' && $permsEdit){
 				// edit
-			$control = '<a href="#" onclick="'.htmlspecialchars(
-				$this->editOnClick(
-					'&edit['.$this->table.']['.$userRecord['uid'].']=edit&SET[function]=edit',
-					'../mod2/',
-					t3lib_div::getIndpEnv('REQUEST_URI')
-				)
-			).'"><img'.t3lib_iconWorks::skinImg(
+			$control = '<a href="#" onclick="' . htmlspecialchars(
+				$this->editOnClick('&edit[' . $this->table . '][' . $userRecord['uid'] . ']=edit&SET[function]=edit', -1)
+			) . '"><img' . t3lib_iconWorks::skinImg(
 				$this->backPath,
 				'gfx/edit2.gif',
 				'width="11" height="12"'
-			).' title="edit" alt="" /></a>'.chr(10);
+			) . ' title="edit" alt="" /></a>' . chr(10);
 		}
 
 			//info
-		$control .= '<a href="#" onclick="'.htmlspecialchars('top.launchView(\''.$this->table.'\', \''.$userRecord['uid'].'\'); return false;').'">'.
-			'<img'.t3lib_iconWorks::skinImg($this->backPath,'gfx/zoom2.gif','width="12" height="12"').' title="" alt="" />'.
-			'</a>'.chr(10);
+		if ($GLOBALS['BE_USER']->check('tables_select', $this->table)
+			&& is_array(t3lib_BEfunc::readPageAccess($userRecord['pid'], $GLOBALS['BE_USER']->getPagePermsClause(1)))
+		) {
+			$control .= '<a href="#" onclick="' . htmlspecialchars('top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;') . '">' .
+				'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="" alt="" />' .
+				'</a>' . chr(10);
+		}
 
 			// hide/unhide
 		$hiddenField = $GLOBALS['TCA'][$this->table]['ctrl']['enablecolumns']['disabled'];
 		if ($permsEdit){
+			$redirect = '&redirect=\'+T3_THIS_LOCATION+\'&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
 			if ($userRecord[$hiddenField])	{
-				$params = '&data['.$this->table.']['.$userRecord['uid'].']['.$hiddenField.']=0';
-				$control .='<a href="#" onclick="'.htmlspecialchars('return jumpToUrl(\''.$doc->issueCommand($params,-1).'\');').'">'.
-						'<img'.t3lib_iconWorks::skinImg($this->backPath,'gfx/button_unhide.gif','width="11" height="10"').' title="unhide" alt="" />'.
-						'</a>'.chr(10);
+				$params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
+				$control .= '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
+					t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');') . '">' .
+					'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="unhide" alt="" />' .
+					'</a>' . chr(10);
 			} else {
-				$params = '&data['.$this->table.']['.$userRecord['uid'].']['.$hiddenField.']=1';
-				$control .= '<a href="#" onclick="'.htmlspecialchars('return jumpToUrl(\''.$doc->issueCommand($params,-1).'\');').'">'.
-						'<img'.t3lib_iconWorks::skinImg($this->backPath,'gfx/button_hide.gif','width="11" height="10"').' title="hide" alt="" />'.
-						'</a>'.chr(10);
+				$params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
+				$control .= '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
+					t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');') . '">' .
+					'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="hide" alt="" />' .
+					'</a>' . chr(10);
 			}
 		}
 
 			// delete
 		if($permsEdit){
-			$params = '&cmd['.$this->table.']['.$userRecord['uid'].'][delete]=1';
-			$control .= '<a href="#" onclick="'.htmlspecialchars('if (confirm('.
+			$params = '&cmd[' . $this->table . '][' . $userRecord['uid'] . '][delete]=1&SET[function]=action';
+			$redirect = '&redirect=\'+T3_THIS_LOCATION+\'&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
+			$control .= '<a href="#" onclick="' . htmlspecialchars('if (confirm(' .
 				$GLOBALS['LANG']->JScharCode(
-					$GLOBALS['LANG']->getLL('deleteWarning')
-						.t3lib_BEfunc::referenceCount(
-							$this->table,
-							$userRecord['uid'],
-							' (There are %s reference(s) to this record!)'
-						)
-					).')) {jumpToUrl(\''.$doc->issueCommand($params,-1).'\');} return false;'
-				).'">'.
-				'<img'.t3lib_iconWorks::skinImg($this->backPath,'gfx/garbage.gif','width="11" height="12"').' title="'.$GLOBALS['LANG']->getLL('delete',1).'" alt="" />'.
-				'</a>'.chr(10);
+					$GLOBALS['LANG']->getLL('deleteWarning') .
+					t3lib_BEfunc::referenceCount(
+						$this->table,
+						$userRecord['uid'],
+						' (There are %s reference(s) to this record!)'
+					)
+				) . ')) {jumpToUrl(\'' . t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');} return false;'
+			) . '">' .
+			'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
+			'</a>' . chr(10);
 		}
 
 			// swith user / switch user back

@@ -15,7 +15,7 @@ $EM_CONF[$_EXTKEY] = array(
 	'description' => 'A Module for administer BE users more comfortably',
 	'category' => 'module',
 	'shy' => 0,
-	'version' => '1.1.0',
+	'version' => '1.2.0',
 	'dependencies' => '',
 	'conflicts' => '',
 	'priority' => '',
@@ -34,7 +34,7 @@ $EM_CONF[$_EXTKEY] = array(
 	'CGLcompliance_note' => '',
 	'constraints' => array(
 		'depends' => array(
-			'typo3' => '4.6.0-6.1.99',
+			'typo3' => '4.6.0-6.2.99',
 		),
 		'conflicts' => array(
 		),

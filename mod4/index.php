@@ -22,18 +22,10 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-	// DEFAULT initialization of a module [BEGIN]
-unset($MCONF);
-require_once('conf.php');
-require_once($BACK_PATH.'init.php');
-require_once($BACK_PATH.'template.php');
+$GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
+$GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
 
-$extPath = t3lib_extMgm::extPath('tc_beuser');
-require_once($extPath.'class.tx_tcbeuser_recordlist.php');
-require_once($extPath.'class.tx_tcbeuser_overview.php');
-$LANG->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
-require_once(PATH_t3lib.'class.t3lib_scbase.php');
-$BE_USER->modAccess($MCONF,1);	// This checks permissions and exits if the users has no permission for entry.
+$GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits if the users has no permission for entry.
 	// DEFAULT initialization of a module [END]
 
 
@@ -69,7 +61,9 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 		$access = $GLOBALS['BE_USER']->modAccess($this->MCONF, true);
 
 		if ($access || $GLOBALS['BE_USER']->isAdmin()) {
-
+			// We need some uid in rootLine for the access check, so use first webmount
+			$webmounts = $GLOBALS['BE_USER']->returnWebmounts();
+			$this->pageinfo['uid'] = $webmounts[0];
 			$this->pageinfo['_thePath'] = '/';
 
 			if(t3lib_div::_GP('beUser')){
@@ -98,8 +92,8 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 				// all necessary JS code needs to be set before this line!
 			$this->doc->JScode = $this->doc->wrapScriptTags($this->jsCode);
 			$this->doc->JScode .= '
-					<script src="prototype.js" type="text/javascript"></script>
-					<script src="ajax.js" type="text/javascript"></script>';
+					<script src="' . t3lib_extMgm::extRelPath('tc_beuser') . 'mod4/prototype.js" type="text/javascript"></script>
+					<script src="' . t3lib_extMgm::extRelPath('tc_beuser') . 'mod4/ajax.js" type="text/javascript"></script>';
 
 			$this->content  = '';
 			$this->content .= $this->doc->startPage($title);
@@ -149,6 +143,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 			}
 
 			var T3_BACKPATH = \''.$this->doc->backPath.'\';
+			var ajaxUrl = \'' . t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name']) . '\';
 		';
 		$this->jsCode .= $this->doc->redirectUrls(t3lib_div::linkThisScript());
 
@@ -406,7 +401,6 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 		$control = '<a href="#" onclick="'.htmlspecialchars(
 			$this->editOnClick(
 				'&edit['.$this->table.']['.$userRecord['uid'].']=edit&SET[function]=edit',
-				'../mod2/',
 				t3lib_div::getIndpEnv('REQUEST_URI').'SET[function]=2'
 			)
 		).'"><img'.t3lib_iconWorks::skinImg(
@@ -416,38 +410,42 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 		).' title="edit" alt="" /></a>'.chr(10);
 
 			//info
-		$control .= '<a href="#" onclick="'.htmlspecialchars('top.launchView(\''.$this->table.'\', \''.$userRecord['uid'].'\'); return false;').'">'.
-			'<img'.t3lib_iconWorks::skinImg($this->backPath,'gfx/zoom2.gif','width="12" height="12"').' title="" alt="" />'.
-			'</a>'.chr(10);
+		if ($GLOBALS['BE_USER']->check('tables_select', $this->table)
+			&& is_array(t3lib_BEfunc::readPageAccess($userRecord['pid'], $GLOBALS['BE_USER']->getPagePermsClause(1)))
+		) {
+			$control .= '<a href="#" onclick="' . htmlspecialchars('top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;') . '">' .
+				'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="" alt="" />' .
+				'</a>' . chr(10);
+		}
 
 			// hide/unhide
 		$hiddenField = $GLOBALS['TCA'][$this->table]['ctrl']['enablecolumns']['disabled'];
 		if ($userRecord[$hiddenField])	{
-			$params = '&data['.$this->table.']['.$userRecord['uid'].']['.$hiddenField.']=0';
-			$control .='<a href="#" onclick="'.htmlspecialchars('return jumpToUrl(\''.$this->doc->issueCommand($params,-1).'\');').'">'.
-					'<img'.t3lib_iconWorks::skinImg($this->backPath,'gfx/button_unhide.gif','width="11" height="10"').' title="unhide" alt="" />'.
-					'</a>'.chr(10);
+			$params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
+			$control .= '<a href="#" onclick="return jumpToUrl(\'' . htmlspecialchars($this->actionOnClick($params, -1)) . '\');">' .
+				'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="unhide" alt="" />' .
+				'</a>' . chr(10);
 		} else {
-			$params = '&data['.$this->table.']['.$userRecord['uid'].']['.$hiddenField.']=1';
-			$control .= '<a href="#" onclick="'.htmlspecialchars('return jumpToUrl(\''.$this->doc->issueCommand($params,-1).'\');').'">'.
-					'<img'.t3lib_iconWorks::skinImg($this->backPath,'gfx/button_hide.gif','width="11" height="10"').' title="hide" alt="" />'.
-					'</a>'.chr(10);
+			$params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
+			$control .= '<a href="#" onclick="return jumpToUrl(\'' . htmlspecialchars($this->actionOnClick($params, -1)) . '\');">' .
+				'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="hide" alt="" />' .
+				'</a>' . chr(10);
 		}
 
 			// delete
-		$params = '&cmd['.$this->table.']['.$userRecord['uid'].'][delete]=1';
-		$control .= '<a href="#" onclick="'.htmlspecialchars('if (confirm('.
+		$params = '&cmd['.$this->table.']['.$userRecord['uid'].'][delete]=1&SET[function]=action&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
+		$control .= '<a href="#" onclick="' . htmlspecialchars('if (confirm(' .
 			$GLOBALS['LANG']->JScharCode(
-				$GLOBALS['LANG']->getLL('deleteWarning')
-					.t3lib_BEfunc::referenceCount(
-						$this->table,
-						$userRecord['uid'],
-						' (There are %s reference(s) to this record!)'
-					)
-				).')) {jumpToUrl(\''.$this->doc->issueCommand($params,-1).'\');} return false;'
-			).'">'.
-			'<img'.t3lib_iconWorks::skinImg($this->backPath,'gfx/garbage.gif','width="11" height="12"').' title="'.$GLOBALS['LANG']->getLL('delete',1).'" alt="" />'.
-			'</a>'.chr(10);
+				$GLOBALS['LANG']->getLL('deleteWarning') .
+				t3lib_BEfunc::referenceCount(
+					$this->table,
+					$userRecord['uid'],
+					' (There are %s reference(s) to this record!)'
+				)
+			) . ')) { return jumpToUrl(\'' . $this->actionOnClick($params, t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name']), $this->MOD_SETTINGS) . '\'); } return false;'
+		) . '">' .
+		'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
+		'</a>' . chr(10);
 
 			// swith user / switch user back
 		if( ! $userRecord[$hiddenField] && $GLOBALS['BE_USER']->isAdmin() ){
@@ -472,9 +470,23 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 	 * @return	string
 	 * @see template::issueCommand()
 	 */
-	function editOnClick($params,$backPath='',$requestUri='')	{
-		$retUrl = 'returnUrl='.($requestUri==-1?"'+T3_THIS_LOCATION+'":rawurlencode($requestUri?$requestUri:t3lib_div::getIndpEnv('REQUEST_URI')));
-		return "window.location.href='".$backPath."index.php?".$retUrl.$params."'; return false;";
+	function editOnClick($params, $requestUri = '') {
+		$retUrl = '&returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : t3lib_div::getIndpEnv('REQUEST_URI')));
+		return "window.location.href='" . t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $retUrl . $params . "'; return false;";
+	}
+
+	/**
+	 * create link for the hide/unhide and delete icon.
+	 * not using tce_db.php, because we need to manipulate user's permission
+	 *
+	 * @param	string		param with command (hide/unhide, delete) and records id
+	 * @param	string		redirect link, after process the command
+	 * @return	string		jumpTo URL link with redirect
+	 */
+	function actionOnClick($params, $requestURI = '') {
+		$redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : t3lib_div::getIndpEnv('REQUEST_URI'))) .
+			'&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
+		return t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect;
 	}
 
 	/**

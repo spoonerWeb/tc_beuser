@@ -22,24 +22,10 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
+$GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod5/locallang.xml');
+$GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
 
-	// DEFAULT initialization of a module [BEGIN]
-unset($MCONF);
-require_once('conf.php');
-require_once($BACK_PATH.'init.php');
-require_once($BACK_PATH.'template.php');
-
-$extPath = t3lib_extMgm::extPath('tc_beuser');
-require_once($extPath.'class.tx_tcbeuser_recordlist.php');
-$LANG->includeLLFile('EXT:tc_beuser/mod5/locallang.xml');
-$LANG->includeLLFile('EXT:lang/locallang_alt_doc.xml');
-require_once(PATH_t3lib.'class.t3lib_scbase.php');
-require_once(PATH_t3lib.'class.t3lib_tceforms.php');
-require_once(PATH_t3lib.'class.t3lib_transferdata.php');
-require_once(PATH_t3lib.'class.t3lib_tcemain.php');
-require_once($extPath.'class.tx_tcbeuser_editform.php');
-
-$BE_USER->modAccess($MCONF,1);	// This checks permissions and exits if the users has no permission for entry.
+$GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits if the users has no permission for entry.
 	// DEFAULT initialization of a module [END]
 
 
@@ -70,6 +56,9 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		$access = $GLOBALS['BE_USER']->modAccess($this->MCONF, true);
 
 		if ($access || $GLOBALS['BE_USER']->isAdmin()) {
+			// We need some uid in rootLine for the access check, so use first webmount
+			$webmounts = $GLOBALS['BE_USER']->returnWebmounts();
+			$this->pageinfo['uid'] = $webmounts[0];
 
 			$title = $GLOBALS['LANG']->getLL('title');
 			$menu  = t3lib_BEfunc::getFuncMenu(
@@ -132,7 +121,8 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		}
 
 			// Setting return URL
-		$this->retUrl = $this->returnUrl ? $this->returnUrl : 'index.php?SET[function]=1';
+		$this->retUrl = $this->returnUrl ? $this->returnUrl
+			: t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
 
 			// Make R_URL (request url) based on input GETvars:
 		$this->R_URL_parts = parse_url(t3lib_div::getIndpEnv('REQUEST_URI'));
@@ -307,7 +297,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 */
 	function closeDocument(){
 		if($this->retUrl == 'dummy.php'){
-			$this->retUrl = 'index.php?SET[function]=1';
+			$this->retUrl = t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
 		}
 		$retUrl = explode('/', $this->retUrl);
 		$this->retUrl = $retUrl[count($retUrl)-1];
@@ -464,9 +454,9 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 						Link for creating a new record:
 					-->
 		<div id="typo3-newRecordLink">
-		<a href="index.php?SET[function]=2">'.
-		'<img'.t3lib_iconWorks::skinImg($this->doc->backPath,'gfx/new_el.gif','width="11" height="12"').' alt="'.$GLOBALS['LANG']->getLL('create-filemount').'" />'.
-		$GLOBALS['LANG']->getLL('create-filemount').
+		<a href="' . t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 2)) . '">' .
+		'<img' . t3lib_iconWorks::skinImg($this->doc->backPath, 'gfx/new_el.gif', 'width="11" height="12"') . ' alt="' . $GLOBALS['LANG']->getLL('create-filemount') . '" />' .
+		$GLOBALS['LANG']->getLL('create-filemount') .
 		'</a>';
 
 		$this->jsCode .= $this->doc->redirectUrls($dblist->listURL())."\n";

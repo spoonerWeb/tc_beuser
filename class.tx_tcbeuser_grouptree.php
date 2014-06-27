@@ -22,8 +22,6 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-require_once (PATH_t3lib.'class.t3lib_treeview.php');
-
 /**
  * class.tx_tcbeuser_grouptree.php
  *
@@ -49,26 +47,26 @@ class tx_tcbeuser_groupTree extends t3lib_treeView {
 		$this->table    = 'be_groups';
 		$this->treeName = 'groups';
 	}
-	
+
 	/**
 	 * recursivly builds a data array from a root $id which is than used to
 	 * build a tree from it.
-	 * 
+	 *
 	 * @param	integer	$id: the root id from where to start
 	 * @return	array	hierarical array with tree data
 	 */
 	function buildTree($id) {
 		$tree = array();
-		
+
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 			'uid, title, subgroup',
 			'be_groups',
 			'deleted = 0 AND uid = '.$id
 		);
-		
+
 		$row         = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
-		$tree[$id]   = $row;	
-					
+		$tree[$id]   = $row;
+
 		if($row['subgroup']) {
 			$subGroups = t3lib_div::intExplode(',', $row['subgroup']);
 			foreach($subGroups as $newGroupId) {

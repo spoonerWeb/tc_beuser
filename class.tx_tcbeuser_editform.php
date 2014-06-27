@@ -22,14 +22,11 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-require_once(PATH_t3lib.'class.t3lib_transferdata.php');
-require_once(PATH_t3lib.'class.t3lib_div.php');
-
 class tx_tcbeuser_editform{
 
 	/**
 	 * ingo.renner@dkd.de: from alt_doc.php
-	 * 
+	 *
 	 * Creates the editing form with TCEforms, based on the input from GPvars.
 	 *
 	 * @return	string		HTML form elements wrapped in tables
@@ -37,24 +34,24 @@ class tx_tcbeuser_editform{
 
 	function makeEditForm(){
 		global $BE_USER,$LANG,$TCA;
-		
+
 			// Initialize variables:
 		$this->elementsData=array();
 		$this->errorC=0;
 		$this->newC=0;
 		$thePrevUid='';
 		$editForm='';
-	
+
 			// Traverse the GPvar edit array
 		foreach($this->editconf as $table => $conf)	{	// Tables:
-			if (is_array($conf) && $TCA[$table] && $BE_USER->check('tables_modify',$table))	{	
+			if (is_array($conf) && $TCA[$table] && $BE_USER->check('tables_modify',$table))	{
 					// Traverse the keys/comments of each table (keys can be a commalist of uids)
 				foreach($conf as $cKey => $cmd)	{
 					if ($cmd=='edit' || $cmd=='new')	{
-	
+
 							// Get the ids:
 						$ids = t3lib_div::trimExplode(',',$cKey,1);
-	
+
 							// Traverse the ids:
 						foreach($ids as $theUid)	{
 
@@ -64,11 +61,14 @@ class tx_tcbeuser_editform{
 							$deniedAccessReason = '';
 							$deleteAccess = 0;
 							$this->viewId = 0;
-	
+
+							// We need some uid in rootLine for the access check, so use first webmount
+							$webmounts = $GLOBALS['BE_USER']->returnWebmounts();
+
 								// If the command is to create a NEW record...:
 							if ($cmd=='new')	{
 								if (intval($theUid))	{		// NOTICE: the id values in this case points to the page uid onto which the record should be create OR (if the id is negativ) to a record from the same table AFTER which to create the record.
-	
+
 										// Find parent page on which the new record reside
 									if ($theUid<0)	{	// Less than zero - find parent page
 										$calcPRec=t3lib_BEfunc::getRecord($table,abs($theUid));
@@ -76,7 +76,7 @@ class tx_tcbeuser_editform{
 									} else {	// always a page
 										$calcPRec=t3lib_BEfunc::getRecord('pages',abs($theUid));
 									}
-	
+
 										// Now, calculate whether the user has access to creating new records on this position:
 									if (is_array($calcPRec))	{
 										$CALC_PERMS = $BE_USER->calcPerms($calcPRec);	// Permissions for the parent page
@@ -100,17 +100,17 @@ class tx_tcbeuser_editform{
 										$deleteAccess = $CALC_PERMS&4 ? 1 : 0;
 										$this->viewId = $calcPRec['uid'];
 									} else {
-										$CALC_PERMS = $BE_USER->calcPerms(t3lib_BEfunc::getRecord('pages',$calcPRec['pid']));	// Fetching pid-record first.
+										$CALC_PERMS = $BE_USER->calcPerms(array('uid' => $webmounts[0]));	// Fetching pid-record first.
 										$hasAccess = $CALC_PERMS&16 ? 1 : 0;
 										$deleteAccess = $CALC_PERMS&16 ? 1 : 0;
 										$this->viewId = $calcPRec['pid'];
-	
+
 											// Adding "&L=xx" if the record being edited has a languageField with a value larger than zero!
 										if ($TCA[$table]['ctrl']['languageField'] && $calcPRec[$TCA[$table]['ctrl']['languageField']]>0)	{
 											$this->viewId_addParams = '&L='.$calcPRec[$TCA[$table]['ctrl']['languageField']];
 										}
 									}
-	
+
 										// Check internals regarding access:
 									if ($hasAccess)	{
 										$hasAccess = $BE_USER->recordEditAccessInternals($table, $calcPRec);
@@ -118,9 +118,9 @@ class tx_tcbeuser_editform{
 									}
 								} else $hasAccess = 0;
 							}
-	
+
 							// AT THIS POINT we have checked the access status of the editing/creation of records and we can now proceed with creating the form elements:
-	
+
 							if ($hasAccess)	{
 								$prevPageID = is_object($trData)?$trData->prevPageID:'';
 								$trData = t3lib_div::makeInstance('t3lib_transferData');
@@ -143,7 +143,7 @@ class tx_tcbeuser_editform{
 									'cmd' => $cmd,
 									'deleteAccess' => $deleteAccess
 								);
-								
+
 								if($cmd == 'new'){
 									if(is_array($this->inputData)){
 										$table1 = array_keys($this->inputData);
@@ -154,7 +154,7 @@ class tx_tcbeuser_editform{
 										}
 									}
 								}
-								
+
 								//dkd-kartolo
 								//put feusers data in the be_users form as new be_users
 								if(!empty($this->feID) && $table=='be_users'){
@@ -165,25 +165,25 @@ class tx_tcbeuser_editform{
 									$rec['email'] = $row['email'];
 									$rec['password'] = md5($row['password']);
 								}
-								
+
 									// Now, render the form:
-								if (is_array($rec))	{	
+								if (is_array($rec))	{
 										// Setting visual path / title of form:
 									$this->generalPathOfForm = $this->tceforms->getRecordPath($table,$rec);
 									if (!$this->storeTitle)	{
 										$this->storeTitle = $this->recTitle ? htmlspecialchars($this->recTitle) : t3lib_BEfunc::getRecordTitle($table,$rec,1);
 									}
-	
+
 										// Setting variables in TCEforms object:
 									$this->tceforms->hiddenFieldList = '';
 									$this->tceforms->globalShowHelp = $this->disHelp ? 0 : 1;
 									if (is_array($this->overrideVals[$table]))	{
 										$this->tceforms->hiddenFieldListArr = array_keys($this->overrideVals[$table]);
 									}
-	
+
 										// Register default language labels, if any:
 									$this->tceforms->registerDefaultLanguageData($table,$rec);
-									
+
 									//dkd-kartolo
 									//put list of users in the 'members' field
 									//used to render list of member in the be_groups form
@@ -194,7 +194,7 @@ class tx_tcbeuser_editform{
 											'usergroup like '.$GLOBALS['TYPO3_DB']->fullQuoteStr('%'.$rec['uid'].'%','be_users').
 												t3lib_befunc::deleteClause('be_users')
 										);
-										
+
 										$users = array();
 										if($GLOBALS['TYPO3_DB']->sql_num_rows($res)>0){
 											while($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)){
@@ -206,7 +206,7 @@ class tx_tcbeuser_editform{
 										$users = implode(',', $users);
 										$rec['members']=$users;
 									}
-									
+
 									//dkd-kartolo
 									//mod3, read TSconfig createWithPrefix
 									if($table == 'be_groups'){
@@ -216,15 +216,15 @@ class tx_tcbeuser_editform{
 												$rec['title']=$TSconfig['createWithPrefix'];
 											}
 										}
-										
+
 										if(strstr($rec['TSconfig'],'tx_tcbeuser') && $GLOBALS['BE_USER']->user['admin'] != 1){
 											$columnsOnly = explode(',',$this->columnsOnly);
 											$this->columnsOnly = implode(',',t3lib_div::removeArrayEntryByValue($columnsOnly,'TSconfig'));
 											$this->error[] = array('info',$LANG->getLL('tsconfig-disabled'));
 										}
 									}
-									
-									
+
+
 										// Create form for the record (either specific list of fields or the whole record):
 									$panel = '';
 
@@ -238,7 +238,7 @@ class tx_tcbeuser_editform{
 										$panel.= $this->tceforms->getMainFields($table,$rec);
 									}
 									$panel = $this->tceforms->wrapTotal($panel,$rec,$table);
-									
+
 									//dkd-kartolo
 									$panel = str_replace($this->tceforms->backPath.$this->tceforms->backPath, $this->tceforms->backPath, $panel);
 									$panel = str_replace('height: 2px; padding-top: 0px; padding-left: 4px;', 'height: 16px; padding-top: 2px; padding-left: 22px;',$panel);
@@ -247,11 +247,11 @@ class tx_tcbeuser_editform{
 										$panel.= '<input type="hidden" name="data['.$table.']['.$rec['uid'].'][pid]" value="'.$rec['pid'].'" />';
 										$this->newC++;
 									}
-									
+
 										// Display "is-locked" message:
 									if ($lockInfo = t3lib_BEfunc::isRecordLocked($table,$rec['uid']) || $this->error)	{
 										if(is_array($lockInfo)){
-											$lockIcon = '		
+											$lockIcon = '
 												<tr>
 													<td><img'.t3lib_iconWorks::skinImg($this->tceforms->backPath,'gfx/recordlock_warning3.gif','width="17" height="12"').' alt="" /></td>
 													<td>'.htmlspecialchars($lockInfo['msg']).'</td>
@@ -275,7 +275,7 @@ class tx_tcbeuser_editform{
 											$error = '';
 										}
 										$errorMsg = '
-									
+
 											<!--
 											 	Warning box:
 											-->
@@ -284,11 +284,11 @@ class tx_tcbeuser_editform{
 											</table>
 										';
 									} else $errorMsg = '';
-	
+
 										// Combine it all:
 									$editForm.= $errorMsg.$panel;
 								}
-	
+
 								$thePrevUid = $rec['uid'];
 							} else {
 								$this->errorC++;
@@ -300,7 +300,7 @@ class tx_tcbeuser_editform{
 				}
 			}
 		}
-	
+
 		return $editForm;
 	}
 }

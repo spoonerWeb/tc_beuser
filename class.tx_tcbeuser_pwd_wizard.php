@@ -22,9 +22,6 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-$extPath = t3lib_extMgm::extPath('tc_beuser');
-//$LANG->includeLLFile('EXT:tc_beuser/mod2/locallang.xml');
-
 /**
  * class.tx_tcbeuser_pwd_wizard.php
  *
