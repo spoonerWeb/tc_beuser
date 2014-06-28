@@ -90,7 +90,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 			$this->content .= $this->doc->divider(5);
 
 			$this->content .= $moduleContent;
-			if ($GLOBALS['BE_USER']->mayMakeShortcut())	{
+			if ($GLOBALS['BE_USER']->mayMakeShortcut()) {
 				$this->content .= $this->doc->spacer(20).
 							$this->doc->section('',$this->doc->makeShortcutIcon('','',$this->MCONF['name']));
 			}
@@ -102,7 +102,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 *
 	 * @return	void
 	 */
-	function preInit()	{
+	function preInit() {
 		global $BE_USER;
 
 			// Setting GPvars:
@@ -116,20 +116,19 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		$this->returnEditConf = t3lib_div::_GP('returnEditConf');
 
 			// Setting override values as default if defVals does not exist.
-		if (!is_array($this->defVals) && is_array($this->overrideVals))	{
+		if (!is_array($this->defVals) && is_array($this->overrideVals)) {
 			$this->defVals = $this->overrideVals;
 		}
 
 			// Setting return URL
-		$this->retUrl = $this->returnUrl ? $this->returnUrl
-			: t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
+		$this->retUrl = $this->returnUrl ? $this->returnUrl : t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
 
 			// Make R_URL (request url) based on input GETvars:
 		$this->R_URL_parts = parse_url(t3lib_div::getIndpEnv('REQUEST_URI'));
 		$this->R_URL_getvars = t3lib_div::_GET();
 		$this->R_URL_getvars['edit'] = $this->editconf;
 
-		if ($this->closeDoc > 0 )	{
+		if ($this->closeDoc > 0 ) {
 			$this->closeDocument();
 		}
 	}
@@ -139,7 +138,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 *
 	 * @return	boolean		True, then save the document (data submitted)
 	 */
-	function doProcessData()	{
+	function doProcessData() {
 		$out = $this->doSave || isset($_POST['_savedok_x']) || isset($_POST['_saveandclosedok_x']) || isset($_POST['_savedokview_x']) || isset($_POST['_savedoknew_x']);
 		return $out;
 	}
@@ -149,10 +148,10 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 *
 	 * @return	void
 	 */
-	function processData()	{
+	function processData() {
 		global $BE_USER,$TYPO3_CONF_VARS;
 
-		if($BE_USER->user['admin'] != 1){
+		if($BE_USER->user['admin'] != 1) {
 			//make fake Admin
 			tx_tcbeuser_config::fakeAdmin();
 			$fakeAdmin = 1;
@@ -164,10 +163,10 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		$this->disableRTE = t3lib_div::_GP('_disableRTE');
 
 			//set path to be relative to fileadmin
-		if (is_array($this->data)){
+		if (is_array($this->data)) {
 			$table = array_keys($this->data);
 			$uid = array_keys($this->data[$table[0]]);
-			if(!is_numeric($uid)){
+			if(!is_numeric($uid)) {
 				$this->data[$table[0]][$uid[0]]['base']=1;
 
 				//check the new path
@@ -178,10 +177,11 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 				);
 
 				$pathExists = false;
-				if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) > 0){
-					while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)){
-						if($row['uid'] != $uid[0])
+				if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) > 0) {
+					while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+						if($row['uid'] != $uid[0]) {
 							$pathExists = true;
+						}
 					}
 				}
 			}
@@ -192,101 +192,105 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 				// See tce_db.php for relevate options here:
 				// Only options related to $this->data submission are included here.
 			$tce = t3lib_div::makeInstance('t3lib_TCEmain');
-			$tce->stripslashes_values=0;
+			$tce->stripslashes_values = 0;
 
 				// Setting default values specific for the user:
 			$TCAdefaultOverride = $BE_USER->getTSConfigProp('TCAdefaults');
-			if (is_array($TCAdefaultOverride))	{
+			if (is_array($TCAdefaultOverride)) {
 				$tce->setDefaultsFromUserTS($TCAdefaultOverride);
 			}
 
 				// Setting internal vars:
-			if ($BE_USER->uc['neverHideAtCopy'])	{	$tce->neverHideAtCopy = 1;	}
-			$tce->debug=0;
+			if ($BE_USER->uc['neverHideAtCopy']) {
+				$tce->neverHideAtCopy = 1;
+			}
+			$tce->debug = 0;
 			$tce->disableRTE = $this->disableRTE;
 
 				// Loading TCEmain with data:
 			$tce->start($this->data,$this->cmd);
-			if (is_array($this->mirror))	{	$tce->setMirror($this->mirror);	}
+			if (is_array($this->mirror)) {
+				$tce->setMirror($this->mirror);
+			}
 
 				// If pages are being edited, we set an instruction about updating the page tree after this operation.
-			if (isset($this->data['pages']))	{
+			if (isset($this->data['pages'])) {
 				t3lib_BEfunc::setUpdateSignal('updatePageTree');
 			}
 
 
 				// Checking referer / executing
-			$refInfo=parse_url(t3lib_div::getIndpEnv('HTTP_REFERER'));
+			$refInfo = parse_url(t3lib_div::getIndpEnv('HTTP_REFERER'));
 			$httpHost = t3lib_div::getIndpEnv('TYPO3_HOST_ONLY');
-			if ($httpHost!=$refInfo['host'] && $this->vC!=$BE_USER->veriCode() && !$TYPO3_CONF_VARS['SYS']['doNotCheckReferer'])	{
+			if ($httpHost!=$refInfo['host'] && $this->vC!=$BE_USER->veriCode() && !$TYPO3_CONF_VARS['SYS']['doNotCheckReferer']) {
 				$tce->log('',0,0,0,1,"Referer host '%s' and server host '%s' did not match and veriCode was not valid either!",1,array($refInfo['host'],$httpHost));
 				debug('Error: Referer host did not match with server host.');
 			} else {
-
 					// Perform the saving operation with TCEmain:
 				$tce->process_uploads($_FILES);
 				$tce->process_datamap();
 				$tce->process_cmdmap();
 
 					// If there was saved any new items, load them:
-				if (count($tce->substNEWwithIDs_table))	{
-
+				if (count($tce->substNEWwithIDs_table)) {
 						// Resetting editconf:
 					$this->editconf = array();
 
 						// Traverse all new records and forge the content of ->editconf so we can continue to EDIT these records!
-					foreach($tce->substNEWwithIDs_table as $nKey => $nTable)	{
+					foreach($tce->substNEWwithIDs_table as $nKey => $nTable) {
 						$editId = $tce->substNEWwithIDs[$nKey];
 							// translate new id to the workspace version:
-						if ($versionRec = t3lib_BEfunc::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace, $nTable, $editId,'uid'))	{
+						if ($versionRec = t3lib_BEfunc::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace, $nTable, $editId,'uid')) {
 							$editId = $versionRec['uid'];
 						}
 
 						$this->editconf[$nTable][$editId]='edit';
-						if ($nTable=='pages' && $this->retUrl!='dummy.php' && $this->returnNewPageId)	{
-							$this->retUrl.='&id='.$tce->substNEWwithIDs[$nKey];
+						if ($nTable=='pages' && $this->retUrl!='dummy.php' && $this->returnNewPageId) {
+							$this->retUrl .= '&id='.$tce->substNEWwithIDs[$nKey];
 						}
 					}
 				}
 
 					// See if any records was auto-created as new versions?
-				if (count($tce->autoVersionIdMap))	{
+				if (count($tce->autoVersionIdMap)) {
 					$this->fixWSversioningInEditConf($tce->autoVersionIdMap);
 				}
 
 					// If a document is saved and a new one is created right after.
-				if (isset($_POST['_savedoknew_x']) && is_array($this->editconf))	{
+				if (isset($_POST['_savedoknew_x']) && is_array($this->editconf)) {
 
 						// Finding the current table:
 					reset($this->editconf);
-					$nTable=key($this->editconf);
+					$nTable = key($this->editconf);
 
 						// Finding the first id, getting the records pid+uid
 					reset($this->editconf[$nTable]);
-					$nUid=key($this->editconf[$nTable]);
+					$nUid = key($this->editconf[$nTable]);
 					$nRec = t3lib_BEfunc::getRecord($nTable,$nUid,'pid,uid');
 
 						// Setting a blank editconf array for a new record:
-					$this->editconf=array();
-					if ($this->getNewIconMode($nTable)=='top')	{
-						$this->editconf[$nTable][$nRec['pid']]='new';
+					$this->editconf = array();
+					if ($this->getNewIconMode($nTable)=='top') {
+						$this->editconf[$nTable][$nRec['pid']] = 'new';
 					} else {
-						$this->editconf[$nTable][-$nRec['uid']]='new';
+						$this->editconf[$nTable][-$nRec['uid']] = 'new';
 					}
 				}
 
 				$tce->printLogErrorMessages(
 					isset($_POST['_saveandclosedok_x']) ?
 					$this->retUrl :
-					$this->R_URL_parts['path'].'?'.t3lib_div::implodeArrayForUrl('',$this->R_URL_getvars)	// popView will not be invoked here, because the information from the submit button for save/view will be lost .... But does it matter if there is an error anyways?
+						// popView will not be invoked here, because the information from the submit button for save/view will be lost .... But does it matter if there is an error anyways?
+					$this->R_URL_parts['path'].'?'.t3lib_div::implodeArrayForUrl('',$this->R_URL_getvars)
 				);
 			}
-			if (isset($_POST['_saveandclosedok_x']) || $this->closeDoc<0)	{	//  || count($tce->substNEWwithIDs)... If any new items has been save, the document is CLOSED because if not, we just get that element re-listed as new. And we don't want that!
+			if (isset($_POST['_saveandclosedok_x']) || $this->closeDoc<0) {
+				//  || count($tce->substNEWwithIDs)... If any new items has been save, the document is CLOSED because if not, we just get that element re-listed as new. And we don't want that!
 				$this->closeDocument(abs($this->closeDoc));
 			}
 		}
 
-		if($fakeAdmin){
+		if($fakeAdmin) {
 			tx_tcbeuser_config::removeFakeAdmin();
 		}
 	}
@@ -295,8 +299,8 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	/**
 	 * close the document and send to the previous page
 	 */
-	function closeDocument(){
-		if($this->retUrl == 'dummy.php'){
+	function closeDocument() {
+		if($this->retUrl == 'dummy.php') {
 			$this->retUrl = t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
 		}
 		$retUrl = explode('/', $this->retUrl);
@@ -323,7 +327,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 
 		$this->jsCode = '
 			script_ended = 0;
-			function jumpToUrl(URL)	{
+			function jumpToUrl(URL) {
 				document.location = URL;
 			}
 		';
@@ -341,16 +345,6 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		if($SET['function'] == 'action'){
 			$this->MOD_SETTINGS['function'] = $SET['function'];
 		}
-
-//			// if going to edit a record, a menu item is dynamicaly added to
-//			// the dropdown which is otherwise not visible
-//		$SET = t3lib_div::_GET('SET');
-//		if(isset($SET['function']) && $SET['function'] == 'edit') {
-//			$this->MOD_SETTINGS['function'] = $SET['function'];
-//			$this->MOD_MENU['function']['edit'] = $GLOBALS['LANG']->getLL('edit-group');
-//			$this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';
-//			$this->editconf = t3lib_div::_GET('edit');
-//		}
 	}
 
 	/**
@@ -358,7 +352,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 *
 	 * @return	void
 	 */
-	function menuConfig()	{
+	function menuConfig() {
 		$this->MOD_MENU = array (
 			'function' => array (
 				'1' => $GLOBALS['LANG']->getLL('list-filemounts'),
@@ -372,7 +366,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	/**
 	 * Generates the module content
 	 *
-	 * @return	void
+	 * @return	string
 	 */
 	function moduleContent() {
 		$content = '';
@@ -381,7 +375,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 			$this->MOD_SETTINGS['function'] = 'edit';
 		}
 
-		switch((string)$this->MOD_SETTINGS['function'])	{
+		switch((string)$this->MOD_SETTINGS['function']) {
 			case '1':
 					// list Filemounts
 				$content .= $this->doc->section(
@@ -404,10 +398,6 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 				);
 			break;
 			case 'edit':
-					// edit Filemount
-				#$param = t3lib_div::_GET('edit');
-				#$beuserUid = array_search('edit', $param['be_users']);
-
 				$content .= $this->doc->section(
 					'',
 					$this->getFilemountEdit()
@@ -423,7 +413,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		return $content;
 	}
 
-	function printContent()	{
+	function printContent() {
 		$this->content .= $this->doc->endPage();
 		echo $this->content;
 	}
@@ -492,19 +482,20 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		$this->editForm->error = $this->error;
 		$this->editForm->inputData = $this->data;
 
-		$editForm = $this->editForm->makeEditForm();//.$GLOBALS['LANG']->getLL('filemount-msg').'<br /><br />';
+		$editForm = $this->editForm->makeEditForm();
 		$this->viewId = $this->editForm->viewId;
 
-		if ($editForm)	{ // ingo.renner@dkd.de
+		if ($editForm) {
+			// ingo.renner@dkd.de
 			reset($this->editForm->elementsData);
 			$this->firstEl = current($this->editForm->elementsData);
 
-			if ($this->viewId)	{
+			if ($this->viewId) {
 					// Module configuration:
 				$this->modTSconfig = t3lib_BEfunc::getModTSconfig($this->viewId,'mod.xMOD_alt_doc');
 			} else $this->modTSconfig=array();
 
-			$panel  = $this->makeButtonPanel();
+			$panel = $this->makeButtonPanel();
 			$formContent = $this->compileForm($panel,'','',$editForm);
 
 			$content .= $this->tceforms->printNeededJSFunctions_top().
@@ -523,14 +514,14 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 *
 	 * @return	string		HTML code, comprised of images linked to various actions.
 	 */
-	function makeButtonPanel()	{
+	function makeButtonPanel() {
 		global $TCA,$LANG;
 
 		$panel='';
 
 			// Render SAVE type buttons:
 			// The action of each button is decided by its name attribute. (See doProcessData())
-		if (!$this->errorC && !$TCA[$this->firstEl['table']]['ctrl']['readOnly'])	{
+		if (!$this->errorC && !$TCA[$this->firstEl['table']]['ctrl']['readOnly']) {
 
 				// SAVE button:
 			$panel.= '<input type="image" class="c-inputButton" name="_savedok"'.t3lib_iconWorks::skinImg($this->doc->backPath,'gfx/savedok.gif','').' title="'.$LANG->sL('LLL:EXT:lang/locallang_core.php:rm.saveDoc',1).'" />';
@@ -545,13 +536,13 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 				'</a>';
 
 			// UNDO buttons:
-		if (!$this->errorC && !$TCA[$this->firstEl['table']]['ctrl']['readOnly'] && count($this->elementsData)==1)	{
-			if ($this->firstEl['cmd']!='new' && t3lib_div::testInt($this->firstEl['uid']))	{
+		if (!$this->errorC && !$TCA[$this->firstEl['table']]['ctrl']['readOnly'] && count($this->elementsData)==1) {
+			if ($this->firstEl['cmd']!='new' && t3lib_div::testInt($this->firstEl['uid'])) {
 
 					// Undo:
 				$undoButton = 0;
 				$undoRes = $GLOBALS['TYPO3_DB']->exec_SELECTquery('tstamp', 'sys_history', 'tablename='.$GLOBALS['TYPO3_DB']->fullQuoteStr($this->firstEl['table'], 'sys_history').' AND recuid='.intval($this->firstEl['uid']), '', 'tstamp DESC', '1');
-				if ($undoButtonR = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($undoRes))	{
+				if ($undoButtonR = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($undoRes)) {
 					$undoButton = 1;
 				}
 				if ($undoButton) {
@@ -562,7 +553,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 				}
 
 					// If only SOME fields are shown in the form, this will link the user to the FULL form:
-				if ($this->columnsOnly)	{
+				if ($this->columnsOnly) {
 					$panel.= '<a href="'.htmlspecialchars($this->R_URI.'&columnsOnly=').'">'.
 							'<img'.t3lib_iconWorks::skinImg($this->doc->backPath,'gfx/edit2.gif','width="11" height="12"').' class="c-inputButton" title="'.$LANG->getLL('editWholeRecord',1).'" alt="" />'.
 							'</a>';
@@ -582,12 +573,11 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 * @param	string		Language selector HTML for localization
 	 * @return	string		Composite HTML
 	 */
-	function compileForm($panel,$docSel,$cMenu,$editForm, $langSelector='')	{
+	function compileForm($panel,$docSel,$cMenu,$editForm, $langSelector='') {
 		global $LANG;
 
-
-		$formContent='';
-		$formContent.='
+		$formContent = '';
+		$formContent .= '
 
 			<!--
 			 	Header of the editing page.
@@ -611,16 +601,11 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 				</tr>
 			</table>
 
-
-
-
 			<!--
 			 	EDITING FORM:
 			-->
 
 			'.$editForm.'
-
-
 
 			<!--
 			 	Saving buttons (same as in top)
@@ -630,17 +615,17 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 			'<input type="hidden" name="returnUrl" value="'.htmlspecialchars($this->retUrl).'" />
 			<input type="hidden" name="viewUrl" value="'.htmlspecialchars($this->viewUrl).'" />';
 
-		if ($this->returnNewPageId)	{
-			$formContent.='<input type="hidden" name="returnNewPageId" value="1" />';
+		if ($this->returnNewPageId) {
+			$formContent .= '<input type="hidden" name="returnNewPageId" value="1" />';
 		}
-		$formContent.='<input type="hidden" name="popViewId" value="'.htmlspecialchars($this->viewId).'" />';
+		$formContent .= '<input type="hidden" name="popViewId" value="'.htmlspecialchars($this->viewId).'" />';
 		if ($this->viewId_addParams) {
-			$formContent.='<input type="hidden" name="popViewId_addParams" value="'.htmlspecialchars($this->viewId_addParams).'" />';
+			$formContent .= '<input type="hidden" name="popViewId_addParams" value="'.htmlspecialchars($this->viewId_addParams).'" />';
 		}
-		$formContent.='<input type="hidden" name="closeDoc" value="0" />';
-		$formContent.='<input type="hidden" name="doSave" value="0" />';
-		$formContent.='<input type="hidden" name="_serialNumber" value="'.md5(microtime()).'" />';
-		$formContent.='<input type="hidden" name="_disableRTE" value="'.$this->tceforms->disableRTE.'" />';
+		$formContent .= '<input type="hidden" name="closeDoc" value="0" />';
+		$formContent .= '<input type="hidden" name="doSave" value="0" />';
+		$formContent .= '<input type="hidden" name="_serialNumber" value="'.md5(microtime()).'" />';
+		$formContent .= '<input type="hidden" name="_disableRTE" value="'.$this->tceforms->disableRTE.'" />';
 
 		return $formContent;
 	}
@@ -655,7 +640,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 
 
 
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php'])	{
+if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php']) {
 	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php']);
 }
 
@@ -667,10 +652,13 @@ $SOBE = t3lib_div::makeInstance('tx_tcbeuser_module5');
 $SOBE->init();
 
 // Include files?
-foreach($SOBE->include_once as $INC_FILE)	include_once($INC_FILE);
+foreach($SOBE->include_once as $INC_FILE) {
+	include_once($INC_FILE);
+}
 
 $SOBE->preInit();
-if ($SOBE->doProcessData())	{		// Checks, if a save button has been clicked (or the doSave variable is sent)
+if ($SOBE->doProcessData()) {
+	// Checks, if a save button has been clicked (or the doSave variable is sent)
 	$SOBE->processData();
 }
 

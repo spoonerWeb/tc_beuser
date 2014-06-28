@@ -32,7 +32,7 @@ class tx_tcbeuser_compatibility implements t3lib_Singleton {
 	protected $isVersion6 = FALSE;
 
 	/**
-	 * @return tx_ttnews_compatibility
+	 * @return tx_tcbeuser_compatibility
 	 */
 	public static function getInstance() {
 		return t3lib_div::makeInstance('tx_tcbeuser_compatibility');

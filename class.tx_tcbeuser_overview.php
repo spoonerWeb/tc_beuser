@@ -66,7 +66,7 @@ class tx_tcbeuser_overview {
 	 * @param	string	$backPath
 	 * @return	string
 	 */
-	function handleMethod ( $method, $groupId, $open=false, $backPath='' )	{
+	function handleMethod ($method, $groupId, $open=false, $backPath='') {
 		$content = '';
 		$method = trim(strval($method));
 		$groupId = intval($groupId);
@@ -76,8 +76,8 @@ class tx_tcbeuser_overview {
 		$webmounts = $GLOBALS['BE_USER']->returnWebmounts();
 		$this->pageinfo['uid'] = $webmounts[0];
 
-		if ( in_array( $method, $this->availableMethods ) )	{
-			$content = $this->$method( $groupId, $open, $backPath );
+		if (in_array($method, $this->availableMethods)) {
+			$content = $this->$method($groupId, $open, $backPath);
 		}
 
 		return $content;
@@ -96,7 +96,7 @@ class tx_tcbeuser_overview {
 			if ($groupId != 0){
 				$tree = $this->getGroupTree($groupId);
 
-				foreach($tree as $row)	{
+				foreach($tree as $row) {
 					$tCells = $this->renderListRow($setCols, $row,'');
 
 					$out .= '
@@ -130,10 +130,8 @@ class tx_tcbeuser_overview {
 		$groups = t3lib_div::intExplode(',', $row['uid']);
 		foreach($groups as $groupId) {
 			$tree = $this->getGroupTree($groupId);
-
-			foreach($tree as $row)	{
+			foreach($tree as $row) {
 				$tCells = $this->renderListRow($setCols, $row, '');
-
 				$out .= '
 <tr class="db_list_normal">
 	'.implode('',$tCells).'
@@ -151,7 +149,6 @@ class tx_tcbeuser_overview {
 
 	function renderListHeader($setCols) {
 		$content = '';
-
 		$content .= '
 			<tr>
 				<td class="t3-row-header" colspan="'.(count($setCols) + 2).'">&nbsp;</td>
@@ -379,7 +376,7 @@ class tx_tcbeuser_overview {
 
 			$pageTypes = explode(',', $row['pagetypes_select']);
 			reset($pageTypes);
-			while(list($kk,$vv) = each($pageTypes))	{
+			while(list($kk,$vv) = each($pageTypes)) {
 				if(!empty($vv)) {
 					$ptIcon = t3lib_iconWorks::getIconImage(
 						'pages',
@@ -421,7 +418,7 @@ class tx_tcbeuser_overview {
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 			$tablesSelect = explode(',', $row['tables_select']);
 			reset($tablesSelect);
-			while(list($kk,$vv) = each($tablesSelect))	{
+			while(list($kk,$vv) = each($tablesSelect)) {
 				if(!empty($vv)) {
 					$ptIcon = t3lib_iconWorks::getIconImage(
 						$vv,
@@ -463,7 +460,7 @@ class tx_tcbeuser_overview {
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 			$tablesModify = explode(',', $row['tables_modify']);
 			reset($tablesModify);
-			while(list($kk,$vv) = each($tablesModify))	{
+			while(list($kk,$vv) = each($tablesModify)) {
 				if(!empty($vv)) {
 					$ptIcon = t3lib_iconWorks::getIconImage(
 						$vv,
@@ -505,7 +502,7 @@ class tx_tcbeuser_overview {
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 			$non_exclude_fields = explode(',', $row['non_exclude_fields']);
 			reset($non_exclude_fields);
-			while(list($kk,$vv) = each($non_exclude_fields))	{
+			while(list($kk,$vv) = each($non_exclude_fields)) {
 				if(!empty($vv)) {
 					$data = explode(':',$vv);
 					$tableTitle = $GLOBALS['TCA'][$data[0]]['ctrl']['title'];
@@ -551,16 +548,17 @@ class tx_tcbeuser_overview {
 				'uid = '.$groupId
 			);
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
-			if(!empty($row['explicit_allowdeny'])){
+			if(!empty($row['explicit_allowdeny'])) {
 				$explicit_allowdeny = explode(',', $row['explicit_allowdeny']);
 				reset($explicit_allowdeny);
 				$data = '';
-				foreach($explicit_allowdeny as $val){
+
+				foreach($explicit_allowdeny as $val) {
 					$dataParts = explode(':',$val);
 					t3lib_div::loadTCA($dataParts[0]);
 					$items = $GLOBALS['TCA'][$dataParts[0]]['columns'][$dataParts[1]]['config']['items'];
-					foreach($items as $val){
-						if ($val[1] == $dataParts[2]){
+					foreach($items as $val) {
+						if ($val[1] == $dataParts[2]) {
 							$imageInfo = t3lib_TCEforms::getIcon($iconsPath[$dataParts['3']]);
 							$imageInfo[0] = str_replace('../typo3',$backPath,$imageInfo[0]);
 							$data .= '<img src ="'.$imageInfo[0].'" '.$imageInfo[1][3].'/>'.
@@ -600,14 +598,14 @@ class tx_tcbeuser_overview {
 			$allowed_languages = explode(',', $row['allowed_languages']);
 			reset($allowed_languages);
 			$availLang = t3lib_BEfunc::getSystemLanguages();
-			foreach($allowed_languages as $langId){
-				foreach($availLang as $availLangInfo){
-					if($availLangInfo[1] == $langId){
+			foreach($allowed_languages as $langId) {
+				foreach($availLang as $availLangInfo) {
+					if($availLangInfo[1] == $langId) {
 						$dataIcon = array();
-						if(isset($availLangInfo[2])){
+						if(isset($availLangInfo[2])) {
 							$dataIcon = t3lib_TCEforms::getIcon($availLangInfo[2]);
 						}
-						if(empty($dataIcon)){
+						if(empty($dataIcon)) {
 							$dataIcon[0]='clear.gif';
 						}
 						$data .= '<img src="'.$backPath.$dataIcon[0].'" '.$dataIcon[1][3].'/> '.
@@ -646,7 +644,7 @@ class tx_tcbeuser_overview {
 			$permissions = floatval($row['workspace_perms']);
 			$items = $GLOBALS['TCA']['be_groups']['columns']['workspace_perms']['config']['items'];
 			$check = array();
-			foreach($items as $key => $val){
+			foreach($items as $key => $val) {
 				if($permissions & pow(2,$key)){
 					$check[] = $GLOBALS['LANG']->sL($val[0]);
 				}
@@ -683,24 +681,24 @@ class tx_tcbeuser_overview {
 
 				// Create accessible workspace arrays:
 			$options = array();
-			if ($userAuthGroup->checkWorkspace(array('uid' => 0)))	{
+			if ($userAuthGroup->checkWorkspace(array('uid' => 0))) {
 				$options[0] = '0: [LIVE]';
 			}
-			if ($userAuthGroup->checkWorkspace(array('uid' => -1)))	{
+			if ($userAuthGroup->checkWorkspace(array('uid' => -1))) {
 				$options[-1] = '-1: [Default Draft]';
 			}
 				// Add custom workspaces (selecting all, filtering by BE_USER check):
 			$workspaces = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('uid,title,adminusers,members,reviewers,db_mountpoints','sys_workspace','pid=0'.t3lib_BEfunc::deleteClause('sys_workspace'),'','title');
-			if (count($workspaces))	{
-				foreach ($workspaces as $rec)	{
-					if ($userAuthGroup->checkWorkspace($rec))	{
+			if (count($workspaces)) {
+				foreach ($workspaces as $rec) {
+					if ($userAuthGroup->checkWorkspace($rec)) {
 						$options[$rec['uid']] = $rec['uid'].': '.$rec['title'];
 
 							// Check if all mount points are accessible, otherwise show error:
-						if (trim($rec['db_mountpoints'])!=='')	{
+						if (trim($rec['db_mountpoints'])!=='') {
 							$mountPoints = t3lib_div::intExplode(',',$userAuthGroup->workspaceRec['db_mountpoints'],1);
-							foreach($mountPoints as $mpId)	{
-								if (!$userAuthGroup->isInWebMount($mpId,'1=1'))	{
+							foreach($mountPoints as $mpId) {
+								if (!$userAuthGroup->isInWebMount($mpId,'1=1')) {
 									$options[$rec['uid']].= '<br> \- WARNING: Workspace Webmount page id "'.$mpId.'" not accessible!';
 								}
 							}
@@ -770,8 +768,8 @@ class tx_tcbeuser_overview {
 			$allMods = $tceForms->addSelectOptionsToItemArray($tceForms->initItemArray($TCAconf),$TCAconf,$tceForms->setTSconfig($table,$row),'groupMods');
 
 			$items = array();
-			foreach($allMods as $id => $modsInfo){
-				if(t3lib_div::inList($row['groupMods'],$modsInfo[1])){
+			foreach($allMods as $id => $modsInfo) {
+				if(t3lib_div::inList($row['groupMods'],$modsInfo[1])) {
 					$modIcon = t3lib_TCEforms::getIcon($modsInfo[2]);
 					$items[] = '<img src="'.$backPath.$modIcon[0].'" '.$modIcon[1][3].'/> '.$modsInfo[0];
 				}
@@ -921,9 +919,9 @@ class tx_tcbeuser_overview {
 
 			// hide/unhide
 		$hiddenField = $GLOBALS['TCA'][$this->table]['ctrl']['enablecolumns']['disabled'];
-		if ($permsEdit){
+		if ($permsEdit) {
 			$redirect = '&redirect=\'+T3_THIS_LOCATION+\'&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
-			if ($userRecord[$hiddenField])	{
+			if ($userRecord[$hiddenField]) {
 				$params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
 				$control .= '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
 					t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');') . '">' .
@@ -939,7 +937,7 @@ class tx_tcbeuser_overview {
 		}
 
 			// delete
-		if($permsEdit){
+		if($permsEdit) {
 			$params = '&cmd[' . $this->table . '][' . $userRecord['uid'] . '][delete]=1&SET[function]=action';
 			$redirect = '&redirect=\'+T3_THIS_LOCATION+\'&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
 			$control .= '<a href="#" onclick="' . htmlspecialchars('if (confirm(' .
@@ -957,8 +955,8 @@ class tx_tcbeuser_overview {
 		}
 
 			// swith user / switch user back
-		if($this->table == 'be_users' && $permsEdit && $GLOBALS['BE_USER']->isAdmin() ){
-			if ($userRecord[$hiddenField]){
+		if($this->table == 'be_users' && $permsEdit && $GLOBALS['BE_USER']->isAdmin()) {
+			if ($userRecord[$hiddenField]) {
 				$control .= '<img '.t3lib_iconWorks::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" />'.
 						'<img '.t3lib_iconWorks::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" />'
 						.chr(10).chr(10);
@@ -997,7 +995,7 @@ class tx_tcbeuser_overview {
 		$tree->setDataFromArray($dataTree);
 
 			// Create the tree from starting point:
-		if ($depth > 0)	{
+		if ($depth > 0) {
 			$tree->getTree($treeStartingPoint, $depth);
 		}
 
@@ -1012,7 +1010,7 @@ class tx_tcbeuser_overview {
 	}
 }
 
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_overview.php'])	{
+if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_overview.php']) {
 	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_overview.php']);
 }
 

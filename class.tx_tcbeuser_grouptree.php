@@ -41,7 +41,7 @@ class tx_tcbeuser_groupTree extends t3lib_treeView {
 	 * @param	string		Part of where query which will filter out non-readable pages.
 	 * @return	void
 	 */
-	function init($clause='')	{
+	function init($clause='') {
 		parent::init(' AND deleted=0 '.$clause, 'title');
 
 		$this->table    = 'be_groups';
@@ -81,7 +81,7 @@ class tx_tcbeuser_groupTree extends t3lib_treeView {
 
 
 
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_grouptree.php'])	{
+if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_grouptree.php']) {
 	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_grouptree.php']);
 }
 

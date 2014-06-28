@@ -38,12 +38,12 @@ class tx_tcbeuser_config {
 		$BE_USER->user['admin'] = 1;
 	}
 
-	static function removeFakeAdmin(){
+	static function removeFakeAdmin() {
 		global $BE_USER;
 		$BE_USER->user['admin'] = 0;
 	}
 
-	static function getSubgroup($id){
+	static function getSubgroup($id) {
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 			'uid,title,subgroup',
 			'be_groups',
@@ -53,7 +53,7 @@ class tx_tcbeuser_config {
 		$uid = '';
 		if($row['subgroup']){
 			$subGroup = t3lib_div::intExplode(',',$row['subgroup']);
-			foreach ($subGroup as $subGroupUID){
+			foreach ($subGroup as $subGroupUID) {
 				$uid .= $subGroupUID.','.tx_tcbeuser_config::getSubgroup($subGroupUID).',';
 			}
 			return $uid;
@@ -62,13 +62,13 @@ class tx_tcbeuser_config {
 		}
 	}
 
-	static function allowWhereMember($TSconfig){
+	static function allowWhereMember($TSconfig) {
 		$userGroup = explode (',',$GLOBALS['BE_USER']->user['usergroup']);
 
 		$allowWhereMember = array();
-		foreach($userGroup as $uid){
+		foreach($userGroup as $uid) {
 			$groupID = $uid.','.tx_tcbeuser_config::getSubgroup($uid);
-			if (strstr($groupID,',')){
+			if (strstr($groupID,',')) {
 				$groupIDarray = explode(',',$groupID);
 				$allowWhereMember = array_merge($allowWhereMember, array_unique($groupIDarray));
 			} else {
@@ -80,14 +80,14 @@ class tx_tcbeuser_config {
 		return $allowWhereMember;
 	}
 
-	static function allowCreated($TSconfig, $where){
+	static function allowCreated($TSconfig, $where) {
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 			'uid',
 			'be_groups',
 			$where.' AND cruser_id = '.$GLOBALS['BE_USER']->user['uid']
 		);
 		if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) > 0) {
-			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)){
+			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
 				$allowCreated[] = $row['uid'];
 			}
 		} else {
@@ -97,17 +97,17 @@ class tx_tcbeuser_config {
 		return $allowCreated;
 	}
 
-	static function allow($TSconfig, $where){
-		if(isset($TSconfig['allow']) && !empty($TSconfig['allow'])){
-			if($TSconfig['allow'] == 'all'){
+	static function allow($TSconfig, $where) {
+		if(isset($TSconfig['allow']) && !empty($TSconfig['allow'])) {
+			if($TSconfig['allow'] == 'all') {
 				$addWhere = empty($showGroupID) ? '' : ' AND uid not in ('.implode(',',$showGroupID).')';
 				$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 					'uid',
 					'be_groups',
 					$where.$addWhere
 				);
-				if($GLOBALS['TYPO3_DB']->sql_num_rows($res)>0){
-					while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)){
+				if($GLOBALS['TYPO3_DB']->sql_num_rows($res)>0) {
+					while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
 						$allowID[] = $row['uid'];
 					}
 				}
@@ -122,9 +122,9 @@ class tx_tcbeuser_config {
 		return $allowID;
 	}
 
-	static function denyID($TSconfig,$where){
-		if(isset($TSconfig['deny']) && !empty($TSconfig['deny'])){
-			if(strstr($TSconfig['deny'],',')){
+	static function denyID($TSconfig,$where) {
+		if(isset($TSconfig['deny']) && !empty($TSconfig['deny'])) {
+			if(strstr($TSconfig['deny'],',')) {
 				$denyID = explode(',',$TSconfig['deny']);
 			} else {
 				$denyID = array(trim($TSconfig['deny']));
@@ -135,13 +135,13 @@ class tx_tcbeuser_config {
 		return $denyID;
 	}
 
-	static function showPrefixID($TSconfig,$where,$mode){
+	static function showPrefixID($TSconfig,$where,$mode) {
 		$addWhere = "";
 
-		if(isset($TSconfig[$mode]) && !empty($TSconfig[$mode])){
-			if(strstr($TSconfig[$mode],',')){
+		if(isset($TSconfig[$mode]) && !empty($TSconfig[$mode])) {
+			if(strstr($TSconfig[$mode],',')) {
 				$prefix = explode(',',$TSconfig[$mode]);
-				foreach($prefix as $pre){
+				foreach($prefix as $pre) {
 					$whereTemp[] = 'title like '.$GLOBALS['TYPO3_DB']->fullQuoteStr(trim($pre).'%','be_groups');
 				}
 				$addWhere .= ' AND ('.implode (' OR ',$whereTemp).')';
@@ -154,8 +154,8 @@ class tx_tcbeuser_config {
 				'be_groups',
 				$where.$addWhere
 			);
-			if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) > 0){
-				while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)){
+			if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) > 0) {
+				while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
 					$showPrefixID[] = $row['uid'];
 				}
 			} else {
@@ -167,7 +167,7 @@ class tx_tcbeuser_config {
 		return $showPrefixID;
 	}
 
-	static function showGroupID(){
+	static function showGroupID() {
 		global $TYPO3_CONF_VARS;
 		$TSconfig = $GLOBALS['BE_USER']->userTS['tx_tcbeuser.'] ? $GLOBALS['BE_USER']->userTS['tx_tcbeuser.'] : array();
 			// default value
@@ -177,17 +177,17 @@ class tx_tcbeuser_config {
 		$where = 'pid = 0'.t3lib_BEfunc::deleteClause('be_groups');
 //debug($TSconfig,'TS');
 
-		if ($TYPO3_CONF_VARS['BE']['explicitADmode'] == 'explicitAllow'){
+		if ($TYPO3_CONF_VARS['BE']['explicitADmode'] == 'explicitAllow') {
 			$showGroupID = array();
 
 				//put ID allowWhereMember
-			if($TSconfig['allowWhereMember'] == 1){
+			if($TSconfig['allowWhereMember'] == 1) {
 				$allowWhereMember = tx_tcbeuser_config::allowWhereMember($TSconfig);
 				$showGroupID = array_merge($showGroupID,$allowWhereMember);
 			}
 
 				//put ID allowCreated
-			if($TSconfig['allowCreated'] == 1){
+			if($TSconfig['allowCreated'] == 1) {
 				$allowCreated = tx_tcbeuser_config::allowCreated($TSconfig,$where);
 				$showGroupID = array_merge($showGroupID,$allowCreated);
 			}
@@ -200,24 +200,25 @@ class tx_tcbeuser_config {
 			$showPrefix = tx_tcbeuser_config::showPrefixID($TSconfig,$where,'showPrefix');
 			$showGroupID = array_merge($showGroupID,$showPrefix);
 
-		} else {	//explicitDeny
+		} else {
+			//explicitDeny
 			$showGroupID = explode(',',tx_tcbeuser_config::getAllGroupsID());
 			$denyGroupID = array();
 
 				//put ID allowWhereMember
-			if($TSconfig['allowWhereMember'] == 0){
+			if($TSconfig['allowWhereMember'] == 0) {
 				$allowWhereMember = tx_tcbeuser_config::allowWhereMember($TSconfig);
 				$denyGroupID = array_merge($denyGroupID,$allowWhereMember);
 			}
 
 				//put ID allowCreated
-			if($TSconfig['allowCreated'] == 0 ){
+			if($TSconfig['allowCreated'] == 0 ) {
 				$allowCreated = tx_tcbeuser_config::allowCreated($TSconfig,$where);
 				$denyGroupID = array_merge($denyGroupID,$allowCreated);
 			}
 
 				//deny
-			if($TSconfig['deny'] == 'all'){
+			if($TSconfig['deny'] == 'all') {
 				$denyGroupID = array_merge($denyGroupID, explode(',',tx_tcbeuser_config::getAllGroupsID()));
 			} else {
 				$denyID = tx_tcbeuser_config::denyID($TSconfig,$where);
@@ -238,11 +239,11 @@ class tx_tcbeuser_config {
 	/**
 	 * manipulate the list of usergroups based on TS Config
 	 */
-	static function getGroupsID(&$param,&$pObj){
-		if ($GLOBALS['BE_USER']->user['admin'] == '0'){
+	static function getGroupsID(&$param,&$pObj) {
+		if ($GLOBALS['BE_USER']->user['admin'] == '0') {
 			$where = 'pid = 0 '.t3lib_BEfunc::deleteClause('be_groups');
 			$groupID = implode(',',tx_tcbeuser_config::showGroupID());
-			if(!empty($groupID)){
+			if(!empty($groupID)) {
 				$where .= ' AND uid in ('.$groupID.')';
 			} else {
 				$where .= ' AND uid not in ('.tx_tcbeuser_config::getAllGroupsID().')';
@@ -260,7 +261,7 @@ class tx_tcbeuser_config {
 		);
 		$param['items'] = array();
 
-		while($row=$GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)){
+		while($row=$GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
 			$param['items'][]= array($pObj->sL($row['title']),$row['uid'],'');
 		}
 		return $param;
@@ -269,14 +270,14 @@ class tx_tcbeuser_config {
 	/**
 	 * get all ID in a comma-list
 	 */
-	static function getAllGroupsID(){
+	static function getAllGroupsID() {
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 			'uid',
 			'be_groups',
 			'1'.t3lib_BEfunc::deleteClause('be_groups')
 		);
 		$id = array();
-		while($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)){
+		while($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
 			$id[] = $row['uid'];
 		}
 		return implode(',',$id);
@@ -284,7 +285,7 @@ class tx_tcbeuser_config {
 
 }
 
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_config.php'])	{
+if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_config.php']) {
 	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_config.php']);
 }
 

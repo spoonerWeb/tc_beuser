@@ -108,7 +108,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 			$this->content .= $this->doc->divider(5);
 			$this->content .= $moduleContent;
 
-			if ($GLOBALS['BE_USER']->mayMakeShortcut())	{
+			if ($GLOBALS['BE_USER']->mayMakeShortcut()) {
 				$this->content .= $this->doc->spacer(20).
 							$this->doc->section('',$this->doc->makeShortcutIcon('','',$this->MCONF['name']));
 			}
@@ -138,7 +138,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 
 		$this->jsCode = '
 			script_ended = 0;
-			function jumpToUrl(URL)	{
+			function jumpToUrl(URL) {
 				document.location = URL;
 			}
 
@@ -150,7 +150,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 		$this->id = 0;
 
 			// update compareFlags
-		if (t3lib_div::_GP('ads'))	{
+		if (t3lib_div::_GP('ads')) {
 			$this->compareFlags = t3lib_div::_GP('compareFlags');
 			$GLOBALS['BE_USER']->pushModuleData('txtcbeuserM1_txtcbeuserM4/index.php/compare',$this->compareFlags);
 		} else {
@@ -177,7 +177,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 	 *
 	 * @return	void
 	 */
-	function menuConfig()	{
+	function menuConfig() {
 		$this->MOD_MENU = array (
 			'function' => array (
 				'1' => $GLOBALS['LANG']->getLL('overview-groups'),
@@ -219,7 +219,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 	function moduleContent() {
 		$content = '';
 
-		switch((string)$this->MOD_SETTINGS['function'])	{
+		switch((string)$this->MOD_SETTINGS['function']) {
 			case '1':
 					// group view
 				$content .= $this->doc->section(
@@ -239,7 +239,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 		return $content;
 	}
 
-	function printContent()	{
+	function printContent() {
 		$this->content .= $this->doc->endPage();
 		echo $this->content;
 	}
@@ -420,7 +420,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 
 			// hide/unhide
 		$hiddenField = $GLOBALS['TCA'][$this->table]['ctrl']['enablecolumns']['disabled'];
-		if ($userRecord[$hiddenField])	{
+		if ($userRecord[$hiddenField]) {
 			$params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
 			$control .= '<a href="#" onclick="return jumpToUrl(\'' . htmlspecialchars($this->actionOnClick($params, -1)) . '\');">' .
 				'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="unhide" alt="" />' .
@@ -448,7 +448,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 		'</a>' . chr(10);
 
 			// swith user / switch user back
-		if( ! $userRecord[$hiddenField] && $GLOBALS['BE_USER']->isAdmin() ){
+		if(!$userRecord[$hiddenField] && $GLOBALS['BE_USER']->isAdmin()) {
 			$control .= '<a href="'.t3lib_div::linkThisScript(array('SwitchUser'=>$userRecord['uid'])).'" target="_top"><img '.t3lib_iconWorks::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" /></a>'.
 						'<a href="'.t3lib_div::linkThisScript(array('SwitchUser'=>$userRecord['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.t3lib_iconWorks::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" /></a>'
 						.chr(10).chr(10);
@@ -465,7 +465,6 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 	 * Usage: 35
 	 *
 	 * @param	string		$params is parameters sent along to alt_doc.php. This requires a much more details description which you must seek in Inside TYPO3s documentation of the alt_doc.php API. And example could be '&edit[pages][123]=edit' which will show edit form for page record 123.
-	 * @param	string		$backPath must point back to the TYPO3_mainDir directory (where alt_doc.php is)
 	 * @param	string		$requestUri is an optional returnUrl you can set - automatically set to REQUEST_URI.
 	 * @return	string
 	 * @see template::issueCommand()
@@ -493,15 +492,15 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 	 * [Describe function...]
 	 * ingo.renner@dkd.de: from tools/beusers
 	 *
-	 * @param	[type]		$switchUser: ...
-	 * @return	[type]		...
+	 * @param	int		$switchUser: ...
+	 * @return	void		...
 	 */
-	function switchUser($switchUser)	{
-		$uRec=t3lib_BEfunc::getRecord('be_users',$switchUser);
-		if (is_array($uRec) && $GLOBALS['BE_USER']->isAdmin())	{
+	function switchUser($switchUser) {
+		$uRec = t3lib_BEfunc::getRecord('be_users',$switchUser);
+		if (is_array($uRec) && $GLOBALS['BE_USER']->isAdmin()) {
 			$updateData['ses_userid'] = $uRec['uid'];
 				// user switchback
-			if (t3lib_div::_GP('switchBackUser'))	{
+			if (t3lib_div::_GP('switchBackUser')) {
 				$updateData['ses_backuserid'] = intval($GLOBALS['BE_USER']->user['uid']);
 			}
 			$GLOBALS['TYPO3_DB']->exec_UPDATEquery('be_sessions', 'ses_id='.$GLOBALS['TYPO3_DB']->fullQuoteStr($GLOBALS['BE_USER']->id, 'be_sessions').' AND ses_name=\'be_typo_user\' AND ses_userid='.intval($GLOBALS['BE_USER']->user['uid']),$updateData);
@@ -521,7 +520,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 
 
 
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod4/index.php'])	{
+if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod4/index.php']) {
 	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod4/index.php']);
 }
 
@@ -542,7 +541,9 @@ if(t3lib_div::_POST('ajaxCall')) {
 	$SOBE->init();
 
 	// Include files?
-	foreach($SOBE->include_once as $INC_FILE)	include_once($INC_FILE);
+	foreach($SOBE->include_once as $INC_FILE) {
+		include_once($INC_FILE);
+	}
 
 	$SOBE->main();
 	$SOBE->printContent();
