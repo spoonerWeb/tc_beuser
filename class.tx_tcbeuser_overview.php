@@ -555,7 +555,6 @@ class tx_tcbeuser_overview {
 
 				foreach($explicit_allowdeny as $val) {
 					$dataParts = explode(':',$val);
-					t3lib_div::loadTCA($dataParts[0]);
 					$items = $GLOBALS['TCA'][$dataParts[0]]['columns'][$dataParts[1]]['config']['items'];
 					foreach($items as $val) {
 						if ($val[1] == $dataParts[2]) {
@@ -640,7 +639,6 @@ class tx_tcbeuser_overview {
 				'uid = '.$groupId
 			);
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
-			//t3lib_div::loadTCA()
 			$permissions = floatval($row['workspace_perms']);
 			$items = $GLOBALS['TCA']['be_groups']['columns']['workspace_perms']['config']['items'];
 			$check = array();

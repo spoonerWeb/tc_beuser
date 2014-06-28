@@ -51,7 +51,6 @@ class tx_tcbeuser_hooks {
 	function processDatamap_preProcessFieldArray($incomingFieldArray, $table, $id, $tcemain) {
 		if ($table == 'be_groups') {
 			//unset 'members' from TCA
-			t3lib_div::loadTCA("be_groups");
 			$this->columns['members'] = $GLOBALS['TCA'][$table]['columns']['members'];
 			unset($GLOBALS['TCA'][$table]['columns']['members']);
 		}
@@ -152,7 +151,6 @@ class tx_tcbeuser_hooks {
 
 			//put back 'members' to TCA
 			$tempCol = $this->columns;
-			t3lib_div::loadTCA("be_groups");
 			t3lib_extMgm::addTCAcolumns("be_groups",$tempCol,1);
 		}
 	}

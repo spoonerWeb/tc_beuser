@@ -65,9 +65,6 @@ class tx_tcbeuser_recordList extends localRecordList {
 				// Checks that we see only permitted/requested tables:
 			if ((!$this->table || $tableName==$this->table) && (!$this->tableList || t3lib_div::inList($this->tableList,$tableName)) && $GLOBALS['BE_USER']->check('tables_select',$tableName)) {
 
-					// Load full table definitions:
-				t3lib_div::loadTCA($tableName);
-
 					// Hide tables which are configured via TSConfig not to be shown (also works for admins):
 				if (t3lib_div::inList($this->hideTables, $tableName)) {
 					continue;
@@ -125,9 +122,6 @@ class tx_tcbeuser_recordList extends localRecordList {
 	 */
 	function getTable($table, $id, $rowlist) {
 		global $TCA;
-
-			// Loading all TCA details for this table:
-		t3lib_div::loadTCA($table);
 
 			// Init
 		$addWhere = '';
@@ -723,8 +717,6 @@ class tx_tcbeuser_recordList extends localRecordList {
 			return '';
 		}
 
-			// Initialize:
-		t3lib_div::loadTCA($table);
 		$cells = array();
 
 			// If the listed table is 'pages' we have to request the permission settings for each page:

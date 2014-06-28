@@ -39,7 +39,6 @@ if (TYPO3_MODE == 'BE') {
 
 	$confField = 'tx_tcbeuser';
 
-	t3lib_div::loadTCA('be_users');
 	$TCA['be_users']['columns']['password']['config']['wizards'][$confField] = $wizConfig;
 	$TCA['be_users']['columns']['usergroup']['config']['itemsProcFunc'] = 'tx_tcbeuser_config->getGroupsID';
 	$TCA['be_groups']['columns']['subgroup']['config']['itemsProcFunc'] = 'tx_tcbeuser_config->getGroupsID';
@@ -58,7 +57,6 @@ $tempCol = array(
 		)
 	)
 );
-t3lib_div::loadTCA("be_groups");
 t3lib_extMgm::addTCAcolumns("be_groups",$tempCol,1);
 
 unset ($TCA['be_users']['columns']['usergroup']['config']['wizards']);
