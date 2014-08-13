@@ -21,6 +21,7 @@
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * class.tx_tcbeuser_grouptree.php
@@ -30,7 +31,7 @@
  *
  * @author Ingo Renner <ingo.renner@dkd.de>
  */
-class tx_tcbeuser_groupTree extends t3lib_treeView {
+class tx_tcbeuser_groupTree extends \TYPO3\CMS\Backend\Tree\View\AbstractTreeView {
 	var $fieldArray = array('uid', 'title');
 	var $defaultList = 'uid,title';
 
@@ -38,7 +39,7 @@ class tx_tcbeuser_groupTree extends t3lib_treeView {
 	 * Init function
 	 * REMEMBER to feed a $clause which will filter out non-readable pages!
 	 *
-	 * @param	string		Part of where query which will filter out non-readable pages.
+	 * @param	string		$clause: Part of where query which will filter out non-readable pages.
 	 * @return	void
 	 */
 	function init($clause='') {
@@ -68,7 +69,7 @@ class tx_tcbeuser_groupTree extends t3lib_treeView {
 		$tree[$id]   = $row;
 
 		if($row['subgroup']) {
-			$subGroups = t3lib_div::intExplode(',', $row['subgroup']);
+			$subGroups = GeneralUtility::intExplode(',', $row['subgroup']);
 			foreach($subGroups as $newGroupId) {
 				$row[$this->subLevelID][$newGroupId] = $this->buildTree($newGroupId);
 			}

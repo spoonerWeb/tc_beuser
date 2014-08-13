@@ -21,6 +21,7 @@
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 
 /**
  * methods for access checks
@@ -38,7 +39,7 @@ class tx_tcbeuser_access {
 	function readPageAccess($conf, $exitOnError) {
 		$access = false;
 
-		if(t3lib_userAuthGroup::modAccess($conf, $exitOnError)) {
+		if(BackendUserAuthentication::modAccess($conf, $exitOnError)) {
 			$access = true;
 		}
 

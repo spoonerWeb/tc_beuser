@@ -21,6 +21,8 @@
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * clas for module configuration handling
@@ -34,13 +36,11 @@ class tx_tcbeuser_config {
 	var $config;
 
 	static function fakeAdmin() {
-		global $BE_USER;
-		$BE_USER->user['admin'] = 1;
+		$GLOBALS['BE_USER']->user['admin'] = 1;
 	}
 
 	static function removeFakeAdmin() {
-		global $BE_USER;
-		$BE_USER->user['admin'] = 0;
+		$GLOBALS['BE_USER']->user['admin'] = 0;
 	}
 
 	static function getSubgroup($id) {
@@ -52,7 +52,7 @@ class tx_tcbeuser_config {
 		$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 		$uid = '';
 		if($row['subgroup']){
-			$subGroup = t3lib_div::intExplode(',',$row['subgroup']);
+			$subGroup = GeneralUtility::intExplode(',',$row['subgroup']);
 			foreach ($subGroup as $subGroupUID) {
 				$uid .= $subGroupUID.','.tx_tcbeuser_config::getSubgroup($subGroupUID).',';
 			}
@@ -75,7 +75,7 @@ class tx_tcbeuser_config {
 				$allowWhereMember[] = $groupID;
 			}
 		}
-		$allowWhereMember = t3lib_div::removeArrayEntryByValue($allowWhereMember,'');
+		$allowWhereMember = GeneralUtility::removeArrayEntryByValue($allowWhereMember,'');
 
 		return $allowWhereMember;
 	}
@@ -168,16 +168,14 @@ class tx_tcbeuser_config {
 	}
 
 	static function showGroupID() {
-		global $TYPO3_CONF_VARS;
 		$TSconfig = $GLOBALS['BE_USER']->userTS['tx_tcbeuser.'] ? $GLOBALS['BE_USER']->userTS['tx_tcbeuser.'] : array();
 			// default value
 		$TSconfig['allowCreated'] = (strlen(trim($TSconfig['allowCreated'])) > 0)? $TSconfig['allowCreated'] : '1';
 		$TSconfig['allowWhereMember'] = (strlen(trim($TSconfig['allowWhereMember'])) > 0)? $TSconfig['allowWhereMember'] : '1';
 
-		$where = 'pid = 0'.t3lib_BEfunc::deleteClause('be_groups');
-//debug($TSconfig,'TS');
+		$where = 'pid = 0'.BackendUtility::deleteClause('be_groups');
 
-		if ($TYPO3_CONF_VARS['BE']['explicitADmode'] == 'explicitAllow') {
+		if ($GLOBALS['TYPO3_CONF_VARS']['BE']['explicitADmode'] == 'explicitAllow') {
 			$showGroupID = array();
 
 				//put ID allowWhereMember
@@ -241,7 +239,7 @@ class tx_tcbeuser_config {
 	 */
 	static function getGroupsID(&$param,&$pObj) {
 		if ($GLOBALS['BE_USER']->user['admin'] == '0') {
-			$where = 'pid = 0 '.t3lib_BEfunc::deleteClause('be_groups');
+			$where = 'pid = 0 '.BackendUtility::deleteClause('be_groups');
 			$groupID = implode(',',tx_tcbeuser_config::showGroupID());
 			if(!empty($groupID)) {
 				$where .= ' AND uid in ('.$groupID.')';
@@ -249,7 +247,7 @@ class tx_tcbeuser_config {
 				$where .= ' AND uid not in ('.tx_tcbeuser_config::getAllGroupsID().')';
 			}
 		} else {
-			$where = '1'.t3lib_BEfunc::deleteClause('be_groups');
+			$where = '1'.BackendUtility::deleteClause('be_groups');
 		}
 
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
@@ -274,7 +272,7 @@ class tx_tcbeuser_config {
 		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 			'uid',
 			'be_groups',
-			'1'.t3lib_BEfunc::deleteClause('be_groups')
+			'1'.BackendUtility::deleteClause('be_groups')
 		);
 		$id = array();
 		while($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
@@ -285,8 +283,8 @@ class tx_tcbeuser_config {
 
 }
 
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_config.php']) {
-	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_config.php']);
+if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_config.php']) {
+	include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_config.php']);
 }
 
 ?>

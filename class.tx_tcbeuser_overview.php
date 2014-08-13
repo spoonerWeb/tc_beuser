@@ -22,6 +22,11 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
+use TYPO3\CMS\Backend\Form\FormEngine;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 $GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
 /**
  * class.tx_tcbeuser_overview.php
@@ -54,6 +59,10 @@ class tx_tcbeuser_overview {
 		'renderColTsconfighl',
 		'renderColMembers',
 	);
+
+	var $backPath;
+
+	var $table;
 
 
 	/**
@@ -91,7 +100,7 @@ class tx_tcbeuser_overview {
 		$out = $this->renderListHeader($setCols);
 
 		$cc = 0;
-		$groups = t3lib_div::intExplode(',', $row['usergroup']);
+		$groups = GeneralUtility::intExplode(',', $row['usergroup']);
 		foreach($groups as $groupId) {
 			if ($groupId != 0){
 				$tree = $this->getGroupTree($groupId);
@@ -127,7 +136,7 @@ class tx_tcbeuser_overview {
 		$out = $this->renderListHeader($setCols);
 
 		$cc = 0;
-		$groups = t3lib_div::intExplode(',', $row['uid']);
+		$groups = GeneralUtility::intExplode(',', $row['uid']);
 		foreach($groups as $groupId) {
 			$tree = $this->getGroupTree($groupId);
 			foreach($tree as $row) {
@@ -264,7 +273,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-filemounts');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		$this->table = 'sys_filemounts';
 		$this->backPath = $backPath;
@@ -276,7 +285,7 @@ class tx_tcbeuser_overview {
 			);
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 
-			$fileMounts = t3lib_div::intExplode(',', $row['file_mountpoints']);
+			$fileMounts = GeneralUtility::intExplode(',', $row['file_mountpoints']);
 			$items = array();
 			if(is_array($fileMounts) && $fileMounts[0] != 0) {
 				$content .= '<br />';
@@ -287,12 +296,10 @@ class tx_tcbeuser_overview {
 						'uid = '.$fm
 					);
 					$filemount = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
-					$filemountId = $filemount['uid'];
 
-					$fmIcon = t3lib_iconWorks::getIconImage(
+					$fmIcon = IconUtility::getSpriteIconForRecord(
 						$this->table,
-						$filemount,
-						$backPath
+						$filemount
 					);
 
 					$items[] = '<tr><td>'.$fmIcon.$filemount['title'].'</td><td>'.$this->makeUserControl($filemount).'</td></tr>'."\n";
@@ -315,7 +322,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-webmounts');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
 			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
@@ -325,7 +332,7 @@ class tx_tcbeuser_overview {
 			);
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 
-			$webMounts = t3lib_div::intExplode(',', $row['db_mountpoints']);
+			$webMounts = GeneralUtility::intExplode(',', $row['db_mountpoints']);
 			if(is_array($webMounts) && $webMounts[0] != 0) {
 				$content .= '<br />';
 				foreach($webMounts as $wm) {
@@ -336,11 +343,10 @@ class tx_tcbeuser_overview {
 					);
 					$webmount = $webmount[0];
 
-					$wmIcon = t3lib_iconWorks::getIconImage(
+					$wmIcon = IconUtility::getSpriteIconForRecord(
 						'pages',
 						$webmount,
-						$backPath,
-						' title="id='.$webmount['uid'].'"'
+						array(' title'=> 'id='.$webmount['uid'])
 					);
 
 					$content .= $wmIcon.$webmount['title'].'<br />'."\n";
@@ -362,7 +368,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-pagetypes');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
 			$content .= '<br />';
@@ -378,14 +384,13 @@ class tx_tcbeuser_overview {
 			reset($pageTypes);
 			while(list($kk,$vv) = each($pageTypes)) {
 				if(!empty($vv)) {
-					$ptIcon = t3lib_iconWorks::getIconImage(
+					$ptIcon = IconUtility::getSpriteIconForRecord(
 						'pages',
 						array('doktype' => $vv),
-						$backPath,
-						' title="doktype='.$vv.'"'
+						array('title' => 'doktype='.$vv)
 					);
 
-					$content .= $ptIcon . $GLOBALS['LANG']->sL(t3lib_BEfunc::getLabelFromItemlist('pages','doktype',$vv));
+					$content .= $ptIcon . $GLOBALS['LANG']->sL(BackendUtility::getLabelFromItemlist('pages','doktype',$vv));
 					$content .= '<br />'."\n";
 				}
 			}
@@ -405,7 +410,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-selecttables');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
 			$content .= '<br />';
@@ -420,11 +425,10 @@ class tx_tcbeuser_overview {
 			reset($tablesSelect);
 			while(list($kk,$vv) = each($tablesSelect)) {
 				if(!empty($vv)) {
-					$ptIcon = t3lib_iconWorks::getIconImage(
+					$ptIcon = IconUtility::getSpriteIconForRecord(
 						$vv,
-						'',
-						$backPath,
-						' title="table='.$vv.'"'
+						array(),
+						array('title' => 'table='.$vv)
 					);
 					$tableTitle = $GLOBALS['TCA'][$vv]['ctrl']['title'];
 					$content .= $ptIcon . $GLOBALS['LANG']->sL($tableTitle);
@@ -447,7 +451,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-modifytables');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
 			$content .= '<br />';
@@ -462,11 +466,10 @@ class tx_tcbeuser_overview {
 			reset($tablesModify);
 			while(list($kk,$vv) = each($tablesModify)) {
 				if(!empty($vv)) {
-					$ptIcon = t3lib_iconWorks::getIconImage(
+					$ptIcon = IconUtility::getSpriteIconForRecord(
 						$vv,
-						'',
-						$backPath,
-						' title="table='.$vv.'"'
+						array(),
+						array('title' => 'table='.$vv)
 					);
 					$tableTitle = $GLOBALS['TCA'][$vv]['ctrl']['title'];
 					$content .= $ptIcon . $GLOBALS['LANG']->sL($tableTitle);
@@ -489,7 +492,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-nonexcludefields');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
 			$content .= '<br />';
@@ -527,7 +530,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-explicitallowdeny');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		$adLabel = array(
 			'ALLOW' => $GLOBALS['LANG']->sl('LLL:EXT:lang/locallang_core.xml:labels.allow'),
@@ -535,12 +538,13 @@ class tx_tcbeuser_overview {
 		);
 
 		$iconsPath = array(
-			'ALLOW' => '../'.TYPO3_mainDir.t3lib_iconWorks::skinImg($this->backPath,'gfx/icon_ok2.gif','',1),
-			'DENY' => '../'.TYPO3_mainDir.t3lib_iconWorks::skinImg($this->backPath,'gfx/icon_fatalerror.gif','',1),
+			'ALLOW' => '../'.TYPO3_mainDir.IconUtility::skinImg($this->backPath,'gfx/icon_ok2.gif','',1),
+			'DENY' => '../'.TYPO3_mainDir.IconUtility::skinImg($this->backPath,'gfx/icon_fatalerror.gif','',1),
 		);
 
 		if($open) {
 			$content .= '<br />';
+			$data = '';
 
 			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 				'explicit_allowdeny',
@@ -551,14 +555,12 @@ class tx_tcbeuser_overview {
 			if(!empty($row['explicit_allowdeny'])) {
 				$explicit_allowdeny = explode(',', $row['explicit_allowdeny']);
 				reset($explicit_allowdeny);
-				$data = '';
-
 				foreach($explicit_allowdeny as $val) {
 					$dataParts = explode(':',$val);
 					$items = $GLOBALS['TCA'][$dataParts[0]]['columns'][$dataParts[1]]['config']['items'];
 					foreach($items as $val) {
 						if ($val[1] == $dataParts[2]) {
-							$imageInfo = t3lib_TCEforms::getIcon($iconsPath[$dataParts['3']]);
+							$imageInfo = FormEngine::getIcon($iconsPath[$dataParts['3']]);
 							$imageInfo[0] = str_replace('../typo3',$backPath,$imageInfo[0]);
 							$data .= '<img src ="'.$imageInfo[0].'" '.$imageInfo[1][3].'/>'.
 								' ['.$adLabel[$dataParts['3']].'] '.
@@ -584,7 +586,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-limittolanguages');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
 			$content .= '<br />';
@@ -596,13 +598,15 @@ class tx_tcbeuser_overview {
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 			$allowed_languages = explode(',', $row['allowed_languages']);
 			reset($allowed_languages);
-			$availLang = t3lib_BEfunc::getSystemLanguages();
+			$availLang = BackendUtility::getSystemLanguages();
+
+			$data = '';
 			foreach($allowed_languages as $langId) {
 				foreach($availLang as $availLangInfo) {
 					if($availLangInfo[1] == $langId) {
 						$dataIcon = array();
 						if(isset($availLangInfo[2])) {
-							$dataIcon = t3lib_TCEforms::getIcon($availLangInfo[2]);
+							$dataIcon = FormEngine::getIcon($availLangInfo[2]);
 						}
 						if(empty($dataIcon)) {
 							$dataIcon[0]='clear.gif';
@@ -629,7 +633,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-workspaceperms');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
 			$content .= '<br />';
@@ -663,11 +667,11 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-workspacememship');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
 			$content .= '<br />';
-			$userAuthGroup = t3lib_div::makeInstance('t3lib_userAuthGroup');
+			$userAuthGroup = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Core\\Authentication\\BackendUserAuthentication');
 				//get workspace perms
 			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 							'workspace_perms',
@@ -686,7 +690,7 @@ class tx_tcbeuser_overview {
 				$options[-1] = '-1: [Default Draft]';
 			}
 				// Add custom workspaces (selecting all, filtering by BE_USER check):
-			$workspaces = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('uid,title,adminusers,members,reviewers,db_mountpoints','sys_workspace','pid=0'.t3lib_BEfunc::deleteClause('sys_workspace'),'','title');
+			$workspaces = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('uid,title,adminusers,members,reviewers,db_mountpoints','sys_workspace','pid=0'.BackendUtility::deleteClause('sys_workspace'),'','title');
 			if (count($workspaces)) {
 				foreach ($workspaces as $rec) {
 					if ($userAuthGroup->checkWorkspace($rec)) {
@@ -694,7 +698,7 @@ class tx_tcbeuser_overview {
 
 							// Check if all mount points are accessible, otherwise show error:
 						if (trim($rec['db_mountpoints'])!=='') {
-							$mountPoints = t3lib_div::intExplode(',',$userAuthGroup->workspaceRec['db_mountpoints'],1);
+							$mountPoints = GeneralUtility::intExplode(',',$userAuthGroup->workspaceRec['db_mountpoints'],1);
 							foreach($mountPoints as $mpId) {
 								if (!$userAuthGroup->isInWebMount($mpId,'1=1')) {
 									$options[$rec['uid']].= '<br> \- WARNING: Workspace Webmount page id "'.$mpId.'" not accessible!';
@@ -721,7 +725,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-description');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
 			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
@@ -749,11 +753,11 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-modules');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
 			$content .='<br />';
-			$tceForms = t3lib_div::makeInstance('t3lib_TCEforms');
+			$tceForms = GeneralUtility::makeInstance('FormEngine');
 			$tceForms->backPath = $backPath;
 			$TCAconf = $GLOBALS['TCA']['be_groups']['columns']['groupMods'];
 			$table = 'be_groups';
@@ -767,8 +771,8 @@ class tx_tcbeuser_overview {
 
 			$items = array();
 			foreach($allMods as $id => $modsInfo) {
-				if(t3lib_div::inList($row['groupMods'],$modsInfo[1])) {
-					$modIcon = t3lib_TCEforms::getIcon($modsInfo[2]);
+				if(GeneralUtility::inList($row['groupMods'],$modsInfo[1])) {
+					$modIcon = FormEngine::getIcon($modsInfo[2]);
 					$items[] = '<img src="'.$backPath.$modIcon[0].'" '.$modIcon[1][3].'/> '.$modsInfo[0];
 				}
 			}
@@ -789,7 +793,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-tsconfig');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
 			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
@@ -799,7 +803,7 @@ class tx_tcbeuser_overview {
 			);
 			$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 
-			$TSconfig = t3lib_div::intExplode(',', $row['TSconfig']);
+			$TSconfig = GeneralUtility::intExplode(',', $row['TSconfig']);
 			$content .= '<pre>'.$row['TSconfig'].'</pre><br />'."\n";
 		}
 
@@ -817,10 +821,10 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-tsconfighl');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		if($open) {
-			$tsparser = t3lib_div::makeInstance('t3lib_TSparser');
+			$tsparser = GeneralUtility::makeInstance('\TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser');
 			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 				'TSconfig',
 				'be_groups',
@@ -844,7 +848,7 @@ class tx_tcbeuser_overview {
 		$content  = '';
 		$backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
 		$title    = $GLOBALS['LANG']->getLL('showCol-members');
-		$icon     = '<img'.t3lib_iconWorks::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
+		$icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif','width="18" height="16"').' alt="" />';
 
 		$this->backPath = $backPath;
 		$this->table = 'be_users';
@@ -853,16 +857,15 @@ class tx_tcbeuser_overview {
 			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 				'*',
 				'be_users',
-				'usergroup like '.$GLOBALS['TYPO3_DB']->fullQuoteStr('%'.$groupId.'%','be_users').t3lib_befunc::deleteClause('be_users')
+				'usergroup like '.$GLOBALS['TYPO3_DB']->fullQuoteStr('%'.$groupId.'%','be_users').BackendUtility::deleteClause('be_users')
 			);
 			$members = array();
 			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)){
-				if (t3lib_div::inList($row['usergroup'],$groupId)){
+				if (GeneralUtility::inList($row['usergroup'],$groupId)){
 					//$members[] = $row;
-					$fmIcon = t3lib_iconWorks::getIconImage(
+					$fmIcon = IconUtility::getSpriteIconForRecord(
 						'be_users',
-						$row,
-						$backPath
+						$row
 					);
 					$members[] = '<tr><td>'.$fmIcon.' '.$row['realName'].' ('.$row['username'].')</td><td>'.$this->makeUserControl($row).'</td></tr>';
 				}
@@ -884,22 +887,24 @@ class tx_tcbeuser_overview {
 	 * from mod4/index.php
 	 */
 	function editOnClick($params, $requestUri = '') {
-		$retUrl = '&returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : t3lib_div::getIndpEnv('REQUEST_URI')));
-		return "window.location.href='". t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $retUrl . $params . "'; return false;";
+		$retUrl = '&returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
+		return "window.location.href='". BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $retUrl . $params . "'; return false;";
 	}
 
 	function makeUserControl($userRecord) {
-		$doc = t3lib_div::makeInstance('template');
+		$doc = GeneralUtility::makeInstance('template');
 		$doc->backPath = $this->backPath;
 
 		$this->calcPerms = $GLOBALS['BE_USER']->calcPerms($this->pageinfo);
 		$permsEdit = $this->calcPerms&16;
 
+		$control = '';
+
 		if($this->table == 'be_users' && $permsEdit){
 				// edit
 			$control = '<a href="#" onclick="' . htmlspecialchars(
 				$this->editOnClick('&edit[' . $this->table . '][' . $userRecord['uid'] . ']=edit&SET[function]=edit', -1)
-			) . '"><img' . t3lib_iconWorks::skinImg(
+			) . '"><img' . IconUtility::skinImg(
 				$this->backPath,
 				'gfx/edit2.gif',
 				'width="11" height="12"'
@@ -908,10 +913,10 @@ class tx_tcbeuser_overview {
 
 			//info
 		if ($GLOBALS['BE_USER']->check('tables_select', $this->table)
-			&& is_array(t3lib_BEfunc::readPageAccess($userRecord['pid'], $GLOBALS['BE_USER']->getPagePermsClause(1)))
+			&& is_array(BackendUtility::readPageAccess($userRecord['pid'], $GLOBALS['BE_USER']->getPagePermsClause(1)))
 		) {
 			$control .= '<a href="#" onclick="' . htmlspecialchars('top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;') . '">' .
-				'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="" alt="" />' .
+				'<img' . IconUtility::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="" alt="" />' .
 				'</a>' . chr(10);
 		}
 
@@ -922,14 +927,14 @@ class tx_tcbeuser_overview {
 			if ($userRecord[$hiddenField]) {
 				$params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
 				$control .= '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
-					t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');') . '">' .
-					'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="unhide" alt="" />' .
+					BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');') . '">' .
+					'<img' . IconUtility::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="unhide" alt="" />' .
 					'</a>' . chr(10);
 			} else {
 				$params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
 				$control .= '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
-					t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');') . '">' .
-					'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="hide" alt="" />' .
+					BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');') . '">' .
+					'<img' . IconUtility::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="hide" alt="" />' .
 					'</a>' . chr(10);
 			}
 		}
@@ -941,26 +946,26 @@ class tx_tcbeuser_overview {
 			$control .= '<a href="#" onclick="' . htmlspecialchars('if (confirm(' .
 				$GLOBALS['LANG']->JScharCode(
 					$GLOBALS['LANG']->getLL('deleteWarning') .
-					t3lib_BEfunc::referenceCount(
+					BackendUtility::referenceCount(
 						$this->table,
 						$userRecord['uid'],
 						' (There are %s reference(s) to this record!)'
 					)
-				) . ')) {jumpToUrl(\'' . t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');} return false;'
+				) . ')) {jumpToUrl(\'' . BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');} return false;'
 			) . '">' .
-			'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
+			'<img' . IconUtility::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
 			'</a>' . chr(10);
 		}
 
 			// swith user / switch user back
 		if($this->table == 'be_users' && $permsEdit && $GLOBALS['BE_USER']->isAdmin()) {
 			if ($userRecord[$hiddenField]) {
-				$control .= '<img '.t3lib_iconWorks::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" />'.
-						'<img '.t3lib_iconWorks::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" />'
+				$control .= '<img '.IconUtility::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" />'.
+						'<img '.IconUtility::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" />'
 						.chr(10).chr(10);
 			} else {
-				$control .= '<a href="'.t3lib_div::linkThisScript(array('SwitchUser'=>$userRecord['uid'])).'" target="_top"><img '.t3lib_iconWorks::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" /></a>'.
-						'<a href="'.t3lib_div::linkThisScript(array('SwitchUser'=>$userRecord['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.t3lib_iconWorks::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" /></a>'
+				$control .= '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'])).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" /></a>'.
+						'<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" /></a>'
 						.chr(10).chr(10);
 			}
 
@@ -972,16 +977,16 @@ class tx_tcbeuser_overview {
 	function getGroupTree($groupId) {
 
 		$treeStartingPoint  = $groupId;
-		$treeStartingRecord = t3lib_BEfunc::getRecord('be_groups', $treeStartingPoint);
+		$treeStartingRecord = BackendUtility::getRecord('be_groups', $treeStartingPoint);
 		$depth = 10;
 
 			// Initialize tree object:
-		$tree = t3lib_div::makeInstance('tx_tcbeuser_groupTree');
+		$tree = GeneralUtility::makeInstance('tx_tcbeuser_groupTree');
 		$tree->init('');
 		$tree->expandAll = true;
 
 			// Creating top icon; the main group
-		$HTML = t3lib_iconWorks::getIconImage('be_groups', $treeStartingRecord, $GLOBALS['BACK_PATH'],'align="top"');
+		$HTML = IconUtility::getSpriteIconForRecord('be_groups', $treeStartingRecord, array('align' => 'top'));
 		$tree->tree[] = array(
 			'row' => $treeStartingRecord,
 			'HTML' => $HTML

@@ -22,6 +22,11 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
+use \TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /**
  * class for listing DB tables in tc_beuser
  * $Id$
@@ -52,29 +57,28 @@ class tx_tcbeuser_recordList extends localRecordList {
 	 * @return	void
 	 */
 	function generateList() {
-		global $TCA;
 
 			// Set page record in header
-		$this->pageRecord = t3lib_BEfunc::getRecordWSOL('pages',$this->id);
+		$this->pageRecord = BackendUtility::getRecordWSOL('pages',$this->id);
 
 			// Traverse the TCA table array:
-		reset($TCA);
-		while (list($tableName)=each($TCA)) {
+		reset($GLOBALS['TCA']);
+		while (list($tableName)=each($GLOBALS['TCA'])) {
 
 				// Checking if the table should be rendered:
 				// Checks that we see only permitted/requested tables:
-			if ((!$this->table || $tableName==$this->table) && (!$this->tableList || t3lib_div::inList($this->tableList,$tableName)) && $GLOBALS['BE_USER']->check('tables_select',$tableName)) {
+			if ((!$this->table || $tableName==$this->table) && (!$this->tableList || GeneralUtility::inList($this->tableList,$tableName)) && $GLOBALS['BE_USER']->check('tables_select',$tableName)) {
 
 					// Hide tables which are configured via TSConfig not to be shown (also works for admins):
-				if (t3lib_div::inList($this->hideTables, $tableName)) {
+				if (GeneralUtility::inList($this->hideTables, $tableName)) {
 					continue;
 				}
 
 					// iLimit is set depending on whether we're in single- or multi-table mode
 				if ($this->table) {
-					$this->iLimit=(isset($TCA[$tableName]['interface']['maxSingleDBListItems'])?intval($TCA[$tableName]['interface']['maxSingleDBListItems']):$this->itemsLimitSingleTable);
+					$this->iLimit=(isset($GLOBALS['TCA'][$tableName]['interface']['maxSingleDBListItems'])?intval($GLOBALS['TCA'][$tableName]['interface']['maxSingleDBListItems']):$this->itemsLimitSingleTable);
 				} else {
-					$this->iLimit=(isset($TCA[$tableName]['interface']['maxDBListItems'])?intval($TCA[$tableName]['interface']['maxDBListItems']):$this->itemsLimitPerTable);
+					$this->iLimit=(isset($GLOBALS['TCA'][$tableName]['interface']['maxDBListItems'])?intval($GLOBALS['TCA'][$tableName]['interface']['maxDBListItems']):$this->itemsLimitPerTable);
 				}
 				if ($this->showLimit) {
 					$this->iLimit = $this->showLimit;
@@ -100,7 +104,7 @@ class tx_tcbeuser_recordList extends localRecordList {
 
 					// Find ID to use (might be different for "versioning_followPages" tables)
 				if (intval($this->searchLevels) == 0) {
-					if ($TCA[$tableName]['ctrl']['versioning_followPages'] && ($this->pageRecord['_ORIG_pid'] == -1) && ($this->pageRecord['t3ver_swapmode'] == 0)) {
+					if ($GLOBALS['TCA'][$tableName]['ctrl']['versioning_followPages'] && ($this->pageRecord['_ORIG_pid'] == -1) && ($this->pageRecord['t3ver_swapmode'] == 0)) {
 						$this->pidSelect = 'pid='.intval($this->pageRecord['_ORIG_uid']);
 					} else {
 						$this->pidSelect = 'pid='.intval($this->id);
@@ -115,19 +119,18 @@ class tx_tcbeuser_recordList extends localRecordList {
 	/**
 	 * Creates the listing of records from a single table
 	 *
-	 * @param	string		Table name
-	 * @param	integer		Page id
-	 * @param	string		List of fields to show in the listing. Pseudo fields will be added including the record header.
-	 * @return	string		HTML table with the listing for the record.
+	 * @param    string $table : Table name
+	 * @param    integer $id : Page id
+	 * @param    string $rowlist: List of fields to show in the listing. Pseudo fields will be added including the record header.
+	 * @return   string $out: HTML table with the listing for the record.
 	 */
 	function getTable($table, $id, $rowlist) {
-		global $TCA;
 
 			// Init
 		$addWhere = '';
-		$titleCol = $TCA[$table]['ctrl']['label'];
-		$thumbsCol = $TCA[$table]['ctrl']['thumbnail'];
-		$l10nEnabled = $TCA[$table]['ctrl']['languageField'] && $TCA[$table]['ctrl']['transOrigPointerField'] && !$TCA[$table]['ctrl']['transOrigPointerTable'];
+		$titleCol = $GLOBALS['TCA'][$table]['ctrl']['label'];
+		$thumbsCol = $GLOBALS['TCA'][$table]['ctrl']['thumbnail'];
+		$l10nEnabled = $GLOBALS['TCA'][$table]['ctrl']['languageField'] && $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'] && !$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerTable'];
 
 			// Cleaning rowlist for duplicates and place the $titleCol as the first column always!
 		$this->fieldArray = array();
@@ -139,9 +142,9 @@ class tx_tcbeuser_recordList extends localRecordList {
 		if ($this->localizationView && $l10nEnabled) {
 			$this->fieldArray[] = '_LOCALIZATION_';
 			$this->fieldArray[] = '_LOCALIZATION_b';
-			$addWhere .= ' AND '.$TCA[$table]['ctrl']['languageField'].'<=0';
+			$addWhere .= ' AND '.$GLOBALS['TCA'][$table]['ctrl']['languageField'].'<=0';
 		}
-		if (!t3lib_div::inList($rowlist,'_CONTROL_')) {
+		if (!GeneralUtility::inList($rowlist,'_CONTROL_')) {
 			$this->fieldArray[] = '_CONTROL_';
 		}
 		if ($this->showClipboard) {
@@ -154,7 +157,7 @@ class tx_tcbeuser_recordList extends localRecordList {
 			$this->fieldArray[] = '_PATH_';
 		}
 			// Cleaning up:
-		$this->fieldArray = array_unique(array_merge($this->fieldArray,t3lib_div::trimExplode(',',$rowlist,1)));
+		$this->fieldArray = array_unique(array_merge($this->fieldArray,GeneralUtility::trimExplode(',',$rowlist,1)));
 
 		if ($this->noControlPanels) {
 			$tempArray = array_flip($this->fieldArray);
@@ -173,33 +176,33 @@ class tx_tcbeuser_recordList extends localRecordList {
 		}
 
 		if ($table=='pages') {
-			if (t3lib_extMgm::isLoaded('cms')) {
+			if (ExtensionManagementUtility::isLoaded('cms')) {
 				$selectFields[] = 'module';
 				$selectFields[] = 'extendToSubpages';
 			}
 			$selectFields[] = 'doktype';
 		}
-		if (is_array($TCA[$table]['ctrl']['enablecolumns'])) {
-			$selectFields = array_merge($selectFields,$TCA[$table]['ctrl']['enablecolumns']);
+		if (is_array($GLOBALS['TCA'][$table]['ctrl']['enablecolumns'])) {
+			$selectFields = array_merge($selectFields,$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']);
 		}
-		if ($TCA[$table]['ctrl']['type']) {
-			$selectFields[] = $TCA[$table]['ctrl']['type'];
+		if ($GLOBALS['TCA'][$table]['ctrl']['type']) {
+			$selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['type'];
 		}
-		if ($TCA[$table]['ctrl']['typeicon_column']) {
-			$selectFields[] = $TCA[$table]['ctrl']['typeicon_column'];
+		if ($GLOBALS['TCA'][$table]['ctrl']['typeicon_column']) {
+			$selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['typeicon_column'];
 		}
-		if ($TCA[$table]['ctrl']['versioningWS']) {
+		if ($GLOBALS['TCA'][$table]['ctrl']['versioningWS']) {
 			$selectFields[] = 't3ver_id';
 			$selectFields[] = 't3ver_state';
 			$selectFields[] = 't3ver_wsid';
 			$selectFields[] = 't3ver_swapmode';		// Filtered out when pages in makeFieldList()
 		}
 		if ($l10nEnabled) {
-			$selectFields[] = $TCA[$table]['ctrl']['languageField'];
-			$selectFields[] = $TCA[$table]['ctrl']['transOrigPointerField'];
+			$selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['languageField'];
+			$selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'];
 		}
-		if ($TCA[$table]['ctrl']['label_alt']) {
-			$selectFields = array_merge($selectFields,t3lib_div::trimExplode(',',$TCA[$table]['ctrl']['label_alt'],1));
+		if ($GLOBALS['TCA'][$table]['ctrl']['label_alt']) {
+			$selectFields = array_merge($selectFields,GeneralUtility::trimExplode(',',$GLOBALS['TCA'][$table]['ctrl']['label_alt'],1));
 		}
 		// Unique list!
 		$selectFields = array_unique($selectFields);
@@ -276,12 +279,12 @@ class tx_tcbeuser_recordList extends localRecordList {
 				// Header line is drawn
 			$theData = array();
 			if ($this->disableSingleTableView) {
-				$theData[$titleCol] = '<span class="c-table">'.$GLOBALS['LANG']->sL($TCA[$table]['ctrl']['title'],1).'</span> ('.$this->totalItems.')';
+				$theData[$titleCol] = '<span class="c-table">'.$GLOBALS['LANG']->sL($GLOBALS['TCA'][$table]['ctrl']['title'],1).'</span> ('.$this->totalItems.')';
 			} else {
-				$theData[$titleCol] = $this->linkWrapTable($table,'<span class="c-table">'.$GLOBALS['LANG']->sL($TCA[$table]['ctrl']['title'],1).'</span> ('.$this->totalItems.') ');
+				$theData[$titleCol] = $this->linkWrapTable($table,'<span class="c-table">'.$GLOBALS['LANG']->sL($GLOBALS['TCA'][$table]['ctrl']['title'],1).'</span> ('.$this->totalItems.') ');
 			}
 				// CSH:
-			$theData[$titleCol] .= t3lib_BEfunc::cshItem($table,'',$this->backPath,'',FALSE,'margin-bottom:0px; white-space: normal;');
+			$theData[$titleCol] .= BackendUtility::cshItem($table,'',$this->backPath,'',FALSE,'margin-bottom:0px; white-space: normal;');
 
 				// ingo.renner@dkd.de - moving the table title to the first column
 			$theData[$this->showFields[0]] = $theData[$titleCol];
@@ -302,12 +305,12 @@ class tx_tcbeuser_recordList extends localRecordList {
 						$onClick = "vHWin=window.open('view_help.php?tfID=".$table.".','viewFieldHelp','height=400,width=600,status=0,menubar=0,scrollbars=1');vHWin.focus();return false;";
 						$out.='
 					<tr>
-						<td class="c-tableDescription">'.t3lib_BEfunc::helpTextIcon($table,'',$this->backPath,TRUE).$GLOBALS['TCA_DESCR'][$table]['columns']['']['description'].'</td>
+						<td class="c-tableDescription">'.BackendUtility::helpTextIcon($table,'',$this->backPath,TRUE).$GLOBALS['TCA_DESCR'][$table]['columns']['']['description'].'</td>
 					</tr>';
 					}
 				}
 			} else {
-				$theUpIcon = ($table=='pages'&&$this->id&&isset($this->pageRow['pid'])) ? '<a href="'.htmlspecialchars($this->listURL($this->pageRow['pid'])).'" onclick="setHighlight('.$this->pageRow['pid'].')"><img'.t3lib_iconWorks::skinImg('','gfx/i/pages_up.gif','width="18" height="16"').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.upOneLevel',1).'" alt="" /></a>':'';
+				$theUpIcon = ($table=='pages'&&$this->id&&isset($this->pageRow['pid'])) ? '<a href="'.htmlspecialchars($this->listURL($this->pageRow['pid'])).'" onclick="setHighlight('.$this->pageRow['pid'].')"><img'.IconUtility::skinImg('','gfx/i/pages_up.gif','width="18" height="16"').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.upOneLevel',1).'" alt="" /></a>':'';
 				$out .= $this->addelement(
 					1,
 					$theUpIcon,
@@ -321,7 +324,7 @@ class tx_tcbeuser_recordList extends localRecordList {
 					// Fixing a order table for sortby tables
 				$this->currentTable = array();
 				$currentIdList = array();
-				$doSort = ($TCA[$table]['ctrl']['sortby'] && !$this->sortField);
+				$doSort = ($GLOBALS['TCA'][$table]['ctrl']['sortby'] && !$this->sortField);
 
 				$prevUid = 0;
 				$prevPrevUid = 0;
@@ -371,16 +374,16 @@ class tx_tcbeuser_recordList extends localRecordList {
 								$selFieldList,
 								$table,
 								'pid='.$row['pid'].
-									' AND '.$TCA[$table]['ctrl']['languageField'].'>0'.
-									' AND '.$TCA[$table]['ctrl']['transOrigPointerField'].'='.intval($row['uid']).
-									t3lib_BEfunc::deleteClause($table).
-									t3lib_BEfunc::versioningPlaceholderClause($table)
+									' AND '.$GLOBALS['TCA'][$table]['ctrl']['languageField'].'>0'.
+									' AND '.$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'].'='.intval($row['uid']).
+									BackendUtility::deleteClause($table).
+									BackendUtility::versioningPlaceholderClause($table)
 							);
 
 								// For each available translation, render the record:
 							if (is_array($translations)) {
 								foreach($translations as $lRow) {
-									if ($GLOBALS['BE_USER']->checkLanguageAccess($lRow[$TCA[$table]['ctrl']['languageField']])) {
+									if ($GLOBALS['BE_USER']->checkLanguageAccess($lRow[$GLOBALS['TCA'][$table]['ctrl']['languageField']])) {
 										$iOut.=$this->renderListRow($table,$lRow,$cc,$titleCol,$thumbsCol,18);
 									}
 								}
@@ -430,8 +433,6 @@ class tx_tcbeuser_recordList extends localRecordList {
 	 * @see getTable()
 	 */
 	function renderListHeader($table, $currentIdList) {
-		global $TCA, $LANG;
-
 			// Init:
 		$theData = array();
 
@@ -444,21 +445,21 @@ class tx_tcbeuser_recordList extends localRecordList {
 			switch((string)$fCol) {
 				case '_PATH_':
 					// Path
-					$theData[$fCol] = '<i>['.$LANG->sL('LLL:EXT:lang/locallang_core.php:labels._PATH_',1).']</i>';
+					$theData[$fCol] = '<i>['.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels._PATH_',1).']</i>';
 				break;
 				case '_REF_':
 					// References
 					// ingo.renner@dkd.de
 					// removed as not needed
-					#$theData[$fCol] = '<i>['.$LANG->sL('LLL:EXT:lang/locallang_mod_file_list.xml:c__REF_',1).']</i>';
+					#$theData[$fCol] = '<i>['.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_mod_file_list.xml:c__REF_',1).']</i>';
 				break;
 				case '_LOCALIZATION_':
 					// Path
-					$theData[$fCol] = '<i>['.$LANG->sL('LLL:EXT:lang/locallang_core.php:labels._LOCALIZATION_',1).']</i>';
+					$theData[$fCol] = '<i>['.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels._LOCALIZATION_',1).']</i>';
 				break;
 				case '_LOCALIZATION_b':
 					// Path
-					$theData[$fCol] = $LANG->getLL('Localize',1);
+					$theData[$fCol] = $GLOBALS['LANG']->getLL('Localize',1);
 				break;
 				case '_CLIPBOARD_':
 					// Clipboard:
@@ -468,7 +469,7 @@ class tx_tcbeuser_recordList extends localRecordList {
 					$elFromTable = $this->clipObj->elFromTable($table);
 					if (count($elFromTable)) {
 						$cells[] = '<a href="'.htmlspecialchars($this->clipObj->pasteUrl($table,$this->id)).'" onclick="'.htmlspecialchars('return '.$this->clipObj->confirmMsg('pages',$this->pageRow,'into',$elFromTable)).'">'.
-								'<img'.t3lib_iconWorks::skinImg('','gfx/clip_pasteafter.gif','width="12" height="12"').' title="'.$LANG->getLL('clip_paste',1).'" alt="" />'.
+								'<img'.IconUtility::skinImg('','gfx/clip_pasteafter.gif','width="12" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_paste',1).'" alt="" />'.
 								'</a>';
 					}
 
@@ -476,22 +477,22 @@ class tx_tcbeuser_recordList extends localRecordList {
 					if ($this->clipObj->current != 'normal') {
 
 							// The "select" link:
-						$cells[] = $this->linkClipboardHeaderIcon('<img'.t3lib_iconWorks::skinImg('','gfx/clip_copy.gif','width="12" height="12"').' title="'.$LANG->getLL('clip_selectMarked',1).'" alt="" />',$table,'setCB');
+						$cells[] = $this->linkClipboardHeaderIcon('<img'.IconUtility::skinImg('','gfx/clip_copy.gif','width="12" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_selectMarked',1).'" alt="" />',$table,'setCB');
 
 							// The "edit marked" link:
 						$editIdList = implode(',', $currentIdList);
 						$editIdList = "'+editList('".$table."','".$editIdList."')+'";
 						$params = '&edit[' . $table . '][' . $editIdList . ']=edit&disHelp=1';
-						$cells[] = '<a href="#" onclick="' . htmlspecialchars(t3lib_BEfunc::editOnClick($params)) . '">' .
-							'<img' . t3lib_iconWorks::skinImg('', 'gfx/edit2.gif', 'width="11" height="12"') . ' title="' . $LANG->getLL('clip_editMarked', 1) . '" alt="" />' .
+						$cells[] = '<a href="#" onclick="' . htmlspecialchars(BackendUtility::editOnClick($params)) . '">' .
+							'<img' . IconUtility::skinImg('', 'gfx/edit2.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('clip_editMarked', 1) . '" alt="" />' .
 							'</a>';
 
 							// The "Delete marked" link:
-						$cells[] = $this->linkClipboardHeaderIcon('<img'.t3lib_iconWorks::skinImg('','gfx/garbage.gif','width="11" height="12"').' title="'.$LANG->getLL('clip_deleteMarked',1).'" alt="" />',$table,'delete',sprintf($LANG->getLL('clip_deleteMarkedWarning'),$LANG->sL($TCA[$table]['ctrl']['title'])));
+						$cells[] = $this->linkClipboardHeaderIcon('<img'.IconUtility::skinImg('','gfx/garbage.gif','width="11" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_deleteMarked',1).'" alt="" />',$table,'delete',sprintf($GLOBALS['LANG']->getLL('clip_deleteMarkedWarning'),$GLOBALS['LANG']->sL($GLOBALS['TCA'][$table]['ctrl']['title'])));
 
 							// The "Select all" link:
 						$cells[] = '<a href="#" onclick="'.htmlspecialchars('checkOffCB(\''.implode(',',$this->CBnames).'\'); return false;').'">'.
-								'<img'.t3lib_iconWorks::skinImg('','gfx/clip_select.gif','width="12" height="12"').' title="'.$LANG->getLL('clip_markRecords',1).'" alt="" />'.
+								'<img'.IconUtility::skinImg('','gfx/clip_select.gif','width="12" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_markRecords',1).'" alt="" />'.
 								'</a>';
 					} else {
 						$cells[] = '';
@@ -511,11 +512,11 @@ class tx_tcbeuser_recordList extends localRecordList {
 							// If the numeric clipboard pads are selected, show duplicate sorting link:
 						if ($this->clipNumPane()) {
 							$theData[$fCol] .= '<a href="'.htmlspecialchars($this->listURL('',-1).'&duplicateField='.$fCol).'">'.
-											'<img'.t3lib_iconWorks::skinImg('','gfx/select_duplicates.gif','width="11" height="11"').' title="'.$LANG->getLL('clip_duplicates',1).'" alt="" />'.
+											'<img'.IconUtility::skinImg('','gfx/select_duplicates.gif','width="11" height="11"').' title="'.$GLOBALS['LANG']->getLL('clip_duplicates',1).'" alt="" />'.
 											'</a>';
 						}
 					}
-					$theData[$fCol] .= $this->addSortLink($LANG->sL(t3lib_BEfunc::getItemLabel($table,$fCol,'<i>[|]</i>')),$fCol,$table);
+					$theData[$fCol] .= $this->addSortLink($GLOBALS['LANG']->sL(BackendUtility::getItemLabel($table,$fCol,'<i>[|]</i>')),$fCol,$table);
 				break;
 			}
 		}
@@ -526,13 +527,13 @@ class tx_tcbeuser_recordList extends localRecordList {
 	/**
 	 * Rendering a single row for the list
 	 *
-	 * @param	string		Table name
-	 * @param	array		Current record
-	 * @param	integer		Counter, counting for each time an element is rendered (used for alternating colors)
-	 * @param	string		Table field (column) where header value is found
-	 * @param	string		Table field (column) where (possible) thumbnails can be found
-	 * @param	integer		Indent from left.
-	 * @return	string		Table row for the element
+	 * @param    string $table : Table name
+	 * @param    array $row : Current record
+	 * @param    integer $cc : Counter, counting for each time an element is rendered (used for alternating colors)
+	 * @param    string $titleCol : Table field (column) where header value is found
+	 * @param    string $thumbsCol : Table field (column) where (possible) thumbnails can be found
+	 * @param    int $indent : indent from left.
+	 * @return    string        Table row for the element
 	 * @access private
 	 * @see getTable()
 	 */
@@ -546,7 +547,7 @@ class tx_tcbeuser_recordList extends localRecordList {
 		}
 
 			// In offline workspace, look for alternative record:
-		t3lib_BEfunc::workspaceOL($table, $row, $GLOBALS['BE_USER']->workspace);
+		BackendUtility::workspaceOL($table, $row, $GLOBALS['BE_USER']->workspace);
 
 			// Background color, if any:
 		$row_bgColor = $this->alternateBgColors ? (($cc%2)?'' :' class="db_list_alt"') : '';
@@ -557,15 +558,15 @@ class tx_tcbeuser_recordList extends localRecordList {
 		$row_bgColor = 'class="db_list_normal"';
 
 			// Initialization
-		$alttext = t3lib_BEfunc::getRecordIconAltText($row,$table);
-		$recTitle = t3lib_BEfunc::getRecordTitle($table,$row);
+		$alttext = BackendUtility::getRecordIconAltText($row,$table);
+		$recTitle = BackendUtility::getRecordTitle($table,$row);
 
 			// Incr. counter.
 		$this->counter++;
 
 			// The icon with link
 		$this->clickMenuEnabled = 0;
-		$iconImg = t3lib_iconWorks::getIconImage($table,$row,$this->backPath,'title="'.htmlspecialchars($alttext).'"'.($indent ? ' style="margin-left: '.$indent.'px;"' : ''));
+		$iconImg = IconUtility::getSpriteIconForRecord($table, $row, array('title' => htmlspecialchars($alttext), 'style' => 'margin-left: '.$indent.'px;'));
 		$theIcon = $this->clickMenuEnabled ? $GLOBALS['SOBE']->doc->wrapClickMenuOnIcon($iconImg,$table,$row['uid']) : $iconImg;
 
 			// Preparing and getting the data-array
@@ -573,13 +574,13 @@ class tx_tcbeuser_recordList extends localRecordList {
 		foreach($this->fieldArray as $fCol) {
 			if ($fCol == $titleCol) {
 				if ($GLOBALS['TCA'][$table]['ctrl']['label_alt'] && ($GLOBALS['TCA'][$table]['ctrl']['label_alt_force'] || !strcmp($row[$fCol],''))) {
-					$altFields = t3lib_div::trimExplode(',',$GLOBALS['TCA'][$table]['ctrl']['label_alt'],1);
+					$altFields = GeneralUtility::trimExplode(',',$GLOBALS['TCA'][$table]['ctrl']['label_alt'],1);
 					$tA = array();
 					if ($row[$fCol]) {
 						$tA[]=$row[$fCol];
 					}
 					while(list(,$fN)=each($altFields)) {
-						$t = t3lib_BEfunc::getProcessedValueExtra($table,$fN,$row[$fN],$GLOBALS['BE_USER']->uc['titleLen'],$row['uid']);
+						$t = BackendUtility::getProcessedValueExtra($table,$fN,$row[$fN],$GLOBALS['BE_USER']->uc['titleLen'],$row['uid']);
 						if($t) {
 							$tA[] = $t;
 						}
@@ -591,7 +592,7 @@ class tx_tcbeuser_recordList extends localRecordList {
 						$recTitle = $t;
 					}
 				} else {
-					$recTitle = t3lib_BEfunc::getProcessedValueExtra($table,$fCol,$row[$fCol],$GLOBALS['BE_USER']->uc['titleLen'],$row['uid']);
+					$recTitle = BackendUtility::getProcessedValueExtra($table,$fCol,$row[$fCol],$GLOBALS['BE_USER']->uc['titleLen'],$row['uid']);
 				}
 				$theData[$fCol] = $this->linkWrapItems($table,$row['uid'],$recTitle,$row);
 			} elseif ($fCol == 'pid') {
@@ -614,7 +615,7 @@ class tx_tcbeuser_recordList extends localRecordList {
 					// ingo.renner@dkd.de
 				$theData[$fCol] = htmlspecialchars($this->getUserMainGroup($row[$fCol]));
 			} else {
-				$theData[$fCol] = $this->linkUrlMail(htmlspecialchars(t3lib_BEfunc::getProcessedValueExtra($table,$fCol,$row[$fCol],100,$row['uid'])),$row[$fCol]);
+				$theData[$fCol] = $this->linkUrlMail(htmlspecialchars(BackendUtility::getProcessedValueExtra($table,$fCol,$row[$fCol],100,$row['uid'])),$row[$fCol]);
 			}
 		}
 
@@ -687,7 +688,7 @@ class tx_tcbeuser_recordList extends localRecordList {
 	}
 
 	/**
-	 * ingo.renner@dkd.de: from t3lib_BEfunc, modified
+	 * ingo.renner@dkd.de: from BackendUtility, modified
 	 *
 	 * Returns a JavaScript string (for an onClick handler) which will load the alt_doc.php script that shows the form for editing of the record(s) you have send as params.
 	 * REMEMBER to always htmlspecialchar() content in href-properties to ampersands get converted to entities (XHTML requirement and XSS precaution)
@@ -700,19 +701,18 @@ class tx_tcbeuser_recordList extends localRecordList {
 	 * @see template::issueCommand()
 	 */
 	function editOnClick($params, $backPath='', $requestUri='') {
-		$retUrl = 'returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : t3lib_div::getIndpEnv('REQUEST_URI')));
-		return "window.location.href='" . t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name']) . '&' . $retUrl . $params . "'; return false;";
+		$retUrl = 'returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
+		return "window.location.href='" . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']) . '&' . $retUrl . $params . "'; return false;";
 	}
 
 	/**
 	 * Creates the control panel for a single record in the listing.
 	 *
-	 * @param	string		The table
-	 * @param	array		The record for which to make the control panel.
+	 * @param	string		$table: The table
+	 * @param	array		$row: The record for which to make the control panel.
 	 * @return	string		HTML table with the control panel (unless disabled)
 	 */
 	function makeControl($table,$row) {
-		global $TCA, $LANG, $SOBE;
 		if ($this->dontShowClipControlPanels) {
 			return '';
 		}
@@ -721,7 +721,7 @@ class tx_tcbeuser_recordList extends localRecordList {
 
 			// If the listed table is 'pages' we have to request the permission settings for each page:
 		if ($table == 'pages') {
-			$localCalcPerms = $GLOBALS['BE_USER']->calcPerms(t3lib_BEfunc::getRecord('pages',$row['uid']));
+			$localCalcPerms = $GLOBALS['BE_USER']->calcPerms(BackendUtility::getRecord('pages',$row['uid']));
 		}
 
 			// This expresses the edit permissions for this particular element:
@@ -731,7 +731,7 @@ class tx_tcbeuser_recordList extends localRecordList {
 		if ($permsEdit && !$this->disableControls['edit']) {
 			$params='&edit['.$table.']['.$row['uid'].']=edit&SET[function]=edit';
 			$cells[]='<a href="#" onclick="'.htmlspecialchars($this->editOnClick($params)).'">'.
-					'<img'.t3lib_iconWorks::skinImg($this->backPath,'gfx/edit2'.(!$TCA[$table]['ctrl']['readOnly']?'':'_d').'.gif','width="11" height="12"').' title="'.$LANG->getLL('edit',1).'" alt="" />'.
+					'<img'.IconUtility::skinImg($this->backPath,'gfx/edit2'.(!$GLOBALS['TCA'][$table]['ctrl']['readOnly']?'':'_d').'.gif','width="11" height="12"').' title="'.$GLOBALS['LANG']->getLL('edit',1).'" alt="" />'.
 					'</a>';
 		}
 
@@ -739,45 +739,45 @@ class tx_tcbeuser_recordList extends localRecordList {
 			//show magnifier (mod4)
 		if (!$this->disableControls['detail']) {
 			$cells[] = '<a href="#" onclick="javascript:top.goToModule(\'txtcbeuserM1_txtcbeuserM4\', 1, \'&' . $this->analyzeParam . '=' . $row['uid'] . '\')">' .
-				'<img ' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/zoom.gif', 'width="12" height="12"') . 'title="' . $this->analyzeLabel . '" alt="" />' .
+				'<img ' . IconUtility::skinImg($this->backPath, 'gfx/zoom.gif', 'width="12" height="12"') . 'title="' . $this->analyzeLabel . '" alt="" />' .
 				'</a>';
 		}
 
 			//dkd-kartolo
 			//show import fe user icon
 		if(!$this->disableControls['import']) {
-			$scriptname = t3lib_div::getIndpEnv('SCRIPT_NAME');
+			$scriptname = GeneralUtility::getIndpEnv('SCRIPT_NAME');
 			$params = '&SET[function]=import&feID=' . $row['uid'];
 			$cells[] = '<a href="#" onclick="' . htmlspecialchars($this->editOnClick($params)) . '">' .
-				'<img ' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/edit2.gif', 'width="12" height="12"') . 'title="' . $LANG->getLL('import',1) . '" alt="" />' .
+				'<img ' . IconUtility::skinImg($this->backPath, 'gfx/edit2.gif', 'width="12" height="12"') . 'title="' . $GLOBALS['LANG']->getLL('import',1) . '" alt="" />' .
 				'</a>';
 		}
 
 			// If the extended control panel is enabled OR if we are seeing a single table:
-		if ($SOBE->MOD_SETTINGS['bigControlPanel'] || $this->table) {
+		if ($GLOBALS['SOBE']->MOD_SETTINGS['bigControlPanel'] || $this->table) {
 				// "Info": (All records)
 			if ($GLOBALS['BE_USER']->check('tables_select', $table)
-				&& is_array(t3lib_BEfunc::readPageAccess($row['pid'], $GLOBALS['BE_USER']->getPagePermsClause(1)))
+				&& is_array(BackendUtility::readPageAccess($row['pid'], $GLOBALS['BE_USER']->getPagePermsClause(1)))
 			) {
 				$cells[] = '<a href="#" onclick="' . htmlspecialchars('top.launchView(\'' . $table . '\', \'' . $row['uid'] . '\'); return false;') . '">' .
-					'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="' . $LANG->getLL('showInfo', 1) . '" alt="" />' .
+					'<img' . IconUtility::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('showInfo', 1) . '" alt="" />' .
 					'</a>';
 			}
 
 				// If the table is NOT a read-only table, then show these links:
-			if (!$TCA[$table]['ctrl']['readOnly']) {
+			if (!$GLOBALS['TCA'][$table]['ctrl']['readOnly']) {
 					// "Hide/Unhide" links:
-				$hiddenField = $TCA[$table]['ctrl']['enablecolumns']['disabled'];
-				if ($permsEdit && $hiddenField && $TCA[$table]['columns'][$hiddenField] && (!$TCA[$table]['columns'][$hiddenField]['exclude'] || $GLOBALS['BE_USER']->check('non_exclude_fields', $table . ':' . $hiddenField)) && !$this->disableControls['hide']) {
+				$hiddenField = $GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled'];
+				if ($permsEdit && $hiddenField && $GLOBALS['TCA'][$table]['columns'][$hiddenField] && (!$GLOBALS['TCA'][$table]['columns'][$hiddenField]['exclude'] || $GLOBALS['BE_USER']->check('non_exclude_fields', $table . ':' . $hiddenField)) && !$this->disableControls['hide']) {
 					if ($row[$hiddenField]) {
 						$params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
 						$cells[] = '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' . $this->actionOnClick($params) . '\');') . '">' .
-							'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="' . $LANG->getLL('unHide' . ($table == 'pages' ? 'Page' : ''), 1) . '" alt="" />' .
+							'<img' . IconUtility::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="' . $GLOBALS['LANG']->getLL('unHide' . ($table == 'pages' ? 'Page' : ''), 1) . '" alt="" />' .
 							'</a>';
 					} else {
 						$params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
 						$cells[] = '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' . $this->actionOnClick($params) . '\');') . '">' .
-							'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="' . $LANG->getLL('hide' . ($table == 'pages' ? 'Page' : ''), 1) . '" alt="" />' .
+							'<img' . IconUtility::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="' . $GLOBALS['LANG']->getLL('hide' . ($table == 'pages' ? 'Page' : ''), 1) . '" alt="" />' .
 							'</a>';
 					}
 				}
@@ -785,17 +785,17 @@ class tx_tcbeuser_recordList extends localRecordList {
 					// "Delete" link:
 				if ( ($table=='pages' && ($localCalcPerms&4)) || ($table!='pages' && ($this->calcPerms&16) && !$this->disableControls['delete']) ) {
 					$params = '&cmd[' . $table . '][' . $row['uid'] . '][delete]=1&SET[function]=action';
-					$cells[] = '<a href="#" onclick="' . htmlspecialchars('if (confirm(' . $LANG->JScharCode($LANG->getLL('deleteWarning') . t3lib_BEfunc::referenceCount($table, $row['uid'], ' (There are %s reference(s) to this record!)')) . ')) {jumpToUrl(\'' . $this->actionOnClick($params) . '\');}') . '">' .
-						'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $LANG->getLL('delete', 1) . '" alt="" />' .
+					$cells[] = '<a href="#" onclick="' . htmlspecialchars('if (confirm(' . $GLOBALS['LANG']->JScharCode($GLOBALS['LANG']->getLL('deleteWarning') . BackendUtility::referenceCount($table, $row['uid'], ' (There are %s reference(s) to this record!)')) . ')) {jumpToUrl(\'' . $this->actionOnClick($params) . '\');}') . '">' .
+						'<img' . IconUtility::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
 						'</a>';
 				}
 			}
 		}
 
 			// If the record is edit-locked	by another user, we will show a little warning sign:
-		if ($lockInfo = t3lib_BEfunc::isRecordLocked($table,$row['uid'])) {
-			$cells[]='<a href="#" onclick="'.htmlspecialchars('alert('.$LANG->JScharCode($lockInfo['msg']).');return false;').'">'.
-					'<img'.t3lib_iconWorks::skinImg($this->backPath,'gfx/recordlock_warning3.gif','width="17" height="12"').' title="'.htmlspecialchars($lockInfo['msg']).'" alt="" />'.
+		if ($lockInfo = BackendUtility::isRecordLocked($table,$row['uid'])) {
+			$cells[]='<a href="#" onclick="'.htmlspecialchars('alert('.$GLOBALS['LANG']->JScharCode($lockInfo['msg']).');return false;').'">'.
+					'<img'.IconUtility::skinImg($this->backPath,'gfx/recordlock_warning3.gif','width="17" height="12"').' title="'.htmlspecialchars($lockInfo['msg']).'" alt="" />'.
 					'</a>';
 		}
 
@@ -815,9 +815,9 @@ class tx_tcbeuser_recordList extends localRecordList {
 	 * @return	string		jumpTo URL link with redirect
 	 */
 	function actionOnClick($params, $requestURI = '') {
-		$redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : t3lib_div::getIndpEnv('REQUEST_URI'))) .
+		$redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : GeneralUtility::getIndpEnv('REQUEST_URI'))) .
 			'&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
-		return t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name']) . $params . $redirect;
+		return BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']) . $params . $redirect;
 	}
 
 	/**
@@ -843,8 +843,8 @@ class tx_tcbeuser_recordList extends localRecordList {
 			($this->searchString?'&search_field='.rawurlencode($this->searchString):'').
 			($this->searchLevels?'&search_levels='.rawurlencode($this->searchLevels):'').
 			($this->showLimit?'&showLimit='.rawurlencode($this->showLimit):'').
-			((!$exclList || !t3lib_div::inList($exclList,'sortField')) && $this->sortField?'&sortField='.rawurlencode($this->sortField):'').
-			((!$exclList || !t3lib_div::inList($exclList,'sortRev')) && $this->sortRev?'&sortRev='.rawurlencode($this->sortRev):'')
+			((!$exclList || !GeneralUtility::inList($exclList,'sortField')) && $this->sortField?'&sortField='.rawurlencode($this->sortField):'').
+			((!$exclList || !GeneralUtility::inList($exclList,'sortRev')) && $this->sortRev?'&sortRev='.rawurlencode($this->sortRev):'')
 			;
 	}
 }

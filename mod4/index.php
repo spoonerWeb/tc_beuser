@@ -22,6 +22,13 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
+use TYPO3\CMS\Extbase\Persistence\Generic\Backend;
+
 $GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
 $GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
 
@@ -37,7 +44,7 @@ $GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits i
  * @package	TYPO3
  * @subpackage	tx_tcbeuser
  */
-class  tx_tcbeuser_module4 extends t3lib_SCbase {
+class tx_tcbeuser_module4 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 
 	var $content;
 	var $doc;
@@ -66,11 +73,11 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 			$this->pageinfo['uid'] = $webmounts[0];
 			$this->pageinfo['_thePath'] = '/';
 
-			if(t3lib_div::_GP('beUser')){
+			if(GeneralUtility::_GP('beUser')){
 				$this->MOD_SETTINGS['function'] = 2;
 			}
 
-			if(t3lib_div::_GP('beGroup')){
+			if(GeneralUtility::_GP('beGroup')){
 				$this->MOD_SETTINGS['function'] = 1;
 			}
 
@@ -80,7 +87,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 				$title = $GLOBALS['LANG']->getLL('overview-users');
 			}
 
-			$menu  = t3lib_BEfunc::getFuncMenu(
+			$menu  = BackendUtility::getFuncMenu(
 				$this->id,
 				'SET[function]',
 				$this->MOD_SETTINGS['function'],
@@ -92,8 +99,8 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 				// all necessary JS code needs to be set before this line!
 			$this->doc->JScode = $this->doc->wrapScriptTags($this->jsCode);
 			$this->doc->JScode .= '
-					<script src="' . t3lib_extMgm::extRelPath('tc_beuser') . 'mod4/prototype.js" type="text/javascript"></script>
-					<script src="' . t3lib_extMgm::extRelPath('tc_beuser') . 'mod4/ajax.js" type="text/javascript"></script>';
+					<script src="' . ExtensionManagementUtility::extRelPath('tc_beuser') . 'mod4/prototype.js" type="text/javascript"></script>
+					<script src="' . ExtensionManagementUtility::extRelPath('tc_beuser') . 'mod4/ajax.js" type="text/javascript"></script>';
 
 			$this->content  = '';
 			$this->content .= $this->doc->startPage($title);
@@ -120,11 +127,11 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 	function init() {
 		parent::init();
 
-		$this->switchUser(t3lib_div::_GP('SwitchUser'));
+		$this->switchUser(GeneralUtility::_GP('SwitchUser'));
 
 		$this->backPath = $GLOBALS['BACK_PATH'];
 
-		$this->doc = t3lib_div::makeInstance('bigDoc');
+		$this->doc = GeneralUtility::makeInstance('bigDoc');
 		$this->doc->backPath = $this->backPath;
 		$this->doc->docType  = 'xhtml_trans';
 		$this->doc->form = '<form action="" method="post">';
@@ -143,30 +150,30 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 			}
 
 			var T3_BACKPATH = \''.$this->doc->backPath.'\';
-			var ajaxUrl = \'' . t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name']) . '\';
+			var ajaxUrl = \'' . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']) . '\';
 		';
-		$this->jsCode .= $this->doc->redirectUrls(t3lib_div::linkThisScript());
+		$this->jsCode .= $this->doc->redirectUrls(GeneralUtility::linkThisScript());
 
 		$this->id = 0;
 
 			// update compareFlags
-		if (t3lib_div::_GP('ads')) {
-			$this->compareFlags = t3lib_div::_GP('compareFlags');
+		if (GeneralUtility::_GP('ads')) {
+			$this->compareFlags = GeneralUtility::_GP('compareFlags');
 			$GLOBALS['BE_USER']->pushModuleData('txtcbeuserM1_txtcbeuserM4/index.php/compare',$this->compareFlags);
 		} else {
 			$this->compareFlags = $GLOBALS['BE_USER']->getModuleData('txtcbeuserM1_txtcbeuserM4/index.php/compare','ses');
 		}
 
 			// Setting return URL
-		$this->returnUrl = t3lib_div::_GP('returnUrl');
+		$this->returnUrl = GeneralUtility::_GP('returnUrl');
 		$this->retUrl    = $this->returnUrl ? $this->returnUrl : 'dummy.php';
 
 			//init user / group
-		$beuser = t3lib_div::_GET('beUser');
+		$beuser = GeneralUtility::_GET('beUser');
 		if($beuser) {
 			$this->be_user = $beuser;
 		}
-		$begroup = t3lib_div::_GET('beGroup');
+		$begroup = GeneralUtility::_GET('beGroup');
 		if($begroup) {
 			$this->be_group = $begroup;
 		}
@@ -252,15 +259,15 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 			$content .= $GLOBALS['LANG']->getLL('select-user');
 
 			$this->id = 0;
-			$this->search_field = t3lib_div::_GP('search_field');
-			$this->pointer = $this->compatibility()->intInRange(
-				t3lib_div::_GP('pointer'),
+			$this->search_field = GeneralUtility::_GP('search_field');
+			$this->pointer = MathUtility::forceIntegerInRange(
+				GeneralUtility::_GP('pointer'),
 				0,
 				100000
 			);
 			$this->table = 'be_users';
 
-			$dblist = t3lib_div::makeInstance('tx_tcbeuser_recordList');
+			$dblist = GeneralUtility::makeInstance('tx_tcbeuser_recordList');
 			$dblist->backPath = $this->doc->backPath;
 			$dblist->script = $this->MCONF['script'];
 			$dblist->alternateBgColors = true;
@@ -284,11 +291,11 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 		} else {
 				//real content
 			$this->table = 'be_users';
-			$userRecord = t3lib_BEfunc::getRecord($this->table, $userUid);
+			$userRecord = BackendUtility::getRecord($this->table, $userUid);
 			$content .= $this->getColSelector();
 			$content .= '<br />';
 			$content .= $this->getUserViewHeader($userRecord);
-			$userView = t3lib_div::makeInstance('tx_tcbeuser_overview');
+			$userView = GeneralUtility::makeInstance('tx_tcbeuser_overview');
 
 			//if there is member in the compareFlags array, remove it. There is no 'member' in user view
 			unset($this->compareFlags['members']);
@@ -306,15 +313,15 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 			$content .= $GLOBALS['LANG']->getLL('select-group');
 
 			$this->id = 0;
-			$this->search_field = t3lib_div::_GP('search_field');
-			$this->pointer = $this->compatibility()->intInRange(
-				t3lib_div::_GP('pointer'),
+			$this->search_field = GeneralUtility::_GP('search_field');
+			$this->pointer = MathUtility::forceIntegerInRange(
+				GeneralUtility::_GP('pointer'),
 				0,
 				100000
 			);
 			$this->table = 'be_groups';
 
-			$dblist = t3lib_div::makeInstance('tx_tcbeuser_recordList');
+			$dblist = GeneralUtility::makeInstance('tx_tcbeuser_recordList');
 			$dblist->backPath = $this->doc->backPath;
 			$dblist->script = $this->MCONF['script'];
 			$dblist->alternateBgColors = true;
@@ -339,12 +346,12 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 		} else {
 				//real content
 			$this->table = 'be_groups';
-			$groupRecord = t3lib_BEfunc::getRecord($this->table, $groupUid);
+			$groupRecord = BackendUtility::getRecord($this->table, $groupUid);
 			$content .= $this->getColSelector();
 			$content .= '<br />';
 //			$content .= $this->getUserViewHeader($groupRecord);
 
-			$userView = t3lib_div::makeInstance('tx_tcbeuser_overview');
+			$userView = GeneralUtility::makeInstance('tx_tcbeuser_overview');
 			$content .= $userView->getTableGroup($groupRecord, $this->compareFlags);
 		}
 
@@ -377,15 +384,14 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 	function getUserViewHeader($userRecord) {
 		$content = '';
 
-		$alttext = t3lib_BEfunc::getRecordIconAltText($userRecord, $this->table);
-		$recTitle = htmlspecialchars(t3lib_BEfunc::getRecordTitle($this->table, $userRecord));
+		$alttext = BackendUtility::getRecordIconAltText($userRecord, $this->table);
+		$recTitle = htmlspecialchars(BackendUtility::getRecordTitle($this->table, $userRecord));
 
 			// icon
-		$iconImg = t3lib_iconWorks::getIconImage(
+		$iconImg = IconUtility::getSpriteIconForRecord(
 			$this->table,
 			$userRecord,
-			$this->backPath,
-			'title="'.htmlspecialchars($alttext).'"'
+			array('title' => htmlspecialchars($alttext))
 		);
 			// controls
 		$control = $this->makeUserControl($userRecord);
@@ -401,9 +407,9 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 		$control = '<a href="#" onclick="'.htmlspecialchars(
 			$this->editOnClick(
 				'&edit['.$this->table.']['.$userRecord['uid'].']=edit&SET[function]=edit',
-				t3lib_div::getIndpEnv('REQUEST_URI').'SET[function]=2'
+				GeneralUtility::getIndpEnv('REQUEST_URI').'SET[function]=2'
 			)
-		).'"><img'.t3lib_iconWorks::skinImg(
+		).'"><img'.IconUtility::skinImg(
 			$this->backPath,
 			'gfx/edit2.gif',
 			'width="11" height="12"'
@@ -411,10 +417,10 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 
 			//info
 		if ($GLOBALS['BE_USER']->check('tables_select', $this->table)
-			&& is_array(t3lib_BEfunc::readPageAccess($userRecord['pid'], $GLOBALS['BE_USER']->getPagePermsClause(1)))
+			&& is_array(BackendUtility::readPageAccess($userRecord['pid'], $GLOBALS['BE_USER']->getPagePermsClause(1)))
 		) {
 			$control .= '<a href="#" onclick="' . htmlspecialchars('top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;') . '">' .
-				'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="" alt="" />' .
+				'<img' . IconUtility::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="" alt="" />' .
 				'</a>' . chr(10);
 		}
 
@@ -423,12 +429,12 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 		if ($userRecord[$hiddenField]) {
 			$params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
 			$control .= '<a href="#" onclick="return jumpToUrl(\'' . htmlspecialchars($this->actionOnClick($params, -1)) . '\');">' .
-				'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="unhide" alt="" />' .
+				'<img' . IconUtility::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="unhide" alt="" />' .
 				'</a>' . chr(10);
 		} else {
 			$params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
 			$control .= '<a href="#" onclick="return jumpToUrl(\'' . htmlspecialchars($this->actionOnClick($params, -1)) . '\');">' .
-				'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="hide" alt="" />' .
+				'<img' . IconUtility::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="hide" alt="" />' .
 				'</a>' . chr(10);
 		}
 
@@ -437,20 +443,20 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 		$control .= '<a href="#" onclick="' . htmlspecialchars('if (confirm(' .
 			$GLOBALS['LANG']->JScharCode(
 				$GLOBALS['LANG']->getLL('deleteWarning') .
-				t3lib_BEfunc::referenceCount(
+				BackendUtility::referenceCount(
 					$this->table,
 					$userRecord['uid'],
 					' (There are %s reference(s) to this record!)'
 				)
-			) . ')) { return jumpToUrl(\'' . $this->actionOnClick($params, t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name']), $this->MOD_SETTINGS) . '\'); } return false;'
+			) . ')) { return jumpToUrl(\'' . $this->actionOnClick($params, BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']), $this->MOD_SETTINGS) . '\'); } return false;'
 		) . '">' .
-		'<img' . t3lib_iconWorks::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
+		'<img' . IconUtility::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
 		'</a>' . chr(10);
 
 			// swith user / switch user back
 		if(!$userRecord[$hiddenField] && $GLOBALS['BE_USER']->isAdmin()) {
-			$control .= '<a href="'.t3lib_div::linkThisScript(array('SwitchUser'=>$userRecord['uid'])).'" target="_top"><img '.t3lib_iconWorks::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" /></a>'.
-						'<a href="'.t3lib_div::linkThisScript(array('SwitchUser'=>$userRecord['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.t3lib_iconWorks::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" /></a>'
+			$control .= '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'])).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" /></a>'.
+						'<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" /></a>'
 						.chr(10).chr(10);
 		}
 
@@ -458,7 +464,7 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 	}
 
 	/**
-	 * ingo.renner@dkd.de: from t3lib_BEfunc, modified
+	 * ingo.renner@dkd.de: from BackendUtility, modified
 	 *
 	 * Returns a JavaScript string (for an onClick handler) which will load the alt_doc.php script that shows the form for editing of the record(s) you have send as params.
 	 * REMEMBER to always htmlspecialchar() content in href-properties to ampersands get converted to entities (XHTML requirement and XSS precaution)
@@ -470,8 +476,8 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 	 * @see template::issueCommand()
 	 */
 	function editOnClick($params, $requestUri = '') {
-		$retUrl = '&returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : t3lib_div::getIndpEnv('REQUEST_URI')));
-		return "window.location.href='" . t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $retUrl . $params . "'; return false;";
+		$retUrl = '&returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
+		return "window.location.href='" . BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $retUrl . $params . "'; return false;";
 	}
 
 	/**
@@ -483,9 +489,9 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 	 * @return	string		jumpTo URL link with redirect
 	 */
 	function actionOnClick($params, $requestURI = '') {
-		$redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : t3lib_div::getIndpEnv('REQUEST_URI'))) .
+		$redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : GeneralUtility::getIndpEnv('REQUEST_URI'))) .
 			'&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
-		return t3lib_BEfunc::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect;
+		return BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect;
 	}
 
 	/**
@@ -496,25 +502,18 @@ class  tx_tcbeuser_module4 extends t3lib_SCbase {
 	 * @return	void		...
 	 */
 	function switchUser($switchUser) {
-		$uRec = t3lib_BEfunc::getRecord('be_users',$switchUser);
+		$uRec = BackendUtility::getRecord('be_users',$switchUser);
 		if (is_array($uRec) && $GLOBALS['BE_USER']->isAdmin()) {
 			$updateData['ses_userid'] = $uRec['uid'];
 				// user switchback
-			if (t3lib_div::_GP('switchBackUser')) {
+			if (GeneralUtility::_GP('switchBackUser')) {
 				$updateData['ses_backuserid'] = intval($GLOBALS['BE_USER']->user['uid']);
 			}
 			$GLOBALS['TYPO3_DB']->exec_UPDATEquery('be_sessions', 'ses_id='.$GLOBALS['TYPO3_DB']->fullQuoteStr($GLOBALS['BE_USER']->id, 'be_sessions').' AND ses_name=\'be_typo_user\' AND ses_userid='.intval($GLOBALS['BE_USER']->user['uid']),$updateData);
 
-			header('Location: '.t3lib_div::locationHeaderUrl($GLOBALS['BACK_PATH'].'index.php'.($GLOBALS['TYPO3_CONF_VARS']['BE']['interfaces']?'':'?commandLI=1')));
+			header('Location: '.GeneralUtility::locationHeaderUrl($GLOBALS['BACK_PATH'].'index.php'.($GLOBALS['TYPO3_CONF_VARS']['BE']['interfaces']?'':'?commandLI=1')));
 			exit;
 		}
-	}
-
-	/**
-	 * @return tx_cbeuser_compatibility
-	 */
-	protected function compatibility() {
-		return tx_tcbeuser_compatibility::getInstance();
 	}
 }
 
@@ -525,19 +524,19 @@ if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beus
 }
 
 
-if(t3lib_div::_POST('ajaxCall')) {
-	$method   = t3lib_div::_POST('method');
-	$groupId  = t3lib_div::_POST('groupId');
-	$open     = t3lib_div::_POST('open');
-	$backPath = t3lib_div::_POST('backPath');
+if(GeneralUtility::_POST('ajaxCall')) {
+	$method   = GeneralUtility::_POST('method');
+	$groupId  = GeneralUtility::_POST('groupId');
+	$open     = GeneralUtility::_POST('open');
+	$backPath = GeneralUtility::_POST('backPath');
 
-	$userView = t3lib_div::makeInstance('tx_tcbeuser_overview');
+	$userView = GeneralUtility::makeInstance('tx_tcbeuser_overview');
 	$content  = $userView->handleMethod( $method, $groupId, $open, $backPath );
 
 	echo $content;
 } else {
 	// Make instance:
-	$SOBE = t3lib_div::makeInstance('tx_tcbeuser_module4');
+	$SOBE = GeneralUtility::makeInstance('tx_tcbeuser_module4');
 	$SOBE->init();
 
 	// Include files?

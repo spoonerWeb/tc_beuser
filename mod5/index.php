@@ -22,6 +22,11 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
+
 $GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod5/locallang.xml');
 $GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
 
@@ -37,7 +42,7 @@ $GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits i
  * @package	TYPO3
  * @subpackage	tx_tcbeuser
  */
-class  tx_tcbeuser_module5 extends t3lib_SCbase {
+class tx_tcbeuser_module5 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 	var $content;
 	var $doc;
 	var $jsCode;
@@ -61,7 +66,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 			$this->pageinfo['uid'] = $webmounts[0];
 
 			$title = $GLOBALS['LANG']->getLL('title');
-			$menu  = t3lib_BEfunc::getFuncMenu(
+			$menu  = BackendUtility::getFuncMenu(
 				$this->id,
 				'SET[function]',
 				$this->MOD_SETTINGS['function'],
@@ -71,7 +76,8 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 			$moduleContent = $this->moduleContent();
 
 				// all necessary JS code needs to be set before this line!
-			$this->tceforms = t3lib_div::makeInstance('t3lib_TCEforms');
+			/** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
+			$this->tceforms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
 			$this->tceforms->backPath = $GLOBALS['BACK_PATH'];
 			$this->doc->JScode = $this->tceforms->JSbottom('editform');
 			$this->doc->JScode .= $this->doc->wrapScriptTags($this->jsCode);
@@ -103,17 +109,15 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 * @return	void
 	 */
 	function preInit() {
-		global $BE_USER;
-
 			// Setting GPvars:
-		$this->editconf = t3lib_div::_GP('edit');
-		$this->defVals = t3lib_div::_GP('defVals');
-		$this->overrideVals = t3lib_div::_GP('overrideVals');
-		$this->columnsOnly = t3lib_div::_GP('columnsOnly');
-		$this->returnUrl = t3lib_div::_GP('returnUrl');
-		$this->closeDoc = t3lib_div::_GP('closeDoc');
-		$this->doSave = t3lib_div::_GP('doSave');
-		$this->returnEditConf = t3lib_div::_GP('returnEditConf');
+		$this->editconf = GeneralUtility::_GP('edit');
+		$this->defVals = GeneralUtility::_GP('defVals');
+		$this->overrideVals = GeneralUtility::_GP('overrideVals');
+		$this->columnsOnly = GeneralUtility::_GP('columnsOnly');
+		$this->returnUrl = GeneralUtility::_GP('returnUrl');
+		$this->closeDoc = GeneralUtility::_GP('closeDoc');
+		$this->doSave = GeneralUtility::_GP('doSave');
+		$this->returnEditConf = GeneralUtility::_GP('returnEditConf');
 
 			// Setting override values as default if defVals does not exist.
 		if (!is_array($this->defVals) && is_array($this->overrideVals)) {
@@ -121,11 +125,11 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		}
 
 			// Setting return URL
-		$this->retUrl = $this->returnUrl ? $this->returnUrl : t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
+		$this->retUrl = $this->returnUrl ? $this->returnUrl : BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
 
 			// Make R_URL (request url) based on input GETvars:
-		$this->R_URL_parts = parse_url(t3lib_div::getIndpEnv('REQUEST_URI'));
-		$this->R_URL_getvars = t3lib_div::_GET();
+		$this->R_URL_parts = parse_url(GeneralUtility::getIndpEnv('REQUEST_URI'));
+		$this->R_URL_getvars = GeneralUtility::_GET();
 		$this->R_URL_getvars['edit'] = $this->editconf;
 
 		if ($this->closeDoc > 0 ) {
@@ -149,18 +153,17 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 * @return	void
 	 */
 	function processData() {
-		global $BE_USER,$TYPO3_CONF_VARS;
 
-		if($BE_USER->user['admin'] != 1) {
+		if($GLOBALS['BE_USER']->user['admin'] != 1) {
 			//make fake Admin
 			tx_tcbeuser_config::fakeAdmin();
 			$fakeAdmin = 1;
 		}
 
 			// GPvars specifically for processing:
-		$this->data = t3lib_div::_GP('data');
-		$this->cmd = t3lib_div::_GP('cmd')?t3lib_div::_GP('cmd'):array();
-		$this->disableRTE = t3lib_div::_GP('_disableRTE');
+		$this->data = GeneralUtility::_GP('data');
+		$this->cmd = GeneralUtility::_GP('cmd')?GeneralUtility::_GP('cmd'):array();
+		$this->disableRTE = GeneralUtility::_GP('_disableRTE');
 
 			//set path to be relative to fileadmin
 		if (is_array($this->data)) {
@@ -191,17 +194,18 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		} else {
 				// See tce_db.php for relevate options here:
 				// Only options related to $this->data submission are included here.
-			$tce = t3lib_div::makeInstance('t3lib_TCEmain');
+			/** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
+			$tce = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Core\\DataHandling\\DataHandler');
 			$tce->stripslashes_values = 0;
 
 				// Setting default values specific for the user:
-			$TCAdefaultOverride = $BE_USER->getTSConfigProp('TCAdefaults');
+			$TCAdefaultOverride = $GLOBALS['BE_USER']->getTSConfigProp('TCAdefaults');
 			if (is_array($TCAdefaultOverride)) {
 				$tce->setDefaultsFromUserTS($TCAdefaultOverride);
 			}
 
 				// Setting internal vars:
-			if ($BE_USER->uc['neverHideAtCopy']) {
+			if ($GLOBALS['BE_USER']->uc['neverHideAtCopy']) {
 				$tce->neverHideAtCopy = 1;
 			}
 			$tce->debug = 0;
@@ -215,14 +219,14 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 
 				// If pages are being edited, we set an instruction about updating the page tree after this operation.
 			if (isset($this->data['pages'])) {
-				t3lib_BEfunc::setUpdateSignal('updatePageTree');
+				BackendUtility::setUpdateSignal('updatePageTree');
 			}
 
 
 				// Checking referer / executing
-			$refInfo = parse_url(t3lib_div::getIndpEnv('HTTP_REFERER'));
-			$httpHost = t3lib_div::getIndpEnv('TYPO3_HOST_ONLY');
-			if ($httpHost!=$refInfo['host'] && $this->vC!=$BE_USER->veriCode() && !$TYPO3_CONF_VARS['SYS']['doNotCheckReferer']) {
+			$refInfo = parse_url(GeneralUtility::getIndpEnv('HTTP_REFERER'));
+			$httpHost = GeneralUtility::getIndpEnv('TYPO3_HOST_ONLY');
+			if ($httpHost!=$refInfo['host'] && $this->vC!=$GLOBALS['BE_USER']->veriCode() && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
 				$tce->log('',0,0,0,1,"Referer host '%s' and server host '%s' did not match and veriCode was not valid either!",1,array($refInfo['host'],$httpHost));
 				debug('Error: Referer host did not match with server host.');
 			} else {
@@ -240,7 +244,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 					foreach($tce->substNEWwithIDs_table as $nKey => $nTable) {
 						$editId = $tce->substNEWwithIDs[$nKey];
 							// translate new id to the workspace version:
-						if ($versionRec = t3lib_BEfunc::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace, $nTable, $editId,'uid')) {
+						if ($versionRec = BackendUtility::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace, $nTable, $editId,'uid')) {
 							$editId = $versionRec['uid'];
 						}
 
@@ -266,7 +270,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 						// Finding the first id, getting the records pid+uid
 					reset($this->editconf[$nTable]);
 					$nUid = key($this->editconf[$nTable]);
-					$nRec = t3lib_BEfunc::getRecord($nTable,$nUid,'pid,uid');
+					$nRec = BackendUtility::getRecord($nTable,$nUid,'pid,uid');
 
 						// Setting a blank editconf array for a new record:
 					$this->editconf = array();
@@ -281,7 +285,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 					isset($_POST['_saveandclosedok_x']) ?
 					$this->retUrl :
 						// popView will not be invoked here, because the information from the submit button for save/view will be lost .... But does it matter if there is an error anyways?
-					$this->R_URL_parts['path'].'?'.t3lib_div::implodeArrayForUrl('',$this->R_URL_getvars)
+					$this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('',$this->R_URL_getvars)
 				);
 			}
 			if (isset($_POST['_saveandclosedok_x']) || $this->closeDoc<0) {
@@ -301,7 +305,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 */
 	function closeDocument() {
 		if($this->retUrl == 'dummy.php') {
-			$this->retUrl = t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
+			$this->retUrl = BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
 		}
 		$retUrl = explode('/', $this->retUrl);
 		$this->retUrl = $retUrl[count($retUrl)-1];
@@ -312,7 +316,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	function init() {
 		parent::init();
 
-		$this->doc = t3lib_div::makeInstance('bigDoc');
+		$this->doc = GeneralUtility::makeInstance('bigDoc');
 		$this->doc->backPath = $GLOBALS['BACK_PATH'];
 		$this->doc->docType  = 'xhtml_trans';
 //		$this->doc->form = '<form action="" method="post">';
@@ -333,15 +337,15 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		';
 
 		$this->id = 0;
-		$this->search_field = t3lib_div::_GP('search_field');
-		$this->pointer = $this->compatibility()->intInRange(
-			t3lib_div::_GP('pointer'),
+		$this->search_field = GeneralUtility::_GP('search_field');
+		$this->pointer = MathUtility::forceIntegerInRange(
+			GeneralUtility::_GP('pointer'),
 			0,
 			100000
 		);
 		$this->table = 'sys_filemounts';
 
-		$SET = t3lib_div::_GET('SET');
+		$SET = GeneralUtility::_GET('SET');
 		if($SET['function'] == 'action'){
 			$this->MOD_SETTINGS['function'] = $SET['function'];
 		}
@@ -385,7 +389,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 			break;
 			case '2':
 					// create new Filemount
-				$data = t3lib_div::_GP('data');
+				$data = GeneralUtility::_GP('data');
 				$dataKey = is_array($data) ? array_keys($data[$this->table]): array();
 				if(is_numeric($dataKey[0])){
 					$this->editconf = array($this->table => array($dataKey[0] => 'edit'));
@@ -406,7 +410,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 			break;
 			case 'action':
 				$this->processData();
-				Header('Location: '.t3lib_div::locationHeaderUrl(t3lib_div::_GP('redirect')));
+				Header('Location: '.GeneralUtility::locationHeaderUrl(GeneralUtility::_GP('redirect')));
 			break;
 		}
 
@@ -421,9 +425,9 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	function getFilemountList() {
 		$content = '';
 
-		$dblist = t3lib_div::makeInstance('tx_tcbeuser_recordList');
+		$dblist = GeneralUtility::makeInstance('tx_tcbeuser_recordList');
 		$dblist->backPath = $this->doc->backPath;
-		$dblist->script = t3lib_div::linkThisScript();
+		$dblist->script = GeneralUtility::linkThisScript();
 		$dblist->alternateBgColors = true;
 		$dblist->calcPerms = $GLOBALS['BE_USER']->calcPerms($this->pageinfo);
 		$dblist->showFields = array('title', 'path');
@@ -432,7 +436,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		$dblist->start(0, $this->table, $this->pointer, $this->search_field);
 
 			// default sorting, needs to be set after $dblist->start()
-		$sort = t3lib_div::_GET('sortField');
+		$sort = GeneralUtility::_GET('sortField');
 		if(is_null($sort)) {
 			$dblist->sortField = 'title';
 		}
@@ -444,8 +448,8 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 						Link for creating a new record:
 					-->
 		<div id="typo3-newRecordLink">
-		<a href="' . t3lib_BEfunc::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 2)) . '">' .
-		'<img' . t3lib_iconWorks::skinImg($this->doc->backPath, 'gfx/new_el.gif', 'width="11" height="12"') . ' alt="' . $GLOBALS['LANG']->getLL('create-filemount') . '" />' .
+		<a href="' . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 2)) . '">' .
+		'<img' . IconUtility::skinImg($this->doc->backPath, 'gfx/new_el.gif', 'width="11" height="12"') . ' alt="' . $GLOBALS['LANG']->getLL('create-filemount') . '" />' .
 		$GLOBALS['LANG']->getLL('create-filemount') .
 		'</a>';
 
@@ -463,19 +467,20 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 			$GLOBALS['LANG']->getLL('filemount-msg')
 		);
 
-		$this->tceforms = t3lib_div::makeInstance('t3lib_TCEforms');
+		/** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
+		$this->tceforms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
 		$this->tceforms->backPath = $this->doc->backPath;
 		$this->tceforms->initDefaultBEMode();
 		$this->tceforms->doSaveFieldName = 'doSave';
-		$this->tceforms->localizationMode = t3lib_div::inList('text,media',$this->localizationMode) ? $this->localizationMode : '';	// text,media is keywords defined in TYPO3 Core API..., see "l10n_cat"
+		$this->tceforms->localizationMode = GeneralUtility::inList('text,media',$this->localizationMode) ? $this->localizationMode : '';	// text,media is keywords defined in TYPO3 Core API..., see "l10n_cat"
 		$this->tceforms->returnUrl = $this->R_URI;
 		$this->tceforms->disableRTE = true; // not needed anyway, might speed things up
 
 			// Setting external variables:
-		#if ($BE_USER->uc['edit_showFieldHelp']!='text')	$this->tceforms->edit_showFieldHelp='text';
+		#if ($GLOBAL['BE_USER']->uc['edit_showFieldHelp']!='text')	$this->tceforms->edit_showFieldHelp='text';
 
 			// Creating the editing form, wrap it with buttons, document selector etc.
-		$this->editForm = t3lib_div::makeInstance('tx_tcbeuser_editform');
+		$this->editForm = GeneralUtility::makeInstance('tx_tcbeuser_editform');
 		$this->editForm->tceforms = &$this->tceforms;
 		$this->editForm->columnsOnly = 'title,path';
 		$this->editForm->editconf = $this->editconf;
@@ -492,7 +497,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 
 			if ($this->viewId) {
 					// Module configuration:
-				$this->modTSconfig = t3lib_BEfunc::getModTSconfig($this->viewId,'mod.xMOD_alt_doc');
+				$this->modTSconfig = BackendUtility::getModTSconfig($this->viewId,'mod.xMOD_alt_doc');
 			} else $this->modTSconfig=array();
 
 			$panel = $this->makeButtonPanel();
@@ -515,29 +520,27 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 * @return	string		HTML code, comprised of images linked to various actions.
 	 */
 	function makeButtonPanel() {
-		global $TCA,$LANG;
-
 		$panel='';
 
 			// Render SAVE type buttons:
 			// The action of each button is decided by its name attribute. (See doProcessData())
-		if (!$this->errorC && !$TCA[$this->firstEl['table']]['ctrl']['readOnly']) {
+		if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']) {
 
 				// SAVE button:
-			$panel.= '<input type="image" class="c-inputButton" name="_savedok"'.t3lib_iconWorks::skinImg($this->doc->backPath,'gfx/savedok.gif','').' title="'.$LANG->sL('LLL:EXT:lang/locallang_core.php:rm.saveDoc',1).'" />';
+			$panel.= '<input type="image" class="c-inputButton" name="_savedok"'.IconUtility::skinImg($this->doc->backPath,'gfx/savedok.gif','').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveDoc',1).'" />';
 
 				// SAVE / CLOSE
-			$panel.= '<input type="image" class="c-inputButton" name="_saveandclosedok"'.t3lib_iconWorks::skinImg($this->doc->backPath,'gfx/saveandclosedok.gif','').' title="'.$LANG->sL('LLL:EXT:lang/locallang_core.php:rm.saveCloseDoc',1).'" />';
+			$panel.= '<input type="image" class="c-inputButton" name="_saveandclosedok"'.IconUtility::skinImg($this->doc->backPath,'gfx/saveandclosedok.gif','').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveCloseDoc',1).'" />';
 		}
 
 			// CLOSE button:
 		$panel.= '<a href="#" onclick="document.editform.closeDoc.value=1; document.editform.submit(); return false;">'.
-				'<img'.t3lib_iconWorks::skinImg($this->doc->backPath,'gfx/closedok.gif','width="21" height="16"').' class="c-inputButton" title="'.$LANG->sL('LLL:EXT:lang/locallang_core.php:rm.closeDoc',1).'" alt="" />'.
+				'<img'.IconUtility::skinImg($this->doc->backPath,'gfx/closedok.gif','width="21" height="16"').' class="c-inputButton" title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.closeDoc',1).'" alt="" />'.
 				'</a>';
 
 			// UNDO buttons:
-		if (!$this->errorC && !$TCA[$this->firstEl['table']]['ctrl']['readOnly'] && count($this->elementsData)==1) {
-			if ($this->firstEl['cmd']!='new' && t3lib_div::testInt($this->firstEl['uid'])) {
+		if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly'] && count($this->elementsData)==1) {
+			if ($this->firstEl['cmd']!='new' && GeneralUtility::testInt($this->firstEl['uid'])) {
 
 					// Undo:
 				$undoButton = 0;
@@ -548,14 +551,14 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 				if ($undoButton) {
 					$aOnClick = 'window.location.href=\'show_rechis.php?element='.rawurlencode($this->firstEl['table'].':'.$this->firstEl['uid']).'&revert=ALL_FIELDS&sumUp=-1&returnUrl='.rawurlencode($this->R_URI).'\'; return false;';
 					$panel.= '<a href="#" onclick="'.htmlspecialchars($aOnClick).'">'.
-							'<img'.t3lib_iconWorks::skinImg($this->doc->backPath,'gfx/undo.gif','width="21" height="16"').' class="c-inputButton" title="'.htmlspecialchars(sprintf($LANG->getLL('undoLastChange'),t3lib_BEfunc::calcAge(time()-$undoButtonR['tstamp'],$LANG->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')))).'" alt="" />'.
+							'<img'.IconUtility::skinImg($this->doc->backPath,'gfx/undo.gif','width="21" height="16"').' class="c-inputButton" title="'.htmlspecialchars(sprintf($GLOBALS['LANG']->getLL('undoLastChange'),BackendUtility::calcAge(time()-$undoButtonR['tstamp'],$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')))).'" alt="" />'.
 							'</a>';
 				}
 
 					// If only SOME fields are shown in the form, this will link the user to the FULL form:
 				if ($this->columnsOnly) {
 					$panel.= '<a href="'.htmlspecialchars($this->R_URI.'&columnsOnly=').'">'.
-							'<img'.t3lib_iconWorks::skinImg($this->doc->backPath,'gfx/edit2.gif','width="11" height="12"').' class="c-inputButton" title="'.$LANG->getLL('editWholeRecord',1).'" alt="" />'.
+							'<img'.IconUtility::skinImg($this->doc->backPath,'gfx/edit2.gif','width="11" height="12"').' class="c-inputButton" title="'.$GLOBALS['LANG']->getLL('editWholeRecord',1).'" alt="" />'.
 							'</a>';
 				}
 			}
@@ -574,8 +577,6 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 	 * @return	string		Composite HTML
 	 */
 	function compileForm($panel,$docSel,$cMenu,$editForm, $langSelector='') {
-		global $LANG;
-
 		$formContent = '';
 		$formContent .= '
 
@@ -593,7 +594,7 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 		if ($langSelector) {
 			$langSelector ='<div id="typo3-altdoc-lang-selector">'.$langSelector.'</div>';
 		}
-		$pagePath = '<div id="typo3-altdoc-page-path">'.$LANG->sL('LLL:EXT:lang/locallang_core.php:labels.path',1).': '.htmlspecialchars($this->generalPathOfForm).'</div>';
+		$pagePath = '<div id="typo3-altdoc-page-path">'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.path',1).': '.htmlspecialchars($this->generalPathOfForm).'</div>';
 
 		$formContent.='
 				<tr>
@@ -629,26 +630,19 @@ class  tx_tcbeuser_module5 extends t3lib_SCbase {
 
 		return $formContent;
 	}
-
-	/**
-	 * @return tx_cbeuser_compatibility
-	 */
-	protected function compatibility() {
-		return tx_tcbeuser_compatibility::getInstance();
-	}
 }
 
 
 
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php']) {
-	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php']);
+if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php']) {
+	include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php']);
 }
 
 
 
 
 // Make instance:
-$SOBE = t3lib_div::makeInstance('tx_tcbeuser_module5');
+$SOBE = GeneralUtility::makeInstance('tx_tcbeuser_module5');
 $SOBE->init();
 
 // Include files?

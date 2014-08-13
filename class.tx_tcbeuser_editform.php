@@ -1,4 +1,8 @@
 <?php
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /***************************************************************
 *  Copyright notice
 *
@@ -22,7 +26,15 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-class tx_tcbeuser_editform{
+class tx_tcbeuser_editform {
+
+	var $elementsData;
+	var $errorC;
+	var $newC;
+	var $editconf;
+	var $columnsOnly;
+	var $tceforms;
+	var $inputData;
 
 	/**
 	 * ingo.renner@dkd.de: from alt_doc.php
@@ -33,8 +45,6 @@ class tx_tcbeuser_editform{
 	 */
 
 	function makeEditForm() {
-		global $BE_USER,$LANG,$TCA;
-
 			// Initialize variables:
 		$this->elementsData = array();
 		$this->errorC = 0;
@@ -45,12 +55,12 @@ class tx_tcbeuser_editform{
 			// Traverse the GPvar edit array
 		foreach($this->editconf as $table => $conf) {
 			// Tables:
-			if (is_array($conf) && $TCA[$table] && $BE_USER->check('tables_modify',$table)) {
+			if (is_array($conf) && $GLOBALS['TCA'][$table] && $GLOBALS['BE_USER']->check('tables_modify',$table)) {
 					// Traverse the keys/comments of each table (keys can be a commalist of uids)
 				foreach($conf as $cKey => $cmd) {
 					if ($cmd=='edit' || $cmd=='new') {
 							// Get the ids:
-						$ids = t3lib_div::trimExplode(',',$cKey,1);
+						$ids = GeneralUtility::trimExplode(',',$cKey,1);
 
 							// Traverse the ids:
 						foreach($ids as $theUid) {
@@ -72,16 +82,16 @@ class tx_tcbeuser_editform{
 										// Find parent page on which the new record reside
 									if ($theUid<0) {
 										// Less than zero - find parent page
-										$calcPRec = t3lib_BEfunc::getRecord($table,abs($theUid));
-										$calcPRec = t3lib_BEfunc::getRecord('pages',$calcPRec['pid']);
+										$calcPRec = BackendUtility::getRecord($table,abs($theUid));
+										$calcPRec = BackendUtility::getRecord('pages',$calcPRec['pid']);
 									} else {
 										// always a page
-										$calcPRec = t3lib_BEfunc::getRecord('pages',abs($theUid));
+										$calcPRec = BackendUtility::getRecord('pages',abs($theUid));
 									}
 
 										// Now, calculate whether the user has access to creating new records on this position:
 									if (is_array($calcPRec)) {
-										$CALC_PERMS = $BE_USER->calcPerms($calcPRec);	// Permissions for the parent page
+										$CALC_PERMS = $GLOBALS['BE_USER']->calcPerms($calcPRec);	// Permissions for the parent page
 										if ($table == 'pages') {
 											// If pages:
 											$hasAccess = $CALC_PERMS&8 ? 1 : 0;
@@ -96,32 +106,32 @@ class tx_tcbeuser_editform{
 								$this->dontStoreDocumentRef=1;
 							} else {
 								// Edit:
-								$calcPRec = t3lib_BEfunc::getRecord($table,$theUid);
-								t3lib_BEfunc::fixVersioningPid($table,$calcPRec);
+								$calcPRec = BackendUtility::getRecord($table,$theUid);
+								BackendUtility::fixVersioningPid($table,$calcPRec);
 								if (is_array($calcPRec)) {
 									if ($table=='pages') {
 										// If pages:
-										$CALC_PERMS = $BE_USER->calcPerms($calcPRec);
+										$CALC_PERMS = $GLOBALS['BE_USER']->calcPerms($calcPRec);
 										$hasAccess = $CALC_PERMS&2 ? 1 : 0;
 										$deleteAccess = $CALC_PERMS&4 ? 1 : 0;
 										$this->viewId = $calcPRec['uid'];
 									} else {
 										// Fetching pid-record first.
-										$CALC_PERMS = $BE_USER->calcPerms(array('uid' => $webmounts[0]));
+										$CALC_PERMS = $GLOBALS['BE_USER']->calcPerms(array('uid' => $webmounts[0]));
 										$hasAccess = $CALC_PERMS&16 ? 1 : 0;
 										$deleteAccess = $CALC_PERMS&16 ? 1 : 0;
 										$this->viewId = $calcPRec['pid'];
 
 											// Adding "&L=xx" if the record being edited has a languageField with a value larger than zero!
-										if ($TCA[$table]['ctrl']['languageField'] && $calcPRec[$TCA[$table]['ctrl']['languageField']]>0) {
-											$this->viewId_addParams = '&L='.$calcPRec[$TCA[$table]['ctrl']['languageField']];
+										if ($GLOBALS['TCA'][$table]['ctrl']['languageField'] && $calcPRec[$GLOBALS['TCA'][$table]['ctrl']['languageField']]>0) {
+											$this->viewId_addParams = '&L='.$calcPRec[$GLOBALS['TCA'][$table]['ctrl']['languageField']];
 										}
 									}
 
 										// Check internals regarding access:
 									if ($hasAccess) {
-										$hasAccess = $BE_USER->recordEditAccessInternals($table, $calcPRec);
-										$deniedAccessReason = $BE_USER->errorMsg;
+										$hasAccess = $GLOBALS['BE_USER']->recordEditAccessInternals($table, $calcPRec);
+										$deniedAccessReason = $GLOBALS['BE_USER']->errorMsg;
 									}
 								} else $hasAccess = 0;
 							}
@@ -129,8 +139,8 @@ class tx_tcbeuser_editform{
 							// AT THIS POINT we have checked the access status of the editing/creation of records and we can now proceed with creating the form elements:
 
 							if ($hasAccess) {
-								$prevPageID = is_object($trData)?$trData->prevPageID:'';
-								$trData = t3lib_div::makeInstance('t3lib_transferData');
+								$prevPageID = is_object($trData) ? $trData->prevPageID : '';
+								$trData = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\DataPreprocessor');
 								$trData->addRawData = TRUE;
 								$trData->defVals = $this->defVals;
 								$trData->lockRecords = 1;
@@ -178,7 +188,7 @@ class tx_tcbeuser_editform{
 										// Setting visual path / title of form:
 									$this->generalPathOfForm = $this->tceforms->getRecordPath($table,$rec);
 									if (!$this->storeTitle) {
-										$this->storeTitle = $this->recTitle ? htmlspecialchars($this->recTitle) : t3lib_BEfunc::getRecordTitle($table,$rec,1);
+										$this->storeTitle = $this->recTitle ? htmlspecialchars($this->recTitle) : BackendUtility::getRecordTitle($table,$rec,1);
 									}
 
 										// Setting variables in TCEforms object:
@@ -199,13 +209,13 @@ class tx_tcbeuser_editform{
 											'*',
 											'be_users',
 											'usergroup like '.$GLOBALS['TYPO3_DB']->fullQuoteStr('%'.$rec['uid'].'%','be_users').
-												t3lib_befunc::deleteClause('be_users')
+												BackendUtility::deleteClause('be_users')
 										);
 
 										$users = array();
 										if($GLOBALS['TYPO3_DB']->sql_num_rows($res)>0) {
 											while($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
-												if (t3lib_div::inList($row['usergroup'],$rec['uid'])) {
+												if (GeneralUtility::inList($row['usergroup'],$rec['uid'])) {
 													$users[] = $row['uid'].'|'.$row['username'];
 												}
 											}
@@ -226,8 +236,8 @@ class tx_tcbeuser_editform{
 
 										if(strstr($rec['TSconfig'],'tx_tcbeuser') && $GLOBALS['BE_USER']->user['admin'] != 1) {
 											$columnsOnly = explode(',',$this->columnsOnly);
-											$this->columnsOnly = implode(',',t3lib_div::removeArrayEntryByValue($columnsOnly,'TSconfig'));
-											$this->error[] = array('info',$LANG->getLL('tsconfig-disabled'));
+											$this->columnsOnly = implode(',',GeneralUtility::removeArrayEntryByValue($columnsOnly,'TSconfig'));
+											$this->error[] = array('info',$GLOBALS['LANG']->getLL('tsconfig-disabled'));
 										}
 									}
 
@@ -256,11 +266,11 @@ class tx_tcbeuser_editform{
 									}
 
 										// Display "is-locked" message:
-									if ($lockInfo = t3lib_BEfunc::isRecordLocked($table,$rec['uid']) || $this->error) {
+									if ($lockInfo = BackendUtility::isRecordLocked($table,$rec['uid']) || $this->error) {
 										if(is_array($lockInfo)) {
 											$lockIcon = '
 												<tr>
-													<td><img'.t3lib_iconWorks::skinImg($this->tceforms->backPath,'gfx/recordlock_warning3.gif','width="17" height="12"').' alt="" /></td>
+													<td><img'.IconUtility::skinImg($this->tceforms->backPath,'gfx/recordlock_warning3.gif','width="17" height="12"').' alt="" /></td>
 													<td>'.htmlspecialchars($lockInfo['msg']).'</td>
 												</tr>
 											';
@@ -273,7 +283,7 @@ class tx_tcbeuser_editform{
 												$icon = $errorArray[0]=='error' ? 'gfx/icon_fatalerror.gif' : 'gfx/info.gif';
 												$error .= '
 													<tr>
-														<td><img'.t3lib_iconWorks::skinImg($this->tceforms->backPath,$icon,'width="17" height="12"').' alt="" /></td>
+														<td><img'.IconUtility::skinImg($this->tceforms->backPath,$icon,'width="17" height="12"').' alt="" /></td>
 														<td>'.htmlspecialchars($errorArray[1]).'</td>
 													</tr>
 												';
@@ -299,7 +309,7 @@ class tx_tcbeuser_editform{
 								$thePrevUid = $rec['uid'];
 							} else {
 								$this->errorC++;
-								$editForm .= $LANG->sL('LLL:EXT:lang/locallang_core.php:labels.noEditPermission',1).'<br /><br />'.
+								$editForm .= $GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.noEditPermission',1).'<br /><br />'.
 											($deniedAccessReason ? 'Reason: '.htmlspecialchars($deniedAccessReason).'<br/><br/>' : '');
 							}
 						}

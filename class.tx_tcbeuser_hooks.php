@@ -21,6 +21,9 @@
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * methods for some hooks
@@ -30,6 +33,8 @@
  */
 class tx_tcbeuser_hooks {
 
+	var $columns;
+
 	function befuncPostProcessValue($params, $ref) {
 
 	}
@@ -38,7 +43,7 @@ class tx_tcbeuser_hooks {
 
 		$access = $params['outputPermissions'];
 
-		if( is_array($GLOBALS['MCONF']) && t3lib_div::isFirstPartOfStr($GLOBALS['MCONF']['name'],'txtcbeuserM1') && $GLOBALS['BE_USER']->modAccess($GLOBALS['MCONF'], true) ) {
+		if( is_array($GLOBALS['MCONF']) && GeneralUtility::isFirstPartOfStr($GLOBALS['MCONF']['name'],'txtcbeuserM1') && $GLOBALS['BE_USER']->modAccess($GLOBALS['MCONF'], true) ) {
 			$access = 31;
 		}
 
@@ -96,7 +101,7 @@ class tx_tcbeuser_hooks {
 						$userData = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
 
 						//only new users
-						if(!t3lib_div::inList($userData['usergroup'],$uid)) {
+						if(!GeneralUtility::inList($userData['usergroup'],$uid)) {
 							//update be_users with the new groups
 							$newGroup = $userData['usergroup']? $userData['usergroup'].','.$uid : $uid;
 							$updateArray = array (
@@ -119,8 +124,8 @@ class tx_tcbeuser_hooks {
 					$subWhere = 'uid not in ('.implode(',',$userList).') AND ';
 				}
 				$where = $subWhere.'usergroup like '.$GLOBALS['TYPO3_DB']->fullQuoteStr('%'.$uid.'%', $table).
-					t3lib_befunc::BEenableFields('be_users').
-					t3lib_befunc::deleteClause('be_users');
+					BackendUtility::BEenableFields('be_users').
+					BackendUtility::deleteClause('be_users');
 				$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
 					'*',
 					'be_users',
@@ -151,7 +156,7 @@ class tx_tcbeuser_hooks {
 
 			//put back 'members' to TCA
 			$tempCol = $this->columns;
-			t3lib_extMgm::addTCAcolumns("be_groups",$tempCol,1);
+			ExtensionManagementUtility::addTCAcolumns("be_groups",$tempCol,1);
 		}
 	}
 
