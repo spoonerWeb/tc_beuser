@@ -1,4 +1,6 @@
 <?php
+namespace dkd\TcBeuser\Module;
+
 /***************************************************************
  *  Copyright notice
  *
@@ -22,26 +24,21 @@
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+use dkd\TcBeuser\Utility\TcBeuserUtility\TcBeuserUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
-$GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod2/locallang.xml');
-$GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
-
-// This checks permissions and exits if the users has no permission for entry.
-$GLOBALS['BE_USER']->modAccess($MCONF, 1);
 
 /**
- * Module 'User Admin' for the 'tc_beuser' extension.
+ * Module 'Group Admin' for the 'tc_beuser' extension.
  *
  * @author	Ingo Renner <ingo.renner@dkd.de>
  * @package	TYPO3
  * @subpackage	tx_tcbeuser
  */
-class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
-
+class GroupAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 	var $content;
 	var $doc;
 	var $jsCode;
@@ -49,20 +46,8 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 	var $MOD_SETTINGS = array();
 	var $pageinfo;
 
-	/** @var  \TYPO3\CMS\Backend\Form\FormEngine */
-	var $tceforms;
-
-	/**
-	 * @var	object tx_tcbeuser_config	$permChecker helps checking BE user permissions
-	 */
-	var $permChecker;
-
 	function main() {
 		$this->init();
-
-		// The page will show only if there is a valid page and if this page may be viewed by the user
-		#$this->pageinfo = tx_tcbeuser_access::readPageAccess();
-		#$access = is_array($this->pageinfo) ? 1 : 0;
 
 		//TODO more access check!?
 		$access = $GLOBALS['BE_USER']->modAccess($this->MCONF, true);
@@ -71,7 +56,6 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			// We need some uid in rootLine for the access check, so use first webmount
 			$webmounts = $GLOBALS['BE_USER']->returnWebmounts();
 			$this->pageinfo['uid'] = $webmounts[0];
-			$this->pageinfo['_thePath'] = '/';
 
 			$title = $GLOBALS['LANG']->getLL('title');
 			$menu  = BackendUtility::getFuncMenu(
@@ -84,6 +68,7 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			$moduleContent = $this->moduleContent();
 
 			// all necessary JS code needs to be set before this line!
+			/** @var \\TYPO3\\CMS\\Backend\\Form\\FormEngine tceforms */
 			$this->tceforms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
 			$this->tceforms->backPath = $GLOBALS['BACK_PATH'];
 			$this->doc->JScode = $this->tceforms->JSbottom('editform');
@@ -107,8 +92,6 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 					$this->doc->section('',$this->doc->makeShortcutIcon('','',$this->MCONF['name']));
 			}
 		}
-
-		$GLOBALS['BE_USER']->user['admin'] = 0;
 	}
 
 	/**
@@ -132,9 +115,6 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			$this->defVals = $this->overrideVals;
 		}
 
-		//get pid FE
-		$this->extConf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['tc_beuser']);
-
 		// Setting return URL
 		$this->retUrl = $this->returnUrl ? $this->returnUrl
 			: BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
@@ -144,10 +124,9 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 		$this->R_URL_getvars = GeneralUtility::_GET();
 		$this->R_URL_getvars['edit'] = $this->editconf;
 
-		if ($this->closeDoc > 0) {
+		if ($this->closeDoc > 0 ) {
 			$this->closeDocument();
 		}
-
 	}
 
 	/**
@@ -166,50 +145,48 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 	 * @return	void
 	 */
 	function processData() {
-		if($GLOBALS['BE_USER']->user['admin'] != 1) {
+		if($GLOBALS['BE_USER']->user['admin'] != 1){
 			//make fake Admin
-			tx_tcbeuser_config::fakeAdmin();
+			TcBeuserUtility::fakeAdmin();
 			$fakeAdmin = 1;
 		}
+
 		// GPvars specifically for processing:
 		$this->data = GeneralUtility::_GP('data');
 		$this->cmd = GeneralUtility::_GP('cmd')?GeneralUtility::_GP('cmd'):array();
 		$this->disableRTE = GeneralUtility::_GP('_disableRTE');
 
-		//check data with fe user
-		if(is_array($this->data)) {
-			$table = array_keys($this->data);
-			$uid = array_keys($this->data[$table[0]]);
-			$data = $this->data[$table[0]][$uid[0]];
-			$fePID = intval($this->extConf['pidFE']);
-			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-				'*',
-				'fe_users',
-				'pid = '.$fePID.BackendUtility::deleteClause('fe_users').' AND username = '.$GLOBALS['TYPO3_DB']->fullQuoteStr($data['username'],'fe_users')
-			);
+		$incoming = $this->data ? $this->data : $this->cmd;
+		$table = array_keys($incoming);
+		$uid = array_keys($incoming[$table[0]]);
+		$data = $incoming[$table[0]][$uid[0]];
 
-			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
-				if( (trim($data['realName']) == trim($row['name'])) && (trim($data['email']) == trim($row['email']))) {
-					$notSync = 0;
-				} else {
-					if (strpos($uid[0],'NEW') !== FALSE) {
-						$feExist = 1;
-					} else {
-						$notSync = 1;
-					}
-				}
+		//check if title has prefix. if not add it.
+		if (isset($GLOBALS['BE_USER']->userTS['tx_tcbeuser.']['createWithPrefix']) && !empty($GLOBALS['BE_USER']->userTS['tx_tcbeuser.']['createWithPrefix'])) {
+			$prefix = $GLOBALS['BE_USER']->userTS['tx_tcbeuser.']['createWithPrefix'];
+
+			if ( strpos($data['title'],$prefix) !== 0 && ! ( $this->MOD_SETTINGS['function'] == 'action' && isset($data['hidden']) ) ) {
+				$this->data[$table[0]][$uid[0]]['title'] = $prefix.' '.$this->data[$table[0]][$uid[0]]['title'];
 			}
 		}
 
-		if($notSync || $feExist ) {
-			$notSync ? $this->error[] = array('error',$GLOBALS['LANG']->getLL('data-sync')) : '';
-			$feExist ? $this->error[] = array('error',$GLOBALS['LANG']->getLL('fe-exist')) : '';
+		//check if the same usergroup name is existed.
+		$row = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+			'*',
+			'be_groups',
+			'title = '.$GLOBALS['TYPO3_DB']->fullQuoteStr($data['title'],'be_groups')
+			.BackendUtility::deleteClause('be_groups')
+		);
+
+
+		if(($GLOBALS['TYPO3_DB']->sql_num_rows($row) > 0) && (strpos($uid[0],'NEW') !== FALSE )) {
+			$this->error[] = array('error',$GLOBALS['LANG']->getLL('group-exists'));
 		} else {
 			// See tce_db.php for relevate options here:
 			// Only options related to $this->data submission are included here.
 			/** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
 			$tce = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Core\\DataHandling\\DataHandler');
-			$tce->stripslashes_values = 0;
+			$tce->stripslashes_values=0;
 
 			// Setting default values specific for the user:
 			$TCAdefaultOverride = $GLOBALS['BE_USER']->getTSConfigProp('TCAdefaults');
@@ -237,7 +214,7 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 
 
 			// Checking referer / executing
-			$refInfo = parse_url(GeneralUtility::getIndpEnv('HTTP_REFERER'));
+			$refInfo=parse_url(GeneralUtility::getIndpEnv('HTTP_REFERER'));
 			$httpHost = GeneralUtility::getIndpEnv('TYPO3_HOST_ONLY');
 			if ($httpHost!=$refInfo['host'] && $this->vC!=$GLOBALS['BE_USER']->veriCode() && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
 				$tce->log('',0,0,0,1,"Referer host '%s' and server host '%s' did not match and veriCode was not valid either!",1,array($refInfo['host'],$httpHost));
@@ -263,7 +240,7 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 							$editId = $versionRec['uid'];
 						}
 
-						$this->editconf[$nTable][$editId] = 'edit';
+						$this->editconf[$nTable][$editId]='edit';
 						if ($nTable=='pages' && $this->retUrl!='dummy.php' && $this->returnNewPageId) {
 							$this->retUrl .= '&id='.$tce->substNEWwithIDs[$nKey];
 						}
@@ -289,33 +266,36 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 
 					// Setting a blank editconf array for a new record:
 					$this->editconf = array();
-					if ($this->getNewIconMode($nTable)=='top') {
+					if ($this->getNewIconMode($nTable) == 'top') {
 						$this->editconf[$nTable][$nRec['pid']] = 'new';
 					} else {
 						$this->editconf[$nTable][-$nRec['uid']] = 'new';
 					}
 				}
 
+				// popView will not be invoked here, because the information from the submit button for save/view will be lost .... But does it matter if there is an error anyways?
 				$tce->printLogErrorMessages(
 					isset($_POST['_saveandclosedok_x']) ?
 						$this->retUrl :
-						$this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('',$this->R_URL_getvars)	// popView will not be invoked here, because the information from the submit button for save/view will be lost .... But does it matter if there is an error anyways?
+						$this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('',$this->R_URL_getvars)
 				);
 			}
 		}
-		if (isset($_POST['_saveandclosedok_x']) || $this->closeDoc<0) {	//  || count($tce->substNEWwithIDs)... If any new items has been save, the document is CLOSED because if not, we just get that element re-listed as new. And we don't want that!
+
+		//  || count($tce->substNEWwithIDs)... If any new items has been save, the document is CLOSED because if not, we just get that element re-listed as new. And we don't want that!
+		if (isset($_POST['_saveandclosedok_x']) || $this->closeDoc<0) {
 			$this->closeDocument(abs($this->closeDoc));
 		}
 
 		if($fakeAdmin){
-			tx_tcbeuser_config::removeFakeAdmin();
+			TcBeuserUtility::removeFakeAdmin();
 		}
 	}
 
 	/**
 	 * close the document and send to the previous page
 	 */
-	function closeDocument() {
+	function closeDocument(){
 		if($this->retUrl == 'dummy.php') {
 			$this->retUrl = BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
 		}
@@ -349,25 +329,24 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 
 		$this->id = 0;
 		$this->search_field = GeneralUtility::_GP('search_field');
-		$this->pointer = MathUtility::forceIntegerInRange(GeneralUtility::_GP('pointer'), 0, 100000);
-		$this->table = 'be_users';
+		$this->pointer = MathUtility::forceIntegerInRange(
+			GeneralUtility::_GP('pointer'),
+			0,
+			100000
+		);
+		$this->table = 'be_groups';
 
 		// if going to edit a record, a menu item is dynamicaly added to
 		// the dropdown which is otherwise not visible
 		$SET = GeneralUtility::_GET('SET');
 		if(isset($SET['function']) && $SET['function'] == 'edit') {
 			$this->MOD_SETTINGS['function'] = $SET['function'];
-			$this->MOD_MENU['function']['edit'] = $GLOBALS['LANG']->getLL('edit-user');
+			$this->MOD_MENU['function']['edit'] = $GLOBALS['LANG']->getLL('edit-group');
 			$this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';
 			$this->editconf = GeneralUtility::_GET('edit');
 		}
 
-		//import fe user
-		if($SET['function'] == 'import'){
-			$this->MOD_SETTINGS['function'] = $SET['function'];
-		}
-
-		if($SET['function'] == 'action'){
+		if($SET['function'] == 'action') {
 			$this->MOD_SETTINGS['function'] = $SET['function'];
 		}
 	}
@@ -380,11 +359,10 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 	function menuConfig() {
 		$this->MOD_MENU = array (
 			'function' => array (
-				'1' => $GLOBALS['LANG']->getLL('list-users'),
-				'2'	=> $GLOBALS['LANG']->getLL('create-user'),
-				'3' => $GLOBALS['LANG']->getLL('create-user-wizard'),
+				'1' => $GLOBALS['LANG']->getLL('list-groups'),
+				'2' => $GLOBALS['LANG']->getLL('create-group'),
 			),
-			'hideDeactivatedUsers' => '0'
+//			'hideDeactivatedUsers' => '0'
 		);
 		parent::menuConfig();
 	}
@@ -392,71 +370,43 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 	/**
 	 * Generates the module content
 	 *
-	 * @return	void
 	 */
 	function moduleContent() {
 		$content = '';
+
 		if(!empty($this->editconf)) {
 			$this->MOD_SETTINGS['function'] = 'edit';
 		}
 
 		switch((string)$this->MOD_SETTINGS['function']) {
 			case '1':
-				// list users
+				// list groups
 				BackendUtility::lockRecords();
 				$content .= $this->doc->section(
 					'',
-					$this->getUserList()
+					$this->getGroupList()
 				);
-//				$content .= $debug_content;
 				break;
 			case '2':
+				// create new group
 				$data = GeneralUtility::_GP('data');
-				$dataKey = is_array($data) ? array_keys($data[$this->table]): array();
+				$dataKey = is_array($data) ? array_keys($data[$this->table]) : array();
 				if(is_numeric($dataKey[0])) {
 					$this->editconf = array($this->table => array($dataKey[0] => 'edit'));
 				} else {
-					// create new user
-					$this->editconf = array($this->table => array(0 => 'new'));
-				}
-				$content .= $this->doc->section(
-					'',
-					$this->getUserEdit()
-				);
-				break;
-			case '3':
-
-				//show list of fe users
-				$this->table = 'fe_users';
-				$content .= $this->doc->section(
-					'',
-					$this->getUserList()
-				);
-//				$content .= $debug_content;
-				break;
-			case 'edit':
-				// edit user
-				$content .= $this->doc->section(
-					'',
-					$this->getUserEdit()
-				);
-//				$content .= $debug_content;
-				break;
-			case 'import':
-				$this->feID = GeneralUtility::_GP('feID');
-				$this->R_URI = $this->retUrl = BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']);
-				$data = GeneralUtility::_GP('data');
-				$dataKey = is_array($data) ? array_keys($data[$this->table]): array();
-				if(is_numeric($dataKey[0])){
-					$this->editconf = array($this->table => array($dataKey[0] => 'edit'));
-				}else{ // create new user
 					$this->editconf = array($this->table => array(0=>'new'));
 				}
+				$content .= $this->doc->section('',$this->getGroupEdit());
+				break;
+			case 'edit':
+				// edit group
+				#$param = GeneralUtility::_GET('edit');
+				#$beuserUid = array_search('edit', $param['be_users']);
+
 				$content .= $this->doc->section(
 					'',
-					$this->getUserEdit()
+					$this->getGroupEdit()
 				);
-//				$content .= $debug_content;
 				break;
 			case 'action':
 				$this->processData();
@@ -472,92 +422,52 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 		echo $this->content;
 	}
 
-	function getUserList() {
+	function getGroupList() {
 		$content = '';
-		$dblist = GeneralUtility::makeInstance('tx_tcbeuser_recordList');
-		$dblist->permChecker = &$this->permChecker;
+		/** @var dkd\TcBeuser\Utility\RecordListUtility $dblist */
+		$dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
 		$dblist->backPath = $this->doc->backPath;
 		$dblist->script = GeneralUtility::getIndpEnv('SCRIPT_NAME');
 		$dblist->alternateBgColors = true;
-		$dblist->userMainGroupOnly = true;
 
 		$dblist->calcPerms = $GLOBALS['BE_USER']->calcPerms($this->pageinfo);
-		$dblist->showFields = array('realName', 'username', 'usergroup');
-		$dblist->disableControls = array_merge( $dblist->disableControls, array('import'=>true) );
+		$dblist->showFields = array('title', 'description');
+		$dblist->disableControls = array('import' => true);
 
 //Setup for analyze Icon
-		$dblist->analyzeLabel = $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:analyze',1);
-		$dblist->analyzeParam = 'beUser';
+		$dblist->analyzeLabel = $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:analyze',1);
+		$dblist->analyzeParam = 'beGroup';
 
-		if($this->MOD_SETTINGS['hideDeactivatedUsers']) {
-			$dblist->hideDisabledRecords = true;
-		}
-
-		//dkd-kartolo
-		//prepare to list fe_users
-		if($this->table != 'fe_users') {
-			$pid = 0;
-			$sortField = 'realName';
-		} else {
-			$pid = intval($this->extConf['pidFE']);
-			$sortField = 'username';
-			$dblist->showFields = array('username','name','email');
-			$dblist->disableControls = array (
-				'history' => true,
-				'new' => true,
-				'edit' => true,
-				'detail' => true,
-				'delete' => true,
-				'hide' => true
-			);
-			$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-				'username',
-				'be_users',
-				'1 '.BackendUtility::deleteClause('be_users')
-			);
-			while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
-				$exclude[] = "'".$row['username']."'";
-			}
-			$dblist->excludeBE = '('.implode(',',$exclude).')';
-		}
-
-		$dblist->start($pid, $this->table, $this->pointer, $this->search_field);
+		$dblist->start(0, $this->table, $this->pointer, $this->search_field);
 
 		// default sorting, needs to be set after $dblist->start()
 		$sort = GeneralUtility::_GET('sortField');
 		if(is_null($sort)) {
-			$dblist->sortField = $sortField;
+			$dblist->sortField = 'title';
 		}
 		$dblist->generateList();
-		$content .= $dblist->HTMLcode ? $dblist->HTMLcode : $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:not-found').'<br />';
-		$content .= '<br />'.BackendUtility::getFuncCheck(
-				$this->id,
-				'SET[hideDeactivatedUsers]',
-				$this->MOD_SETTINGS['hideDeactivatedUsers'],
-				'',
-				'&search_field='.$this->search_field.'&sortField='.$sort.'&sortRev='.GeneralUtility::_GET('sortRev')
-			).' '.$GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:hide-deaktivated-users');
+		$content .= $dblist->HTMLcode ? $dblist->HTMLcode : $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:not-found').'<br />';
 		$content .= $dblist->getSearchBox(
 			false,
-			$GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:search-user',1)
+			$GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:search-group',1)
 		);
-		// make new user link
-		$content .= ($this->table != 'fe_users') ?
-			'<!--
-				Link for creating a new record:
-			-->
-<div id="typo3-newRecordLink">
-<a href="' . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 2)) . '">' .
-			'<img' . IconUtility::skinImg($this->doc->backPath, 'gfx/new_el.gif', 'width="11" height="12"') . ' alt="' . $GLOBALS['LANG']->getLL('create-user') . '" />' .
-			$GLOBALS['LANG']->getLL('create-user') .
-			'</a>' : '';
+
+		// make new group link
+		$content .= '<!--
+						Link for creating a new record:
+					-->
+		<div id="typo3-newRecordLink">
+		<a href="' . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 2)) . '">' .
+			'<img' . IconUtility::skinImg($this->doc->backPath, 'gfx/new_el.gif', 'width="11" height="12"') . ' alt="' . $GLOBALS['LANG']->getLL('create-group') . '" />' .
+			$GLOBALS['LANG']->getLL('create-group') .
+			'</a>';
 
 		$this->jsCode .= $this->doc->redirectUrls($dblist->listURL())."\n";
 
 		return $content;
 	}
 
-	function getUserEdit() {
+	function getGroupEdit() {
 		$content = '';
 
 		/** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
@@ -573,30 +483,28 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 		#if ($GLOBALS['BE_USER']->uc['edit_showFieldHelp']!='text')	$this->tceforms->edit_showFieldHelp='text';
 
 		// Creating the editing form, wrap it with buttons, document selector etc.
-		//show only these columns
-
-		$this->editForm = GeneralUtility::makeInstance('tx_tcbeuser_editform');
+		// Show only these columns
+		$this->editForm = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\EditFormUtility');
 		$this->editForm->tceforms = &$this->tceforms;
-		$this->editForm->columnsOnly = 'disable,username,password,usergroup,realName,email,lang';
+		$this->editForm->columnsOnly = 'hidden,title,db_mountpoints,file_mountpoints,subgroup,members,description,TSconfig';
 		$this->editForm->editconf = $this->editconf;
-		$this->editForm->feID = $this->feID;
 		$this->editForm->error = $this->error;
-		$this->editForm->inputData = $this->data;
 
 		$editForm = $this->editForm->makeEditForm();
 		$this->viewId = $this->editForm->viewId;
 
-		if ($editForm) {
-			// ingo.renner@dkd.de
+		if ($editForm) { // ingo.renner@dkd.de
 			reset($this->editForm->elementsData);
 			$this->firstEl = current($this->editForm->elementsData);
 
 			if ($this->viewId) {
 				// Module configuration:
 				$this->modTSconfig = BackendUtility::getModTSconfig($this->viewId,'mod.xMOD_alt_doc');
-			} else $this->modTSconfig=array();
+			} else {
+				$this->modTSconfig = array();
+			}
 
-			$panel  = $this->makeButtonPanel();
+			$panel = $this->makeButtonPanel();
 			$formContent = $this->compileForm($panel,'','',$editForm);
 
 			$content .= $this->tceforms->printNeededJSFunctions_top().
@@ -615,21 +523,21 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 	 * @return	string		HTML code, comprised of images linked to various actions.
 	 */
 	function makeButtonPanel() {
-		$panel='';
+		$panel = '';
 
 		// Render SAVE type buttons:
 		// The action of each button is decided by its name attribute. (See doProcessData())
 		if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']) {
 
 			// SAVE button:
-			$panel.= '<input type="image" class="c-inputButton" name="_savedok"'.IconUtility::skinImg($this->doc->backPath,'gfx/savedok.gif','').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveDoc',1).'" />';
+			$panel .= '<input type="image" class="c-inputButton" name="_savedok"'.IconUtility::skinImg($this->doc->backPath,'gfx/savedok.gif','').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveDoc',1).'" />';
 
 			// SAVE / CLOSE
-			$panel.= '<input type="image" class="c-inputButton" name="_saveandclosedok"'.IconUtility::skinImg($this->doc->backPath,'gfx/saveandclosedok.gif','').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveCloseDoc',1).'" />';
+			$panel .= '<input type="image" class="c-inputButton" name="_saveandclosedok"'.IconUtility::skinImg($this->doc->backPath,'gfx/saveandclosedok.gif','').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveCloseDoc',1).'" />';
 		}
 
 		// CLOSE button:
-		$panel.= '<a href="#" onclick="document.editform.closeDoc.value=1; document.editform.submit(); return false;">'.
+		$panel .= '<a href="#" onclick="document.editform.closeDoc.value=1; document.editform.submit(); return false;">'.
 			'<img'.IconUtility::skinImg($this->doc->backPath,'gfx/closedok.gif','width="21" height="16"').' class="c-inputButton" title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.closeDoc',1).'" alt="" />'.
 			'</a>';
 
@@ -645,14 +553,14 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 				}
 				if ($undoButton) {
 					$aOnClick = 'window.location.href=\'show_rechis.php?element='.rawurlencode($this->firstEl['table'].':'.$this->firstEl['uid']).'&revert=ALL_FIELDS&sumUp=-1&returnUrl='.rawurlencode($this->R_URI).'\'; return false;';
-					$panel .= '<a href="#" onclick="'.htmlspecialchars($aOnClick).'">'.
+					$panel.= '<a href="#" onclick="'.htmlspecialchars($aOnClick).'">'.
 						'<img'.IconUtility::skinImg($this->doc->backPath,'gfx/undo.gif','width="21" height="16"').' class="c-inputButton" title="'.htmlspecialchars(sprintf($GLOBALS['LANG']->getLL('undoLastChange'),BackendUtility::calcAge(time()-$undoButtonR['tstamp'],$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')))).'" alt="" />'.
 						'</a>';
 				}
 
 				// If only SOME fields are shown in the form, this will link the user to the FULL form:
 				if ($this->columnsOnly) {
-					$panel .= '<a href="'.htmlspecialchars($this->R_URI.'&columnsOnly=').'">'.
+					$panel.= '<a href="'.htmlspecialchars($this->R_URI.'&columnsOnly=').'">'.
 						'<img'.IconUtility::skinImg($this->doc->backPath,'gfx/edit2.gif','width="11" height="12"').' class="c-inputButton" title="'.$GLOBALS['LANG']->getLL('editWholeRecord',1).'" alt="" />'.
 						'</a>';
 				}
@@ -687,11 +595,11 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 				</tr>';
 
 		if ($langSelector) {
-			$langSelector ='<div id="typo3-altdoc-lang-selector">'.$langSelector.'</div>';
+			$langSelector = '<div id="typo3-altdoc-lang-selector">'.$langSelector.'</div>';
 		}
 		$pagePath = '<div id="typo3-altdoc-page-path">'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.path',1).': '.htmlspecialchars($this->generalPathOfForm).'</div>';
 
-		$formContent.='
+		$formContent .= '
 				<tr>
 					<td colspan="2"><div id="typo3-altdoc-header-info-options">'.$pagePath.$langSelector.'<div></td>
 				</tr>
@@ -729,6 +637,6 @@ class tx_tcbeuser_module2 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 
 
 
-if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod2/index.php']) {
-	include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod2/index.php']);
+if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod3/index.php']) {
+	include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod3/index.php']);
 }

@@ -1,4 +1,5 @@
 <?php
+namespace dkd\TcBeuser\Utility;
 /***************************************************************
 *  Copyright notice
 *
@@ -31,7 +32,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *
  * @author Ingo Renner <ingo.renner@dkd.de>
  */
-class tx_tcbeuser_hooks {
+class HooksUtility {
 
 	var $columns;
 

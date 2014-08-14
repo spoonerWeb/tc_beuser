@@ -24,10 +24,14 @@
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-include_once(\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath('tc_beuser').'mod3/class.tx_tcbeuser_module3.php');
+$GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod3/locallang.xml');
+$GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
+
+$GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits if the users has no permission for entry.
+// DEFAULT initialization of a module [END]
 
 // Make instance:
-$SOBE = GeneralUtility::makeInstance('tx_tcbeuser_module3');
+$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Module\\GroupAdminController');
 $SOBE->init();
 
 // Include files?

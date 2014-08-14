@@ -1,4 +1,5 @@
 <?php
+namespace dkd\TcBeuser\Utility;
 /***************************************************************
 *  Copyright notice
 *
@@ -22,16 +23,17 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Backend\Tree\View\AbstractTreeView;
 
 /**
- * class.tx_tcbeuser_grouptree.php
+ * GroupTreeUtility.php
  *
  * DESCRIPTION HERE
  * $Id$
  *
  * @author Ingo Renner <ingo.renner@dkd.de>
  */
-class tx_tcbeuser_groupTree extends \TYPO3\CMS\Backend\Tree\View\AbstractTreeView {
+class GroupTreeUtility extends AbstractTreeView {
 	var $fieldArray = array('uid', 'title');
 	var $defaultList = 'uid,title';
 

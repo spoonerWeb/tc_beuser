@@ -1,4 +1,5 @@
 <?php
+namespace dkd\TcBeuser\Utility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -26,7 +27,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-class tx_tcbeuser_editform {
+class EditFormUtility {
 
 	var $elementsData;
 	var $errorC;

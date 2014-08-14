@@ -33,15 +33,15 @@ if (TYPO3_MODE == 'BE') {
 	//wizard for the password generator
 	$wizConfig = array(
 		'type' => 'userFunc',
-		'userFunc' => 'EXT:tc_beuser/class.tx_tcbeuser_pwd_wizard.php:tx_tcbeuser_pwd_wizard->main',
+		'userFunc' => 'dkd\\TcBeuser\\Utility\\PwdWizardUtility->main',
 		'params' => array('type' => 'password')
 	);
 
 	$confField = 'tx_tcbeuser';
 
 	$TCA['be_users']['columns']['password']['config']['wizards'][$confField] = $wizConfig;
-	$TCA['be_users']['columns']['usergroup']['config']['itemsProcFunc'] = 'tx_tcbeuser_config->getGroupsID';
-	$TCA['be_groups']['columns']['subgroup']['config']['itemsProcFunc'] = 'tx_tcbeuser_config->getGroupsID';
+	$TCA['be_users']['columns']['usergroup']['config']['itemsProcFunc'] = 'dkd\\TcBeuser\\Utility\\TcBeuserUtility->getGroupsID';
+	$TCA['be_groups']['columns']['subgroup']['config']['itemsProcFunc'] = 'dkd\\TcBeuser\\Utility\\TcBeuserUtility->getGroupsID';
 }
 
 $tempCol = array(

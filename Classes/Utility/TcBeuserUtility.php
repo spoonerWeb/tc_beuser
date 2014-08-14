@@ -1,4 +1,6 @@
 <?php
+namespace dkd\TcBeuser\Utility;
+
 /***************************************************************
 *  Copyright notice
 *
@@ -31,7 +33,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *
  * @author Ingo Renner <ingo.renner@dkd.de>
  */
-class tx_tcbeuser_config {
+class TcBeuserUtility {
 
 	var $config;
 
@@ -54,7 +56,7 @@ class tx_tcbeuser_config {
 		if($row['subgroup']){
 			$subGroup = GeneralUtility::intExplode(',',$row['subgroup']);
 			foreach ($subGroup as $subGroupUID) {
-				$uid .= $subGroupUID.','.tx_tcbeuser_config::getSubgroup($subGroupUID).',';
+				$uid .= $subGroupUID.','.self::getSubgroup($subGroupUID).',';
 			}
 			return $uid;
 		} else {
@@ -67,7 +69,7 @@ class tx_tcbeuser_config {
 
 		$allowWhereMember = array();
 		foreach($userGroup as $uid) {
-			$groupID = $uid.','.tx_tcbeuser_config::getSubgroup($uid);
+			$groupID = $uid.','.self::getSubgroup($uid);
 			if (strstr($groupID,',')) {
 				$groupIDarray = explode(',',$groupID);
 				$allowWhereMember = array_merge($allowWhereMember, array_unique($groupIDarray));
@@ -180,51 +182,51 @@ class tx_tcbeuser_config {
 
 				//put ID allowWhereMember
 			if($TSconfig['allowWhereMember'] == 1) {
-				$allowWhereMember = tx_tcbeuser_config::allowWhereMember($TSconfig);
+				$allowWhereMember = self::allowWhereMember($TSconfig);
 				$showGroupID = array_merge($showGroupID,$allowWhereMember);
 			}
 
 				//put ID allowCreated
 			if($TSconfig['allowCreated'] == 1) {
-				$allowCreated = tx_tcbeuser_config::allowCreated($TSconfig,$where);
+				$allowCreated = self::allowCreated($TSconfig,$where);
 				$showGroupID = array_merge($showGroupID,$allowCreated);
 			}
 
 				//allow
-			$allowID = tx_tcbeuser_config::allow($TSconfig,$where);
+			$allowID = self::allow($TSconfig,$where);
 			$showGroupID = array_merge($showGroupID,$allowID);
 
 				//put ID showPrefix
-			$showPrefix = tx_tcbeuser_config::showPrefixID($TSconfig,$where,'showPrefix');
+			$showPrefix = self::showPrefixID($TSconfig,$where,'showPrefix');
 			$showGroupID = array_merge($showGroupID,$showPrefix);
 
 		} else {
 			//explicitDeny
-			$showGroupID = explode(',',tx_tcbeuser_config::getAllGroupsID());
+			$showGroupID = explode(',',self::getAllGroupsID());
 			$denyGroupID = array();
 
 				//put ID allowWhereMember
 			if($TSconfig['allowWhereMember'] == 0) {
-				$allowWhereMember = tx_tcbeuser_config::allowWhereMember($TSconfig);
+				$allowWhereMember = self::allowWhereMember($TSconfig);
 				$denyGroupID = array_merge($denyGroupID,$allowWhereMember);
 			}
 
 				//put ID allowCreated
 			if($TSconfig['allowCreated'] == 0 ) {
-				$allowCreated = tx_tcbeuser_config::allowCreated($TSconfig,$where);
+				$allowCreated = self::allowCreated($TSconfig,$where);
 				$denyGroupID = array_merge($denyGroupID,$allowCreated);
 			}
 
 				//deny
 			if($TSconfig['deny'] == 'all') {
-				$denyGroupID = array_merge($denyGroupID, explode(',',tx_tcbeuser_config::getAllGroupsID()));
+				$denyGroupID = array_merge($denyGroupID, explode(',',self::getAllGroupsID()));
 			} else {
-				$denyID = tx_tcbeuser_config::denyID($TSconfig,$where);
+				$denyID = self::denyID($TSconfig,$where);
 				$denyGroupID = array_merge($denyGroupID,$denyID);
 			}
 
 				//put ID dontShowPrefix
-			$dontShowPrefix = tx_tcbeuser_config::showPrefixID($TSconfig,$where,'dontShowPrefix');
+			$dontShowPrefix = self::showPrefixID($TSconfig,$where,'dontShowPrefix');
 			$denyGroupID = array_merge($denyGroupID,$dontShowPrefix);
 
 				//remove $denyGroupID from $showGroupID
@@ -240,11 +242,11 @@ class tx_tcbeuser_config {
 	static function getGroupsID(&$param,&$pObj) {
 		if ($GLOBALS['BE_USER']->user['admin'] == '0') {
 			$where = 'pid = 0 '.BackendUtility::deleteClause('be_groups');
-			$groupID = implode(',',tx_tcbeuser_config::showGroupID());
+			$groupID = implode(',',self::showGroupID());
 			if(!empty($groupID)) {
 				$where .= ' AND uid in ('.$groupID.')';
 			} else {
-				$where .= ' AND uid not in ('.tx_tcbeuser_config::getAllGroupsID().')';
+				$where .= ' AND uid not in ('.self::getAllGroupsID().')';
 			}
 		} else {
 			$where = '1'.BackendUtility::deleteClause('be_groups');
@@ -283,8 +285,8 @@ class tx_tcbeuser_config {
 
 }
 
-if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_config.php']) {
-	include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_config.php']);
+if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.self.php']) {
+	include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.self.php']);
 }
 
 ?>

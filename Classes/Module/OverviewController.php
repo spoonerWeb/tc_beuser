@@ -1,4 +1,5 @@
 <?php
+namespace dkd\TcBeuser\Module;
 /***************************************************************
  *  Copyright notice
  *
@@ -27,15 +28,6 @@ use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
-use TYPO3\CMS\Extbase\Persistence\Generic\Backend;
-
-$GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
-$GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
-
-$GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits if the users has no permission for entry.
-// DEFAULT initialization of a module [END]
-
-
 
 /**
  * Module 'User / Group Overview' for the 'tc_beuser' extension.
@@ -44,7 +36,7 @@ $GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits i
  * @package	TYPO3
  * @subpackage	tx_tcbeuser
  */
-class tx_tcbeuser_module4 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
+class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 
 	var $content;
 	var $doc;
@@ -59,10 +51,6 @@ class tx_tcbeuser_module4 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 
 	function main() {
 		$this->init();
-
-		// The page will show only if there is a valid page and if this page may be viewed by the user
-		#$this->pageinfo = tx_tcbeuser_access::readPageAccess();
-		#$access = is_array($this->pageinfo) ? 1 : 0;
 
 		//TODO more access check!?
 		$access = $GLOBALS['BE_USER']->modAccess($this->MCONF, true);
@@ -267,7 +255,8 @@ class tx_tcbeuser_module4 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			);
 			$this->table = 'be_users';
 
-			$dblist = GeneralUtility::makeInstance('tx_tcbeuser_recordList');
+			/** @var dkd\TcBeuser\Utility\RecordListUtility $dblist */
+			$dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
 			$dblist->backPath = $this->doc->backPath;
 			$dblist->script = $this->MCONF['script'];
 			$dblist->alternateBgColors = true;
@@ -295,7 +284,8 @@ class tx_tcbeuser_module4 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			$content .= $this->getColSelector();
 			$content .= '<br />';
 			$content .= $this->getUserViewHeader($userRecord);
-			$userView = GeneralUtility::makeInstance('tx_tcbeuser_overview');
+			/** @var dkd\TcBeuser\Utility\OverviewUtility $userView */
+			$userView = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\OverviewUtility');
 
 			//if there is member in the compareFlags array, remove it. There is no 'member' in user view
 			unset($this->compareFlags['members']);
@@ -321,7 +311,8 @@ class tx_tcbeuser_module4 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			);
 			$this->table = 'be_groups';
 
-			$dblist = GeneralUtility::makeInstance('tx_tcbeuser_recordList');
+			/** @var dkd\TcBeuser\Utility\RecordListUtility $dblist */
+			$dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
 			$dblist->backPath = $this->doc->backPath;
 			$dblist->script = $this->MCONF['script'];
 			$dblist->alternateBgColors = true;
@@ -351,7 +342,8 @@ class tx_tcbeuser_module4 extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			$content .= '<br />';
 //			$content .= $this->getUserViewHeader($groupRecord);
 
-			$userView = GeneralUtility::makeInstance('tx_tcbeuser_overview');
+			/** @var dkd\TcBeuser\Module\OverviewController $userView */
+			$userView = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\OverviewUtility');
 			$content .= $userView->getTableGroup($groupRecord, $this->compareFlags);
 		}
 

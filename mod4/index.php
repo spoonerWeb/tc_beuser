@@ -24,7 +24,11 @@
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-include_once(\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath('tc_beuser').'mod4/class.tx_tcbeuser_module4.php');
+$GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
+$GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
+
+$GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits if the users has no permission for entry.
+// DEFAULT initialization of a module [END]
 
 
 if(GeneralUtility::_POST('ajaxCall')) {
@@ -33,13 +37,13 @@ if(GeneralUtility::_POST('ajaxCall')) {
 	$open     = GeneralUtility::_POST('open');
 	$backPath = GeneralUtility::_POST('backPath');
 
-	$userView = GeneralUtility::makeInstance('tx_tcbeuser_overview');
+	$userView = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\OverviewUtility');
 	$content  = $userView->handleMethod( $method, $groupId, $open, $backPath );
 
 	echo $content;
 } else {
 	// Make instance:
-	$SOBE = GeneralUtility::makeInstance('tx_tcbeuser_module4');
+	$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Module\\OverviewController');
 	$SOBE->init();
 
 	// Include files?

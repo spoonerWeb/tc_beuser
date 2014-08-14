@@ -24,10 +24,14 @@
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-include_once(\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath('tc_beuser').'mod5/class.tx_tcbeuser_module5.php');
+$GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod5/locallang.xml');
+$GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
+
+$GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits if the users has no permission for entry.
+// DEFAULT initialization of a module [END]
 
 // Make instance:
-$SOBE = GeneralUtility::makeInstance('tx_tcbeuser_module5');
+$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Module\\FilemountsViewController');
 $SOBE->init();
 
 // Include files?

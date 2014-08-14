@@ -1,4 +1,6 @@
 <?php
+namespace dkd\TcBeuser\Utility;
+
 /***************************************************************
 *  Copyright notice
 *
@@ -29,14 +31,14 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 $GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
 /**
- * class.tx_tcbeuser_overview.php
+ * OverviewUtility.php
  *
  * DESCRIPTION HERE
  * $Id$
  *
  * @author Ingo Renner <ingo.renner@dkd.de>
  */
-class tx_tcbeuser_overview {
+class OverviewUtility {
 
 	var $row;
 	/**
@@ -981,7 +983,8 @@ class tx_tcbeuser_overview {
 		$depth = 10;
 
 			// Initialize tree object:
-		$tree = GeneralUtility::makeInstance('tx_tcbeuser_groupTree');
+		/** @var dkd\TcBeuser\Utility\GroupTreeUtility $tree */
+		$tree = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\GroupTreeUtility');
 		$tree->init('');
 		$tree->expandAll = true;
 

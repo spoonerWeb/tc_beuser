@@ -1,4 +1,6 @@
 <?php
+namespace dkd\TcBeuser\Utility;
+
 /***************************************************************
 *  Copyright notice
 *
@@ -22,10 +24,12 @@
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
+use dkd\TcBeuser\Utility\TcBeuserUtility\TcBeuserUtility;
 use \TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use \TYPO3\CMS\Recordlist\RecordList\DatabaseRecordList;
 
 /**
  * class for listing DB tables in tc_beuser
@@ -33,7 +37,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *
  * @author Ingo Renner <ingo.renner@dkd.de>
  */
-class tx_tcbeuser_recordList extends localRecordList {
+class RecordListUtility extends DatabaseRecordList {
 
 	var $showFields;
 	var $userMainGroupOnly = false;
@@ -233,11 +237,11 @@ class tx_tcbeuser_recordList extends localRecordList {
 		//dkd-kartolo
 		//mod3, config dontShowPrefix
 		if($table == 'be_groups' && $GLOBALS['BE_USER']->user['admin']!= '1') {
-			$groupID = implode(',',tx_tcbeuser_config::showGroupID());
+			$groupID = implode(',',TcBeuserUtility::showGroupID());
 			if(!empty($groupID)) {
 				$addWhere .= ' AND uid in ('.$groupID.')';
 			} else {
-				$addWhere .= ' AND uid not in ('.tx_tcbeuser_config::getAllGroupsID().')';
+				$addWhere .= ' AND uid not in ('.TcBeuserUtility::getAllGroupsID().')';
 			}
 		}
 

@@ -1,4 +1,6 @@
 <?php
+namespace dkd\TcBeuser\Utility;
+
 /***************************************************************
 *  Copyright notice
 *
@@ -30,7 +32,7 @@
  *
  * @author Ivan Kartolo <ivan.kartolo@dkd.de>
  */
-class tx_tcbeuser_pwd_wizard {
+class PwdWizardUtility {
 
 var $backPath = '../../../../typo3/';
 
