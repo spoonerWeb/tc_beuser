@@ -23,7 +23,7 @@ namespace dkd\TcBeuser\Module;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
-use dkd\TcBeuser\Utility\TcBeuserUtility\TcBeuserUtility;
+use dkd\TcBeuser\Utility\TcBeuserUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;

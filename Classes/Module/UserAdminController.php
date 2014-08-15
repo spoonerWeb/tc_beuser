@@ -24,7 +24,7 @@ namespace dkd\TcBeuser\Module;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
-use dkd\TcBeuser\Utility\TcBeuserUtility\TcBeuserUtility;
+use dkd\TcBeuser\Utility\TcBeuserUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -320,6 +320,8 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 
 	function init() {
 		parent::init();
+
+		TcBeuserUtility::switchUser(GeneralUtility::_GP('SwitchUser'));
 
 		$this->doc = GeneralUtility::makeInstance('bigDoc');
 		$this->doc->backPath = $GLOBALS['BACK_PATH'];

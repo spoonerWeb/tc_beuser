@@ -283,6 +283,28 @@ class TcBeuserUtility {
 		return implode(',',$id);
 	}
 
+	/**
+	 * [Describe function...]
+	 * ingo.renner@dkd.de: from tools/beusers
+	 *
+	 * @param	int		$switchUser: ...
+	 * @return	void		...
+	 */
+	static public function switchUser($switchUser) {
+		$uRec = BackendUtility::getRecord('be_users',$switchUser);
+		if (is_array($uRec) ) {
+			$updateData['ses_userid'] = $uRec['uid'];
+			// user switchback
+			if (GeneralUtility::_GP('switchBackUser')) {
+				$updateData['ses_backuserid'] = intval($GLOBALS['BE_USER']->user['uid']);
+			}
+			$GLOBALS['TYPO3_DB']->exec_UPDATEquery('be_sessions', 'ses_id='.$GLOBALS['TYPO3_DB']->fullQuoteStr($GLOBALS['BE_USER']->id, 'be_sessions').' AND ses_name=\'be_typo_user\' AND ses_userid='.intval($GLOBALS['BE_USER']->user['uid']),$updateData);
+
+			header('Location: '.GeneralUtility::locationHeaderUrl($GLOBALS['BACK_PATH'].'index.php'.($GLOBALS['TYPO3_CONF_VARS']['BE']['interfaces']?'':'?commandLI=1')));
+			exit;
+		}
+	}
+
 }
 
 if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.self.php']) {

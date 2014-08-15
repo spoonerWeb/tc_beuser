@@ -23,6 +23,7 @@ namespace dkd\TcBeuser\Module;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+use dkd\TcBeuser\Utility\TcBeuserUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
@@ -115,7 +116,7 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 	function init() {
 		parent::init();
 
-		$this->switchUser(GeneralUtility::_GP('SwitchUser'));
+		TcBeuserUtility::switchUser(GeneralUtility::_GP('SwitchUser'));
 
 		$this->backPath = $GLOBALS['BACK_PATH'];
 
@@ -408,13 +409,10 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			).' title="edit" alt="" /></a>'.chr(10);
 
 		//info
-		if ($GLOBALS['BE_USER']->check('tables_select', $this->table)
-			&& is_array(BackendUtility::readPageAccess($userRecord['pid'], $GLOBALS['BE_USER']->getPagePermsClause(1)))
-		) {
-			$control .= '<a href="#" onclick="' . htmlspecialchars('top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;') . '">' .
-				'<img' . IconUtility::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="" alt="" />' .
-				'</a>' . chr(10);
-		}
+		// always show info
+		$control .= '<a href="#" onclick="' . htmlspecialchars('top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;') . '">' .
+			'<img' . IconUtility::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="" alt="" />' .
+			'</a>' . chr(10);
 
 		// hide/unhide
 		$hiddenField = $GLOBALS['TCA'][$this->table]['ctrl']['enablecolumns']['disabled'];
@@ -445,8 +443,10 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			'<img' . IconUtility::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
 			'</a>' . chr(10);
 
+		//TODO: only for admins or authorized user
+		//$GLOBALS['BE_USER']->isAdmin()
 		// swith user / switch user back
-		if(!$userRecord[$hiddenField] && $GLOBALS['BE_USER']->isAdmin()) {
+		if(!$userRecord[$hiddenField]) {
 			$control .= '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'])).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" /></a>'.
 				'<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" /></a>'
 				.chr(10).chr(10);
@@ -484,28 +484,6 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 		$redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : GeneralUtility::getIndpEnv('REQUEST_URI'))) .
 			'&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
 		return BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect;
-	}
-
-	/**
-	 * [Describe function...]
-	 * ingo.renner@dkd.de: from tools/beusers
-	 *
-	 * @param	int		$switchUser: ...
-	 * @return	void		...
-	 */
-	function switchUser($switchUser) {
-		$uRec = BackendUtility::getRecord('be_users',$switchUser);
-		if (is_array($uRec) && $GLOBALS['BE_USER']->isAdmin()) {
-			$updateData['ses_userid'] = $uRec['uid'];
-			// user switchback
-			if (GeneralUtility::_GP('switchBackUser')) {
-				$updateData['ses_backuserid'] = intval($GLOBALS['BE_USER']->user['uid']);
-			}
-			$GLOBALS['TYPO3_DB']->exec_UPDATEquery('be_sessions', 'ses_id='.$GLOBALS['TYPO3_DB']->fullQuoteStr($GLOBALS['BE_USER']->id, 'be_sessions').' AND ses_name=\'be_typo_user\' AND ses_userid='.intval($GLOBALS['BE_USER']->user['uid']),$updateData);
-
-			header('Location: '.GeneralUtility::locationHeaderUrl($GLOBALS['BACK_PATH'].'index.php'.($GLOBALS['TYPO3_CONF_VARS']['BE']['interfaces']?'':'?commandLI=1')));
-			exit;
-		}
 	}
 }
 
