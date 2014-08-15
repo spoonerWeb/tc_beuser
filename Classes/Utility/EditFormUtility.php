@@ -255,11 +255,13 @@ class EditFormUtility {
 									} else {
 										$panel .= $this->tceforms->getMainFields($table,$rec);
 									}
+
+									// wrap the panel =
+									$panel = '<div class="typo3-TCEforms typo3-dyntabmenu-divs"><table border="0" cellspacing="0" cellpadding="0" width="100%">'.$panel.'</table></div>';
 									$panel = $this->tceforms->wrapTotal($panel,$rec,$table);
 
 									//dkd-kartolo
 									$panel = str_replace($this->tceforms->backPath.$this->tceforms->backPath, $this->tceforms->backPath, $panel);
-									$panel = str_replace('height: 2px; padding-top: 0px; padding-left: 4px;', 'height: 16px; padding-top: 2px; padding-left: 22px;',$panel);
 										// Setting the pid value for new records:
 									if ($cmd=='new') {
 										$panel .= '<input type="hidden" name="data['.$table.']['.$rec['uid'].'][pid]" value="'.$rec['pid'].'" />';

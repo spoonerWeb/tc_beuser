@@ -23,6 +23,8 @@ namespace dkd\TcBeuser\Utility;
 *
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
+use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 
 /**
  * class.tx_tcbeuser_pwd_wizard.php
@@ -37,14 +39,13 @@ class PwdWizardUtility {
 var $backPath = '../../../../typo3/';
 
 	function main($PA, $pObj) {
-		$output = '<script src="pwdgen.js" type="text/javascript"></script>';
+		$output = '<script src="'.ExtensionManagementUtility::extRelPath('tc_beuser').'mod2/pwdgen.js" type="text/javascript"></script>';
 		$onclick = 'pass = mkpass();' .
 					'document.'.$PA['formName'].'[\''.$PA['itemName'].'\'].value = pass;';
 		$onclick .= implode('',$PA['fieldChangeFunc']);
 
 		$output .= '<a href="#" onclick="'.htmlspecialchars($onclick).'">'.
-			'<img src="'.$this->backPath.'gfx/insert1.gif" width="16" height="16" hspace="8" class="absmiddle" ' .
-					'title="' . $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:password-wizard', 1).'" />' .
+			IconUtility::getSpriteIcon('actions-move-left', array('title' => $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:password-wizard', 1))).
 			'</a>';
 		return $output;
 	}
