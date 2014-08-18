@@ -31,7 +31,7 @@ $GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
 $GLOBALS['BE_USER']->modAccess($MCONF, 1);
 
 // Make instance:
-$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Module\\UserAdminController');
+$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Controller\\UserAdminController');
 $SOBE->preInit();
 
 // Include files?

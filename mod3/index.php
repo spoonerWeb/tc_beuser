@@ -31,7 +31,7 @@ $GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits i
 // DEFAULT initialization of a module [END]
 
 // Make instance:
-$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Module\\GroupAdminController');
+$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Controller\\GroupAdminController');
 $SOBE->init();
 
 // Include files?

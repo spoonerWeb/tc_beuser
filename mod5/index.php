@@ -31,7 +31,7 @@ $GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits i
 // DEFAULT initialization of a module [END]
 
 // Make instance:
-$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Module\\FilemountsViewController');
+$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Controller\\FilemountsViewController');
 $SOBE->init();
 
 // Include files?

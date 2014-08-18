@@ -43,7 +43,7 @@ if(GeneralUtility::_POST('ajaxCall')) {
 	echo $content;
 } else {
 	// Make instance:
-	$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Module\\OverviewController');
+	$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Controller\\OverviewController');
 	$SOBE->init();
 
 	// Include files?

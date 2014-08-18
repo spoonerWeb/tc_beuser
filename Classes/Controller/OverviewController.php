@@ -1,5 +1,5 @@
 <?php
-namespace dkd\TcBeuser\Module;
+namespace dkd\TcBeuser\Controller;
 /***************************************************************
  *  Copyright notice
  *
