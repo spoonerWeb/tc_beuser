@@ -25,6 +25,14 @@ if (TYPO3_MODE == 'BE') {
 	\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule('txtcbeuserM1', 'txtcbeuserM5', 'bottom', $extPath.'mod5/');
 	\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule('txtcbeuserM1', 'txtcbeuserM4', 'bottom', $extPath.'mod4/');
 
+	\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule(
+		'txtcbeuserM1',
+		'txtcbeuserM6',
+		'',
+		\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath($_EXTKEY) . 'mod6/'
+	);
+	\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::registerAjaxHandler('PermissionAjaxController::dispatch', 'dkd\\TcBeuser\\Controller\\PermissionAjaxController->dispatch');
+
 		// enabling regular BE users to edit BE users, goups and filemounts
 	$GLOBALS['TCA']['be_users']['ctrl']['adminOnly'] = 0;
 	$GLOBALS['TCA']['be_groups']['ctrl']['adminOnly'] = 0;
