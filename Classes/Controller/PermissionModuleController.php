@@ -174,7 +174,7 @@ class PermissionModuleController {
 		// Initializing document template object:
 		$this->doc = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Template\\DocumentTemplate');
 		$this->doc->backPath = $GLOBALS['BACK_PATH'];
-		$this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/perm.html');
+		$this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/module.html');
 		$this->doc->form = '<form action="' . $GLOBALS['BACK_PATH'] . 'tce_db.php" method="post" name="editform">';
 		$this->doc->loadJavascriptLib('js/jsfunc.updateform.js');
 		$this->doc->getPageRenderer()->loadPrototype();

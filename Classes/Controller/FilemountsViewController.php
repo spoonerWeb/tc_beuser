@@ -87,12 +87,17 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 				)
 			);
 			$this->content .= $this->doc->divider(5);
-
 			$this->content .= $moduleContent;
-			if ($GLOBALS['BE_USER']->mayMakeShortcut()) {
-				$this->content .= $this->doc->spacer(20).
-					$this->doc->section('',$this->doc->makeShortcutIcon('','',$this->MCONF['name']));
-			}
+
+			$docHeaderButtons = $this->getButtons();
+			$markers['CSH'] = $this->docHeaderButtons['csh'];
+			$markers['FUNC_MENU'] = BackendUtility::getFuncMenu($this->id, 'SET[mode]', $this->MOD_SETTINGS['mode'], $this->MOD_MENU['mode']);
+			$markers['CONTENT'] = $this->content;
+
+			// Build the <body> for the module
+			$this->content = $this->doc->moduleBody($this->pageinfo, $docHeaderButtons, $markers);
+
+			$this->content = $this->doc->render($GLOBALS['LANG']->getLL('permissions'), $this->content);
 		}
 	}
 
@@ -309,25 +314,27 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 	function init() {
 		parent::init();
 
-		$this->doc = GeneralUtility::makeInstance('bigDoc');
+		// Initializing document template object:
+		$this->doc = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Template\\DocumentTemplate');
 		$this->doc->backPath = $GLOBALS['BACK_PATH'];
-		$this->doc->docType  = 'xhtml_trans';
-//		$this->doc->form = '<form action="" method="post">';
+		$this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/module.html');
 		$this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';
+		$this->doc->getPageRenderer()->loadPrototype();
+		// Setting up the context sensitive menu:
+		$this->doc->getContextMenuCode();
+
 		// JavaScript
-		$this->doc->postCode='
-			<script language="javascript" type="text/javascript">
+		$this->doc->postCode .= $this->doc->wrapScriptTags('
 				script_ended = 1;
 				if (top.fsMod) top.fsMod.recentIds["web"] = 0;
-			</script>
-		';
+		');
 
-		$this->jsCode = '
+		$this->doc->postCode .= $this->doc->wrapScriptTags('
 			script_ended = 0;
 			function jumpToUrl(URL) {
 				document.location = URL;
 			}
-		';
+		');
 
 		$this->id = 0;
 		$this->search_field = GeneralUtility::_GP('search_field');
@@ -624,6 +631,26 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 		$formContent .= '<input type="hidden" name="_disableRTE" value="'.$this->tceforms->disableRTE.'" />';
 
 		return $formContent;
+	}
+
+	/**
+	 * Create the panel of buttons for submitting the form or otherwise perform operations.
+	 *
+	 * @return 	array		all available buttons as an assoc. array
+	 */
+	protected function getButtons() {
+		$buttons = array(
+			'csh' => '',
+			'view' => '',
+			'shortcut' => ''
+		);
+		// CSH
+		$buttons['csh'] = BackendUtility::cshItem('_MOD_web_info', '', $GLOBALS['BACK_PATH'], '', TRUE);
+		// Shortcut
+		if ($GLOBALS['BE_USER']->mayMakeShortcut()) {
+			$buttons['shortcut'] = $this->doc->makeShortcutIcon('id, edit_record, pointer, new_unique_uid, search_field, search_levels, showLimit', implode(',', array_keys($this->MOD_MENU)), $this->MCONF['name']);
+		}
+		return $buttons;
 	}
 }
 
