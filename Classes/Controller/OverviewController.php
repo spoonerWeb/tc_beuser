@@ -444,9 +444,8 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			'</a>' . chr(10);
 
 		//TODO: only for admins or authorized user
-		//$GLOBALS['BE_USER']->isAdmin()
 		// swith user / switch user back
-		if(!$userRecord[$hiddenField] && ($GLOBALS['BE_USER']->user['tc_beuser_switch_to'])) {
+		if(!$userRecord[$hiddenField] && ($GLOBALS['BE_USER']->user['tc_beuser_switch_to'] || $GLOBALS['BE_USER']->isAdmin())) {
 			$control .= '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'])).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" /></a>'.
 				'<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" /></a>'
 				.chr(10).chr(10);

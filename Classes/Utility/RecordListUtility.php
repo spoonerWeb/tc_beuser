@@ -794,10 +794,9 @@ class RecordListUtility extends DatabaseRecordList {
 		}
 
 		//TODO: only for admins or authorized user
-		//$GLOBALS['BE_USER']->isAdmin()
 		// swith user / switch user back
 		if ($table == 'be_users') {
-			if(!$row[$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled']] && ($GLOBALS['BE_USER']->user['tc_beuser_switch_to'])) {
+			if(!$row[$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled']] && ($GLOBALS['BE_USER']->user['tc_beuser_switch_to'] || $GLOBALS['BE_USER']->isAdmin())) {
 				$cells[] = '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$row['uid'])).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$row['username']).' [change-to mode]" alt="" /></a>'.
 					'<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$row['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$row['username']).' [switch-back mode]" alt="" /></a>'
 					.chr(10).chr(10);
