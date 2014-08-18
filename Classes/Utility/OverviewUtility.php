@@ -759,7 +759,7 @@ class OverviewUtility {
 
 		if($open) {
 			$content .='<br />';
-			$tceForms = GeneralUtility::makeInstance('FormEngine');
+			$tceForms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
 			$tceForms->backPath = $backPath;
 			$TCAconf = $GLOBALS['TCA']['be_groups']['columns']['groupMods'];
 			$table = 'be_groups';
