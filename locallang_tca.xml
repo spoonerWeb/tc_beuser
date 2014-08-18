@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<T3locallang>
+	<meta type="array">
+		<description>Labels for the Direct Mail tables</description>
+		<type>database</type>
+		<csh_table></csh_table>
+		<fileId>EXT:direct_mail/locallang_tca.xml</fileId>
+		<labelContext type="array">
+
+		</labelContext>
+	</meta>
+	<data type="array">
+		<languageKey index="default" type="array">
+			<label index="be_users.tc_beuser_switch_to">Enable switch-to in tc_beuser</label>
+		</languageKey>
+	</data>
+</T3locallang>
