@@ -15,12 +15,12 @@ $EM_CONF[$_EXTKEY] = array(
 	'description' => 'A Module for administer BE users more comfortably',
 	'category' => 'module',
 	'shy' => 0,
-	'version' => '1.2.0',
+	'version' => '2.0.0',
 	'dependencies' => '',
 	'conflicts' => '',
 	'priority' => '',
 	'loadOrder' => '',
-	'module' => 'mod1,mod2,mod3,mod4,mod5',
+	'module' => 'mod1,mod2,mod3,mod4,mod5,mod6',
 	'state' => 'stable',
 	'uploadfolder' => 0,
 	'createDirs' => '',
@@ -34,7 +34,7 @@ $EM_CONF[$_EXTKEY] = array(
 	'CGLcompliance_note' => '',
 	'constraints' => array(
 		'depends' => array(
-			'typo3' => '4.6.0-6.2.99',
+			'typo3' => '6.2.0-6.2.99',
 		),
 		'conflicts' => array(
 		),
