@@ -77,7 +77,6 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 
 			$this->content  = '';
 
-			$this->content .= $this->doc->startPage($title);
 			$this->content .= $this->doc->spacer(5);
 			$this->content .= $this->doc->section(
 				'',

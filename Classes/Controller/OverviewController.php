@@ -92,7 +92,6 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 					<script src="' . ExtensionManagementUtility::extRelPath('tc_beuser') . 'mod4/ajax.js" type="text/javascript"></script>';
 
 			$this->content  = '';
-			$this->content .= $this->doc->startPage($title);
 			$this->content .= $this->doc->spacer(5);
 			$this->content .= $this->doc->section(
 				'',
