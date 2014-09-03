@@ -40,13 +40,15 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 
 	var $content;
+
+	/** @var $doc \TYPO3\CMS\Backend\Template\DocumentTemplate */
 	var $doc;
 	var $jsCode;
 	var $MOD_MENU = array();
 	var $MOD_SETTINGS = array();
 	var $pageinfo;
 
-	/** @var  \TYPO3\CMS\Backend\Form\FormEngine */
+	/** @var $tceforms \TYPO3\CMS\Backend\Form\FormEngine */
 	var $tceforms;
 
 	/**
@@ -83,7 +85,6 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			$this->doc->JScode .= $this->doc->wrapScriptTags($this->jsCode);
 
 			$this->content  = '';
-			$this->content .= $this->doc->startPage($title);
 			$this->content .= $this->doc->spacer(5);
 			$this->content .= $this->doc->section(
 				'',
@@ -331,6 +332,7 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 		TcBeuserUtility::switchUser(GeneralUtility::_GP('SwitchUser'));
 
 		// Initializing document template object:
+		/** @var $doc \TYPO3\CMS\Backend\Template\DocumentTemplate */
 		$this->doc = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Template\\DocumentTemplate');
 		$this->doc->backPath = $GLOBALS['BACK_PATH'];
 		$this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/module.html');

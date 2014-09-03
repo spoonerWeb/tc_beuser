@@ -75,7 +75,6 @@ class GroupAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 			$this->doc->JScode .= $this->doc->wrapScriptTags($this->jsCode);
 
 			$this->content  = '';
-			$this->content .= $this->doc->startPage($title);
 			$this->content .= $this->doc->spacer(5);
 			$this->content .= $this->doc->section(
 				'',
