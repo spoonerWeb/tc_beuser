@@ -35,7 +35,7 @@ EXT: tc\_beuser
 
 Extension Key:  **tc\_beuser**
 
-Copyright 2006, Olivier Dobberkau, <olivier.dobberkau@dkd.>
+Copyright 2014, dkd Internet Service GmbH <typo3@dkd.de>
 
 This document is published under the Open Content License
 

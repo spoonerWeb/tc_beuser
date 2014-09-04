@@ -43,4 +43,5 @@ Benutzerhandbuch
    BenutzerBersicht/Index
    BenutzerFunktionen/Index
    GruppenBersicht/Index
+   UserTSundGroupTS/Index
 

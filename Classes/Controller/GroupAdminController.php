@@ -478,6 +478,21 @@ class GroupAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 	function getGroupEdit() {
 		$content = '';
 
+		// the default field to show
+		$showColumn = 'hidden,title,db_mountpoints,file_mountpoints,subgroup,members,description,TSconfig';
+
+		// get hideColumnGroup from TS and remove it from the showColumn
+		if ($GLOBALS['BE_USER']->userTS['tc_beuser.']['hideColumnGroup']) {
+			$removeColumnArray = explode(',', $GLOBALS['BE_USER']->userTS['tc_beuser.']['hideColumnGroup']);
+			$defaultColumnArray = explode(',', $showColumn);
+
+			foreach ($removeColumnArray as $col) {
+				$defaultColumnArray = GeneralUtility::removeArrayEntryByValue($defaultColumnArray, $col);
+			}
+
+			$showColumn = implode(',', $defaultColumnArray);
+		}
+
 		/** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
 		$this->tceforms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
 		$this->tceforms->backPath = $this->doc->backPath;
@@ -494,7 +509,7 @@ class GroupAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 		// Show only these columns
 		$this->editForm = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\EditFormUtility');
 		$this->editForm->tceforms = &$this->tceforms;
-		$this->editForm->columnsOnly = 'hidden,title,db_mountpoints,file_mountpoints,subgroup,members,description,TSconfig';
+		$this->editForm->columnsOnly = $showColumn;
 		$this->editForm->editconf = $this->editconf;
 		$this->editForm->error = $this->error;
 

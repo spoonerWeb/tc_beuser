@@ -571,6 +571,21 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 	function getUserEdit() {
 		$content = '';
 
+		// the default field to show
+		$showColumn = 'disable,username,password,usergroup,realName,email,lang';
+
+		// get hideColumnGroup from TS and remove it from the showColumn
+		if ($GLOBALS['BE_USER']->userTS['tc_beuser.']['hideColumnGroup']) {
+			$removeColumnArray = explode(',', $GLOBALS['BE_USER']->userTS['tc_beuser.']['hideColumnUser']);
+			$defaultColumnArray = explode(',', $showColumn);
+
+			foreach ($removeColumnArray as $col) {
+				$defaultColumnArray = GeneralUtility::removeArrayEntryByValue($defaultColumnArray, $col);
+			}
+
+			$showColumn = implode(',', $defaultColumnArray);
+		}
+
 		/** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
 		$this->tceforms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
 		$this->tceforms->backPath = $this->doc->backPath;
@@ -588,7 +603,7 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
 
 		$this->editForm = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\EditFormUtility');
 		$this->editForm->tceforms = &$this->tceforms;
-		$this->editForm->columnsOnly = 'disable,username,password,usergroup,realName,email,lang';
+		$this->editForm->columnsOnly = $showColumn;
 		$this->editForm->editconf = $this->editconf;
 		$this->editForm->feID = $this->feID;
 		$this->editForm->error = $this->error;

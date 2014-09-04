@@ -28,6 +28,4 @@ und mit dem „Minuszeichen“ wieder schließen.
 
 |img-19|
 
-|img-20| EXT: tc\_beuser - 15
-
 
