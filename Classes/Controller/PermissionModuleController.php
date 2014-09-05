@@ -14,7 +14,6 @@ namespace dkd\TcBeuser\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
-use dkd\TcBeuser\Utility\TcBeuserUtility;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -149,6 +148,19 @@ class PermissionModuleController {
 	public $lastEdited;
 
 	/**
+	 * consist the webmount ID
+	 *
+	 * @var array
+	 */
+	protected $webMountArray;
+
+	/**
+	 * array consisting pageinfo from the webmount
+	 * @var array
+	 */
+	protected $pageinfoArray;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -211,23 +223,30 @@ class PermissionModuleController {
 	 * @return void
 	 */
 	public function main() {
-		// Access check...
+		// get Webmount
+		$this->webMountArray = $GLOBALS['BE_USER']->returnWebmounts();
 
-		// faking admin access
-		if($GLOBALS['BE_USER']->user['admin'] != 1) {
-			//make fake Admin
-			TcBeuserUtility::fakeAdmin();
-			$fakeAdmin = 1;
+		foreach ($this->webMountArray as $webMount) {
+			$this->pageinfoArray[$webMount] = BackendUtility::readPageAccess($webMount, $this->perms_clause);
 		}
 
-		// The page will show only if there is a valid page and if this page may be viewed by the user
-		$this->pageinfo = BackendUtility::readPageAccess($this->id, $this->perms_clause);
+		if ($this->id) {
+			// there's an ID, means we are editing a page
+			// The page will show only if there is a valid page and if this page may be viewed by the user
+			$this->pageinfo = BackendUtility::readPageAccess($this->id, $this->perms_clause);
+		} else {
+			// there's no ID, fill dummpy pageinfo from the pageinfoArray
+			if ($GLOBALS['BE_USER']->isAdmin()) {
+				$this->pageinfo = $this->pageinfoArray[0] = array('title' => '[root-level]', 'uid' => 0, 'pid' => 0);
+			} else {
+				// get the first webmount
+				$this->pageinfo = $this->pageinfoArray[$this->webMountArray[0]];
+			}
+		}
+
 		$access = is_array($this->pageinfo);
 		// Checking access:
-		if ($this->id && $access || $GLOBALS['BE_USER']->isAdmin() && !$this->id) {
-			if ($GLOBALS['BE_USER']->isAdmin() && !$this->id) {
-				$this->pageinfo = array('title' => '[root-level]', 'uid' => 0, 'pid' => 0);
-			}
+		if ($access || $GLOBALS['BE_USER']->isAdmin()) {
 			// This decides if the editform can and will be drawn:
 			$this->editingAllowed = $this->pageinfo['perms_userid'] == $GLOBALS['BE_USER']->user['uid'] || $GLOBALS['BE_USER']->isAdmin();
 			$this->edit = $this->edit && $this->editingAllowed;
@@ -264,11 +283,6 @@ class PermissionModuleController {
 		} else {
 			// If no access or if ID == zero
 			$this->content = $this->doc->header($GLOBALS['LANG']->getLL('permissions'));
-		}
-
-		// removing fake admin
-		if($fakeAdmin) {
-			TcBeuserUtility::removeFakeAdmin();
 		}
 
 		// Renders the module page
@@ -456,45 +470,10 @@ class PermissionModuleController {
 	 * @return void
 	 */
 	public function notEdit() {
-		// Get usernames and groupnames: The arrays we get in return contains only 1) users which are members of the groups of the current user, 2) groups that the current user is member of
-		$beGroupKeys = $GLOBALS['BE_USER']->userGroupsUID;
-		$beUserArray = BackendUtility::getUserNames();
-		if (!$GLOBALS['BE_USER']->isAdmin()) {
-			$beUserArray = BackendUtility::blindUserNames($beUserArray, $beGroupKeys, 0);
-		}
-		$beGroupArray = BackendUtility::getGroupNames();
-		if (!$GLOBALS['BE_USER']->isAdmin()) {
-			$beGroupArray = BackendUtility::blindGroupNames($beGroupArray, $beGroupKeys, 0);
-		}
-
-		// Length of strings:
-		$tLen = 20;
-
 		// Selector for depth:
 		$code = $GLOBALS['LANG']->getLL('Depth') . ': ';
 		$code .= BackendUtility::getFuncMenu($this->id, 'SET[depth]', $this->MOD_SETTINGS['depth'], $this->MOD_MENU['depth']);
 		$this->content .= $this->doc->section('', $code);
-
-		/** @var \TYPO3\CMS\Backend\Tree\View\PageTreeView */
-		$tree = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Tree\\View\\PageTreeView');
-		$tree->init('AND ' . $this->perms_clause);
-		$tree->addField('perms_user', 1);
-		$tree->addField('perms_group', 1);
-		$tree->addField('perms_everybody', 1);
-		$tree->addField('perms_userid', 1);
-		$tree->addField('perms_groupid', 1);
-		$tree->addField('hidden');
-		$tree->addField('fe_group');
-		$tree->addField('starttime');
-		$tree->addField('endtime');
-		$tree->addField('editlock');
-
-		// Creating top icon; the current page
-		$HTML = IconUtility::getSpriteIconForRecord('pages', $this->pageinfo);
-		$tree->tree[] = array('row' => $this->pageinfo, 'HTML' => $HTML);
-
-		// Create the tree from $this->id:
-		$tree->getTree($this->id, $this->MOD_SETTINGS['depth'], '');
 
 		// Make header of table:
 		$code = '
@@ -509,62 +488,9 @@ class PermissionModuleController {
 			</thead>
 		';
 
-		// Traverse tree:
-		foreach ($tree->tree as $data) {
-			$cells = array();
-			$pageId = $data['row']['uid'];
-
-			// Background colors:
-			$bgCol = $this->lastEdited == $pageId ? ' class="bgColor-20"' : '';
-			$lE_bgCol = $bgCol;
-
-			// User/Group names:
-			$userName = $beUserArray[$data['row']['perms_userid']] ?
-					$beUserArray[$data['row']['perms_userid']]['username'] :
-					($data['row']['perms_userid'] ? $data['row']['perms_userid'] : '');
-
-			if ($data['row']['perms_userid'] && !$beUserArray[$data['row']['perms_userid']]) {
-				$userName = PermissionAjaxController::renderOwnername($pageId, $data['row']['perms_userid'], htmlspecialchars(GeneralUtility::fixed_lgd_cs($userName, 20)), FALSE);
-			} else {
-				$userName = PermissionAjaxController::renderOwnername($pageId, $data['row']['perms_userid'], htmlspecialchars(GeneralUtility::fixed_lgd_cs($userName, 20)));
-			}
-
-			$groupName = $beGroupArray[$data['row']['perms_groupid']] ?
-					$beGroupArray[$data['row']['perms_groupid']]['title'] :
-					($data['row']['perms_groupid'] ? $data['row']['perms_groupid'] : '');
-
-			if ($data['row']['perms_groupid'] && !$beGroupArray[$data['row']['perms_groupid']]) {
-				$groupName = PermissionAjaxController::renderGroupname($pageId, $data['row']['perms_groupid'], htmlspecialchars(GeneralUtility::fixed_lgd_cs($groupName, 20)), FALSE);
-			} else {
-				$groupName = PermissionAjaxController::renderGroupname($pageId, $data['row']['perms_groupid'], htmlspecialchars(GeneralUtility::fixed_lgd_cs($groupName, 20)));
-			}
-
-			// Seeing if editing of permissions are allowed for that page:
-			$editPermsAllowed = $data['row']['perms_userid'] == $GLOBALS['BE_USER']->user['uid'] || $GLOBALS['BE_USER']->isAdmin();
-
-			// First column:
-			$cellAttrib = $data['row']['_CSSCLASS'] ? ' class="' . $data['row']['_CSSCLASS'] . '"' : '';
-			$cells[] = '<td align="left" nowrap="nowrap"' . ($cellAttrib ? $cellAttrib : $bgCol) . '>' .
-					$data['HTML'] . htmlspecialchars(GeneralUtility::fixed_lgd_cs($data['row']['title'], $tLen)) . '</td>';
-
-			// "Edit permissions" -icon
-			if ($editPermsAllowed && $pageId) {
-				$aHref = BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM6') . '&mode=' . $this->MOD_SETTINGS['mode'] . '&depth=' . $this->MOD_SETTINGS['depth'] . '&id=' . ($data['row']['_ORIG_uid'] ? $data['row']['_ORIG_uid'] : $pageId) . '&return_id=' . $this->id . '&edit=1';
-				$cells[] = '<td' . $bgCol . '><a href="' . htmlspecialchars($aHref) . '" title="' . $GLOBALS['LANG']->getLL('ch_permissions', TRUE) . '">' .
-						IconUtility::getSpriteIcon('actions-document-open') . '</a></td>';
-			} else {
-				$cells[] = '<td' . $bgCol . '></td>';
-			}
-
-			$cells[] = '
-				<td' . $bgCol . ' nowrap="nowrap">' . ($pageId ? PermissionAjaxController::renderPermissions($data['row']['perms_user'], $pageId, 'user') . ' ' . $userName : '') . '</td>
-				<td' . $bgCol . ' nowrap="nowrap">' . ($pageId ? PermissionAjaxController::renderPermissions($data['row']['perms_group'], $pageId, 'group') . ' ' . $groupName : '') . '</td>
-				<td' . $bgCol . ' nowrap="nowrap">' . ($pageId ? ' ' . PermissionAjaxController::renderPermissions($data['row']['perms_everybody'], $pageId, 'everybody') : '') . '</td>
-				<td' . $bgCol . ' nowrap="nowrap">' . ($data['row']['editlock'] ? '<span id="el_' . $pageId . '" class="editlock"><a class="editlock" onclick="WebPermissions.toggleEditLock(\'' . $pageId . '\', \'1\');" title="' . $GLOBALS['LANG']->getLL('EditLock_descr', TRUE) . '">' . IconUtility::getSpriteIcon('status-warning-lock') . '</a></span>' : ($pageId === 0 ? '' : '<span id="el_' . $pageId . '" class="editlock"><a class="editlock" onclick="WebPermissions.toggleEditLock(\'' . $pageId . '\', \'0\');" title="Enable the &raquo;Admin-only&laquo; edit lock for this page">[+]</a></span>')) . '</td>
-			';
-
-			// Compile table row:
-			$code .= '<tr>' . implode('', $cells) . '</tr>';
+// TODO: getTree
+		foreach ($this->webMountArray as $webMount) {
+			$code .= $this->getTree($webMount, $this->pageinfoArray[$webMount]);
 		}
 
 		// Wrap rows in table tags:
@@ -594,6 +520,110 @@ class PermissionModuleController {
 
 		// Adding section with legend code:
 		$this->content .= $this->doc->section($GLOBALS['LANG']->getLL('Legend') . ':', $code, TRUE, TRUE);
+	}
+
+	/**
+	 * @param int $id
+	 * @param $pageinfo
+	 * @return string
+	 */
+	protected function getTree($id = 0, $pageinfo=array()) {
+		// Length of strings:
+		$tLen = 20;
+
+		// Get usernames and groupnames: The arrays we get in return contains only 1) users which are members of the groups of the current user, 2) groups that the current user is member of
+		$beGroupKeys = $GLOBALS['BE_USER']->userGroupsUID;
+		$beUserArray = BackendUtility::getUserNames();
+		if (!$GLOBALS['BE_USER']->isAdmin()) {
+			$beUserArray = BackendUtility::blindUserNames($beUserArray, $beGroupKeys, 0);
+		}
+		$beGroupArray = BackendUtility::getGroupNames();
+		if (!$GLOBALS['BE_USER']->isAdmin()) {
+			$beGroupArray = BackendUtility::blindGroupNames($beGroupArray, $beGroupKeys, 0);
+		}
+
+		// TODO: create multiple tree?
+		/** @var $tree \TYPO3\CMS\Backend\Tree\View\PageTreeView */
+		$tree = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Tree\\View\\PageTreeView');
+		$tree->init('AND ' . $this->perms_clause);
+		$tree->addField('perms_user', 1);
+		$tree->addField('perms_group', 1);
+		$tree->addField('perms_everybody', 1);
+		$tree->addField('perms_userid', 1);
+		$tree->addField('perms_groupid', 1);
+		$tree->addField('hidden');
+		$tree->addField('fe_group');
+		$tree->addField('starttime');
+		$tree->addField('endtime');
+		$tree->addField('editlock');
+
+		// Creating top icon; the current page
+		$HTML = IconUtility::getSpriteIconForRecord('pages', $pageinfo);
+		$tree->tree[] = array('row' => $pageinfo, 'HTML' => $HTML);
+// TODO: get the ID?
+		// Create the tree from $this->id:
+		$tree->getTree($id, $this->MOD_SETTINGS['depth'], '');
+
+		$treeCode = '';
+		// Traverse tree:
+		foreach ($tree->tree as $data) {
+			$cells = array();
+			$pageId = $data['row']['uid'];
+
+			// Background colors:
+			$bgCol = $this->lastEdited == $pageId ? ' class="bgColor-20"' : '';
+			$lE_bgCol = $bgCol;
+
+			// User/Group names:
+			$userName = $beUserArray[$data['row']['perms_userid']] ?
+				$beUserArray[$data['row']['perms_userid']]['username'] :
+				($data['row']['perms_userid'] ? $data['row']['perms_userid'] : '');
+
+			if ($data['row']['perms_userid'] && !$beUserArray[$data['row']['perms_userid']]) {
+				$userName = PermissionAjaxController::renderOwnername($pageId, $data['row']['perms_userid'], htmlspecialchars(GeneralUtility::fixed_lgd_cs($userName, 20)), FALSE);
+			} else {
+				$userName = PermissionAjaxController::renderOwnername($pageId, $data['row']['perms_userid'], htmlspecialchars(GeneralUtility::fixed_lgd_cs($userName, 20)));
+			}
+
+			$groupName = $beGroupArray[$data['row']['perms_groupid']] ?
+				$beGroupArray[$data['row']['perms_groupid']]['title'] :
+				($data['row']['perms_groupid'] ? $data['row']['perms_groupid'] : '');
+
+			if ($data['row']['perms_groupid'] && !$beGroupArray[$data['row']['perms_groupid']]) {
+				$groupName = PermissionAjaxController::renderGroupname($pageId, $data['row']['perms_groupid'], htmlspecialchars(GeneralUtility::fixed_lgd_cs($groupName, 20)), FALSE);
+			} else {
+				$groupName = PermissionAjaxController::renderGroupname($pageId, $data['row']['perms_groupid'], htmlspecialchars(GeneralUtility::fixed_lgd_cs($groupName, 20)));
+			}
+
+			// Seeing if editing of permissions are allowed for that page:
+			$editPermsAllowed = $data['row']['perms_userid'] == $GLOBALS['BE_USER']->user['uid'] || $GLOBALS['BE_USER']->isAdmin();
+
+			// First column:
+			$cellAttrib = $data['row']['_CSSCLASS'] ? ' class="' . $data['row']['_CSSCLASS'] . '"' : '';
+			$cells[] = '<td align="left" nowrap="nowrap"' . ($cellAttrib ? $cellAttrib : $bgCol) . '>' .
+				$data['HTML'] . htmlspecialchars(GeneralUtility::fixed_lgd_cs($data['row']['title'], $tLen)) . '</td>';
+
+			// "Edit permissions" -icon
+			if ($editPermsAllowed && $pageId) {
+				$aHref = BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM6') . '&mode=' . $this->MOD_SETTINGS['mode'] . '&depth=' . $this->MOD_SETTINGS['depth'] . '&id=' . ($data['row']['_ORIG_uid'] ? $data['row']['_ORIG_uid'] : $pageId) . '&return_id=' . $id . '&edit=1';
+				$cells[] = '<td' . $bgCol . '><a href="' . htmlspecialchars($aHref) . '" title="' . $GLOBALS['LANG']->getLL('ch_permissions', TRUE) . '">' .
+					IconUtility::getSpriteIcon('actions-document-open') . '</a></td>';
+			} else {
+				$cells[] = '<td' . $bgCol . '></td>';
+			}
+
+			$cells[] = '
+				<td' . $bgCol . ' nowrap="nowrap">' . ($pageId ? PermissionAjaxController::renderPermissions($data['row']['perms_user'], $pageId, 'user') . ' ' . $userName : '') . '</td>
+				<td' . $bgCol . ' nowrap="nowrap">' . ($pageId ? PermissionAjaxController::renderPermissions($data['row']['perms_group'], $pageId, 'group') . ' ' . $groupName : '') . '</td>
+				<td' . $bgCol . ' nowrap="nowrap">' . ($pageId ? ' ' . PermissionAjaxController::renderPermissions($data['row']['perms_everybody'], $pageId, 'everybody') : '') . '</td>
+				<td' . $bgCol . ' nowrap="nowrap">' . ($data['row']['editlock'] ? '<span id="el_' . $pageId . '" class="editlock"><a class="editlock" onclick="WebPermissions.toggleEditLock(\'' . $pageId . '\', \'1\');" title="' . $GLOBALS['LANG']->getLL('EditLock_descr', TRUE) . '">' . IconUtility::getSpriteIcon('status-warning-lock') . '</a></span>' : ($pageId === 0 ? '' : '<span id="el_' . $pageId . '" class="editlock"><a class="editlock" onclick="WebPermissions.toggleEditLock(\'' . $pageId . '\', \'0\');" title="Enable the &raquo;Admin-only&laquo; edit lock for this page">[+]</a></span>')) . '</td>
+			';
+
+			// Compile table row:
+			$treeCode .= '<tr>' . implode('', $cells) . '</tr>';
+		}
+
+		return $treeCode;
 	}
 
 	/*****************************
