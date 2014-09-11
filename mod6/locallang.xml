@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<T3locallang>
+	<meta type="array">
+		<type>module</type>
+		<description>Language labels for module &quot;txtcbeuserM1_txtcbeuserM5&quot;</description>
+	</meta>
+	<data type="array">
+		<languageKey index="default" type="array">
+			<label index="noPageSelected">Please choose a page</label>
+		</languageKey>
+		<languageKey index="de" type="array">
+			<label index="noPageSelected">Bitte eine Seite auswählen</label>
+		</languageKey>
+	</data>
+</T3locallang>
