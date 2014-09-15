@@ -434,9 +434,9 @@ class PermissionModuleController {
 			<input type="submit" name="submit" value="' . $GLOBALS['LANG']->getLL('Save', TRUE) . '" />
 			<input type="submit" value="' . $GLOBALS['LANG']->getLL('Abort', TRUE) . '" onclick="' .
 				htmlspecialchars(('jumpToUrl(' . GeneralUtility::quoteJSvalue(
-						(BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM6') . '&id=' . $this->id), TRUE) .
+						(BackendUtility::getModuleUrl('web_txtcbeuserM6') . '&id=' . $this->id), TRUE) .
 				'); return false;')) . '" />
-			<input type="hidden" name="redirect" value="' . htmlspecialchars((BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM6') . '&mode=' . $this->MOD_SETTINGS['mode'] . '&depth=' . $this->MOD_SETTINGS['depth'] . '&id=' . (int)$this->return_id . '&lastEdited=' . $this->id)) . '" />
+			<input type="hidden" name="redirect" value="' . htmlspecialchars((BackendUtility::getModuleUrl('web_txtcbeuserM6') . '&mode=' . $this->MOD_SETTINGS['mode'] . '&depth=' . $this->MOD_SETTINGS['depth'] . '&id=' . (int)$this->return_id . '&lastEdited=' . $this->id)) . '" />
 			' . \TYPO3\CMS\Backend\Form\FormEngine::getHiddenTokenField('tceAction');
 
 		// Adding section with the permission setting matrix:
