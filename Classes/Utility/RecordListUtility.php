@@ -361,35 +361,29 @@ class RecordListUtility extends DatabaseRecordList {
 				$cc = 0;
 				foreach($accRows as $row) {
 
-						// Forward/Backwards navigation links:
-					list($flag,$code) = $this->fwd_rwd_nav($table);
-					$iOut .= $code;
+					// If render item, increment counter and call function
+					$cc++;
+					$iOut .= $this->renderListRow($table,$row,$cc,$titleCol,$thumbsCol);
 
-						// If render item, increment counter and call function
-					if ($flag) {
-						$cc++;
-						$iOut .= $this->renderListRow($table,$row,$cc,$titleCol,$thumbsCol);
+						// If localization view is enabled it means that the selected records are either default or All language and here we will not select translations which point to the main record:
+					if ($this->localizationView && $l10nEnabled) {
 
-							// If localization view is enabled it means that the selected records are either default or All language and here we will not select translations which point to the main record:
-						if ($this->localizationView && $l10nEnabled) {
+							// Look for translations of this record:
+						$translations = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+							$selFieldList,
+							$table,
+							'pid='.$row['pid'].
+								' AND '.$GLOBALS['TCA'][$table]['ctrl']['languageField'].'>0'.
+								' AND '.$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'].'='.intval($row['uid']).
+								BackendUtility::deleteClause($table).
+								BackendUtility::versioningPlaceholderClause($table)
+						);
 
-								// Look for translations of this record:
-							$translations = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-								$selFieldList,
-								$table,
-								'pid='.$row['pid'].
-									' AND '.$GLOBALS['TCA'][$table]['ctrl']['languageField'].'>0'.
-									' AND '.$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'].'='.intval($row['uid']).
-									BackendUtility::deleteClause($table).
-									BackendUtility::versioningPlaceholderClause($table)
-							);
-
-								// For each available translation, render the record:
-							if (is_array($translations)) {
-								foreach($translations as $lRow) {
-									if ($GLOBALS['BE_USER']->checkLanguageAccess($lRow[$GLOBALS['TCA'][$table]['ctrl']['languageField']])) {
-										$iOut.=$this->renderListRow($table,$lRow,$cc,$titleCol,$thumbsCol,18);
-									}
+							// For each available translation, render the record:
+						if (is_array($translations)) {
+							foreach($translations as $lRow) {
+								if ($GLOBALS['BE_USER']->checkLanguageAccess($lRow[$GLOBALS['TCA'][$table]['ctrl']['languageField']])) {
+									$iOut.=$this->renderListRow($table,$lRow,$cc,$titleCol,$thumbsCol,18);
 								}
 							}
 						}
@@ -404,7 +398,7 @@ class RecordListUtility extends DatabaseRecordList {
 			}
 
 				// The list of records is added after the header:
-			$out.=$iOut;
+			$out.= $this->renderListNavigation('top') . $iOut . $this->renderListNavigation('bottom');
 
 				// ... and it is all wrapped in a table:
 			$out='
@@ -831,33 +825,6 @@ class RecordListUtility extends DatabaseRecordList {
 		return BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']) . $params . $redirect;
 	}
 
-	/**
-	 * Creates the URL to this script, including all relevant GPvars
-	 * Fixed GPvars are id, table, imagemode, returlUrl, search_field, search_levels and showLimit
-	 * The GPvars "sortField" and "sortRev" are also included UNLESS they are found in the $exclList variable.
-	 * @param string $altId Alternative id value. Enter blank string for the current id ($this->id)
-	 * @param int $table Tablename to display. Enter "-1" for the current table.
-	 * @param string $exclList Commalist of fields NOT to include ("sortField" or "sortRev")
-	 * @return string URL
-	 */
-	function listURL($altId='',$table=-1,$exclList='') {
-		if ($this->table != 'fe_users') {
-			$param = '?id='.(strcmp($altId,'')?$altId:$this->id).
-					'&table='.rawurlencode($table == -1 ? $this->table : $table);
-		} else {
-			$param = '?';
-		}
-		return $this->script.
-			$param.
-			($this->thumbs?'&imagemode='.$this->thumbs:'').
-			($this->returnUrl?'&returnUrl='.rawurlencode($this->returnUrl):'').
-			($this->searchString?'&search_field='.rawurlencode($this->searchString):'').
-			($this->searchLevels?'&search_levels='.rawurlencode($this->searchLevels):'').
-			($this->showLimit?'&showLimit='.rawurlencode($this->showLimit):'').
-			((!$exclList || !GeneralUtility::inList($exclList,'sortField')) && $this->sortField?'&sortField='.rawurlencode($this->sortField):'').
-			((!$exclList || !GeneralUtility::inList($exclList,'sortRev')) && $this->sortRev?'&sortRev='.rawurlencode($this->sortRev):'')
-			;
-	}
 }
 
 
