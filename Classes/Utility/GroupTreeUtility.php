@@ -1,5 +1,6 @@
 <?php
 namespace dkd\TcBeuser\Utility;
+
 /***************************************************************
 *  Copyright notice
 *
@@ -33,59 +34,60 @@ use TYPO3\CMS\Backend\Tree\View\AbstractTreeView;
  *
  * @author Ingo Renner <ingo.renner@dkd.de>
  */
-class GroupTreeUtility extends AbstractTreeView {
-	var $fieldArray = array('uid', 'title');
-	var $defaultList = 'uid,title';
+class GroupTreeUtility extends AbstractTreeView
+{
+    public $fieldArray = array('uid', 'title');
+    public $defaultList = 'uid,title';
 
-	/**
-	 * Init function
-	 * REMEMBER to feed a $clause which will filter out non-readable pages!
-	 *
-	 * @param	string		$clause: Part of where query which will filter out non-readable pages.
-	 * @return	void
-	 */
-	function init($clause='') {
-		parent::init(' AND deleted=0 '.$clause, 'title');
+    /**
+     * Init function
+     * REMEMBER to feed a $clause which will filter out non-readable pages!
+     *
+     * @param	string		$clause: Part of where query which will filter out non-readable pages.
+     * @return	void
+     */
+    public function init($clause='')
+    {
+        parent::init(' AND deleted=0 '.$clause, 'title');
 
-		$this->table    = 'be_groups';
-		$this->treeName = 'groups';
-	}
+        $this->table    = 'be_groups';
+        $this->treeName = 'groups';
+    }
 
-	/**
-	 * recursivly builds a data array from a root $id which is than used to
-	 * build a tree from it.
-	 *
-	 * @param	integer	$id: the root id from where to start
-	 * @return	array	hierarical array with tree data
-	 */
-	function buildTree($id) {
-		$tree = array();
+    /**
+     * recursivly builds a data array from a root $id which is than used to
+     * build a tree from it.
+     *
+     * @param	integer	$id: the root id from where to start
+     * @return	array	hierarical array with tree data
+     */
+    public function buildTree($id)
+    {
+        $tree = array();
 
-		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-			'uid, title, subgroup',
-			'be_groups',
-			'deleted = 0 AND uid = '.$id
-		);
+        $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            'uid, title, subgroup',
+            'be_groups',
+            'deleted = 0 AND uid = '.$id
+        );
 
-		$row         = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
-		$tree[$id]   = $row;
+        $row         = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+        $tree[$id]   = $row;
 
-		if($row['subgroup']) {
-			$subGroups = GeneralUtility::intExplode(',', $row['subgroup']);
-			foreach($subGroups as $newGroupId) {
-				$row[$this->subLevelID][$newGroupId] = $this->buildTree($newGroupId);
-			}
-			return $tree[$id] = $row;
-		} else {
-			return $row;
-		}
-	}
+        if ($row['subgroup']) {
+            $subGroups = GeneralUtility::intExplode(',', $row['subgroup']);
+            foreach ($subGroups as $newGroupId) {
+                $row[$this->subLevelID][$newGroupId] = $this->buildTree($newGroupId);
+            }
+            return $tree[$id] = $row;
+        } else {
+            return $row;
+        }
+    }
 }
 
 
 
 if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_grouptree.php']) {
-	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_grouptree.php']);
+    include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_grouptree.php']);
 }
-
-?>

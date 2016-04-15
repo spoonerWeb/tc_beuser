@@ -27,34 +27,30 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 $GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
 $GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
 
-$GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits if the users has no permission for entry.
+$GLOBALS['BE_USER']->modAccess($MCONF, 1);    // This checks permissions and exits if the users has no permission for entry.
 // DEFAULT initialization of a module [END]
 
 
-if(GeneralUtility::_POST('ajaxCall')) {
-	$method   = GeneralUtility::_POST('method');
-	$groupId  = GeneralUtility::_POST('groupId');
-	$open     = GeneralUtility::_POST('open');
-	$backPath = GeneralUtility::_POST('backPath');
+if (GeneralUtility::_POST('ajaxCall')) {
+    $method   = GeneralUtility::_POST('method');
+    $groupId  = GeneralUtility::_POST('groupId');
+    $open     = GeneralUtility::_POST('open');
+    $backPath = GeneralUtility::_POST('backPath');
 
-	$userView = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\OverviewUtility');
-	$content  = $userView->handleMethod( $method, $groupId, $open, $backPath );
+    $userView = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\OverviewUtility');
+    $content  = $userView->handleMethod($method, $groupId, $open, $backPath);
 
-	echo $content;
+    echo $content;
 } else {
-	// Make instance:
-	$SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Controller\\OverviewController');
-	$SOBE->init();
+    // Make instance:
+    $SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Controller\\OverviewController');
+    $SOBE->init();
 
-	// Include files?
-	foreach($SOBE->include_once as $INC_FILE) {
-		include_once($INC_FILE);
-	}
+    // Include files?
+    foreach ($SOBE->include_once as $INC_FILE) {
+        include_once($INC_FILE);
+    }
 
-	$SOBE->main();
-	$SOBE->printContent();
+    $SOBE->main();
+    $SOBE->printContent();
 }
-
-
-
-?>

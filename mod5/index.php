@@ -27,7 +27,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 $GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod5/locallang.xml');
 $GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_alt_doc.xml');
 
-$GLOBALS['BE_USER']->modAccess($MCONF,1);	// This checks permissions and exits if the users has no permission for entry.
+$GLOBALS['BE_USER']->modAccess($MCONF, 1);    // This checks permissions and exits if the users has no permission for entry.
 // DEFAULT initialization of a module [END]
 
 // Make instance:
@@ -35,17 +35,15 @@ $SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Controller\\FilemountsViewC
 $SOBE->init();
 
 // Include files?
-foreach($SOBE->include_once as $INC_FILE) {
-	include_once($INC_FILE);
+foreach ($SOBE->include_once as $INC_FILE) {
+    include_once($INC_FILE);
 }
 
 $SOBE->preInit();
 if ($SOBE->doProcessData()) {
-	// Checks, if a save button has been clicked (or the doSave variable is sent)
-	$SOBE->processData();
+    // Checks, if a save button has been clicked (or the doSave variable is sent)
+    $SOBE->processData();
 }
 
 $SOBE->main();
 $SOBE->printContent();
-
-?>

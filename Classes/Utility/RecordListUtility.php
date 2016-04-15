@@ -37,371 +37,376 @@ use \TYPO3\CMS\Recordlist\RecordList\DatabaseRecordList;
  *
  * @author Ingo Renner <ingo.renner@dkd.de>
  */
-class RecordListUtility extends DatabaseRecordList {
+class RecordListUtility extends DatabaseRecordList
+{
 
-	var $showFields;
-	var $userMainGroupOnly = false;
-	var $hideDisabledRecords = false;
-	/**
-	 * @var	array	$disableControls: disable particular features (=icons)
-	 */
-	var $disableControls = array(
-		'detail' => false,	// disable detail view
-		'import'=> false,	// disable import feature
-		'edit' => false,	// disable editing
-		'hide' => false,	// disable hiding
-		'delete' => false,	// disable deleting
-	);
+    public $showFields;
+    public $userMainGroupOnly = false;
+    public $hideDisabledRecords = false;
+    /**
+     * @var	array	$disableControls: disable particular features (=icons)
+     */
+    public $disableControls = array(
+        'detail' => false,    // disable detail view
+        'import'=> false,    // disable import feature
+        'edit' => false,    // disable editing
+        'hide' => false,    // disable hiding
+        'delete' => false,    // disable deleting
+    );
 
-	/**
-	 * Traverses the table(s) to be listed and renders the output code for each:
-	 * The HTML is accumulated in $this->HTMLcode
-	 * Finishes off with a stopper-gif
-	 *
-	 * @return	void
-	 */
-	function generateList() {
+    /**
+     * Traverses the table(s) to be listed and renders the output code for each:
+     * The HTML is accumulated in $this->HTMLcode
+     * Finishes off with a stopper-gif
+     *
+     * @return	void
+     */
+    public function generateList()
+    {
 
-			// Set page record in header
-		$this->pageRecord = BackendUtility::getRecordWSOL('pages',$this->id);
+            // Set page record in header
+        $this->pageRecord = BackendUtility::getRecordWSOL('pages', $this->id);
 
-			// Traverse the TCA table array:
-		reset($GLOBALS['TCA']);
-		while (list($tableName)=each($GLOBALS['TCA'])) {
+            // Traverse the TCA table array:
+        reset($GLOBALS['TCA']);
+        while (list($tableName)=each($GLOBALS['TCA'])) {
 
-				// Checking if the table should be rendered:
-				// Checks that we see only permitted/requested tables:
-			if ((!$this->table || $tableName==$this->table) && (!$this->tableList || GeneralUtility::inList($this->tableList,$tableName)) && $GLOBALS['BE_USER']->check('tables_select',$tableName)) {
+                // Checking if the table should be rendered:
+                // Checks that we see only permitted/requested tables:
+            if ((!$this->table || $tableName==$this->table) && (!$this->tableList || GeneralUtility::inList($this->tableList, $tableName)) && $GLOBALS['BE_USER']->check('tables_select', $tableName)) {
 
-					// Hide tables which are configured via TSConfig not to be shown (also works for admins):
-				if (GeneralUtility::inList($this->hideTables, $tableName)) {
-					continue;
-				}
+                    // Hide tables which are configured via TSConfig not to be shown (also works for admins):
+                if (GeneralUtility::inList($this->hideTables, $tableName)) {
+                    continue;
+                }
 
-					// iLimit is set depending on whether we're in single- or multi-table mode
-				if ($this->table) {
-					$this->iLimit=(isset($GLOBALS['TCA'][$tableName]['interface']['maxSingleDBListItems'])?intval($GLOBALS['TCA'][$tableName]['interface']['maxSingleDBListItems']):$this->itemsLimitSingleTable);
-				} else {
-					$this->iLimit=(isset($GLOBALS['TCA'][$tableName]['interface']['maxDBListItems'])?intval($GLOBALS['TCA'][$tableName]['interface']['maxDBListItems']):$this->itemsLimitPerTable);
-				}
-				if ($this->showLimit) {
-					$this->iLimit = $this->showLimit;
-				}
+                    // iLimit is set depending on whether we're in single- or multi-table mode
+                if ($this->table) {
+                    $this->iLimit=(isset($GLOBALS['TCA'][$tableName]['interface']['maxSingleDBListItems'])?intval($GLOBALS['TCA'][$tableName]['interface']['maxSingleDBListItems']):$this->itemsLimitSingleTable);
+                } else {
+                    $this->iLimit=(isset($GLOBALS['TCA'][$tableName]['interface']['maxDBListItems'])?intval($GLOBALS['TCA'][$tableName]['interface']['maxDBListItems']):$this->itemsLimitPerTable);
+                }
+                if ($this->showLimit) {
+                    $this->iLimit = $this->showLimit;
+                }
 
-					// Setting fields to select:
-				if ($this->allFields) {
-					$fields = $this->makeFieldList($tableName);
-					$fields[] = 'tstamp';
-					$fields[] = 'crdate';
-					$fields[] = '_PATH_';
-					$fields[] = '_CONTROL_';
-					if (is_array($this->setFields[$tableName])) {
-						$fields = array_intersect($fields,$this->setFields[$tableName]);
-					} else {
-						$fields = array();
-					}
-				} elseif(is_array($this->showFields)) {
-					$fields = $this->showFields;
-				} else {
-					$fields = array();
-				}
+                    // Setting fields to select:
+                if ($this->allFields) {
+                    $fields = $this->makeFieldList($tableName);
+                    $fields[] = 'tstamp';
+                    $fields[] = 'crdate';
+                    $fields[] = '_PATH_';
+                    $fields[] = '_CONTROL_';
+                    if (is_array($this->setFields[$tableName])) {
+                        $fields = array_intersect($fields, $this->setFields[$tableName]);
+                    } else {
+                        $fields = array();
+                    }
+                } elseif (is_array($this->showFields)) {
+                    $fields = $this->showFields;
+                } else {
+                    $fields = array();
+                }
 
-					// Find ID to use (might be different for "versioning_followPages" tables)
-				if (intval($this->searchLevels) == 0) {
-					if ($GLOBALS['TCA'][$tableName]['ctrl']['versioning_followPages'] && ($this->pageRecord['_ORIG_pid'] == -1) && ($this->pageRecord['t3ver_swapmode'] == 0)) {
-						$this->pidSelect = 'pid='.intval($this->pageRecord['_ORIG_uid']);
-					} else {
-						$this->pidSelect = 'pid='.intval($this->id);
-					}
-				}
-					// Finally, render the list:
-				$this->HTMLcode .= $this->getTable($tableName, $this->id, implode(',',$fields));
-			}
-		}
-	}
+                    // Find ID to use (might be different for "versioning_followPages" tables)
+                if (intval($this->searchLevels) == 0) {
+                    if ($GLOBALS['TCA'][$tableName]['ctrl']['versioning_followPages'] && ($this->pageRecord['_ORIG_pid'] == -1) && ($this->pageRecord['t3ver_swapmode'] == 0)) {
+                        $this->pidSelect = 'pid='.intval($this->pageRecord['_ORIG_uid']);
+                    } else {
+                        $this->pidSelect = 'pid='.intval($this->id);
+                    }
+                }
+                    // Finally, render the list:
+                $this->HTMLcode .= $this->getTable($tableName, $this->id, implode(',', $fields));
+            }
+        }
+    }
 
-	/**
-	 * Creates the listing of records from a single table
-	 *
-	 * @param    string $table : Table name
-	 * @param    integer $id : Page id
-	 * @param    string $rowlist: List of fields to show in the listing. Pseudo fields will be added including the record header.
-	 * @return   string $out: HTML table with the listing for the record.
-	 */
-	function getTable($table, $id, $rowlist) {
+    /**
+     * Creates the listing of records from a single table
+     *
+     * @param    string $table : Table name
+     * @param    integer $id : Page id
+     * @param    string $rowlist: List of fields to show in the listing. Pseudo fields will be added including the record header.
+     * @return   string $out: HTML table with the listing for the record.
+     */
+    public function getTable($table, $id, $rowlist)
+    {
 
-			// Init
-		$addWhere = '';
-		$titleCol = $GLOBALS['TCA'][$table]['ctrl']['label'];
-		$thumbsCol = $GLOBALS['TCA'][$table]['ctrl']['thumbnail'];
-		$l10nEnabled = $GLOBALS['TCA'][$table]['ctrl']['languageField'] && $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'] && !$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerTable'];
+            // Init
+        $addWhere = '';
+        $titleCol = $GLOBALS['TCA'][$table]['ctrl']['label'];
+        $thumbsCol = $GLOBALS['TCA'][$table]['ctrl']['thumbnail'];
+        $l10nEnabled = $GLOBALS['TCA'][$table]['ctrl']['languageField'] && $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'] && !$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerTable'];
 
-			// Cleaning rowlist for duplicates and place the $titleCol as the first column always!
-		$this->fieldArray = array();
+            // Cleaning rowlist for duplicates and place the $titleCol as the first column always!
+        $this->fieldArray = array();
 
-			// ingo.renner@dkd.de
-		#$this->fieldArray[] = $titleCol;	// Add title column
-		$this->fieldArray = explode(',', $rowlist);
+            // ingo.renner@dkd.de
+        #$this->fieldArray[] = $titleCol;	// Add title column
+        $this->fieldArray = explode(',', $rowlist);
 
-		if ($this->localizationView && $l10nEnabled) {
-			$this->fieldArray[] = '_LOCALIZATION_';
-			$this->fieldArray[] = '_LOCALIZATION_b';
-			$addWhere .= ' AND '.$GLOBALS['TCA'][$table]['ctrl']['languageField'].'<=0';
-		}
-		if (!GeneralUtility::inList($rowlist,'_CONTROL_')) {
-			$this->fieldArray[] = '_CONTROL_';
-		}
-		if ($this->showClipboard) {
-			$this->fieldArray[] = '_CLIPBOARD_';
-		}
-		if (!$this->dontShowClipControlPanels) {
-			$this->fieldArray[] = '_REF_';
-		}
-		if ($this->searchLevels) {
-			$this->fieldArray[] = '_PATH_';
-		}
-			// Cleaning up:
-		$this->fieldArray = array_unique(array_merge($this->fieldArray,GeneralUtility::trimExplode(',',$rowlist,1)));
+        if ($this->localizationView && $l10nEnabled) {
+            $this->fieldArray[] = '_LOCALIZATION_';
+            $this->fieldArray[] = '_LOCALIZATION_b';
+            $addWhere .= ' AND '.$GLOBALS['TCA'][$table]['ctrl']['languageField'].'<=0';
+        }
+        if (!GeneralUtility::inList($rowlist, '_CONTROL_')) {
+            $this->fieldArray[] = '_CONTROL_';
+        }
+        if ($this->showClipboard) {
+            $this->fieldArray[] = '_CLIPBOARD_';
+        }
+        if (!$this->dontShowClipControlPanels) {
+            $this->fieldArray[] = '_REF_';
+        }
+        if ($this->searchLevels) {
+            $this->fieldArray[] = '_PATH_';
+        }
+            // Cleaning up:
+        $this->fieldArray = array_unique(array_merge($this->fieldArray, GeneralUtility::trimExplode(',', $rowlist, 1)));
 
-		if ($this->noControlPanels) {
-			$tempArray = array_flip($this->fieldArray);
-			unset($tempArray['_CONTROL_']);
-			unset($tempArray['_CLIPBOARD_']);
-			$this->fieldArray = array_keys($tempArray);
-		}
+        if ($this->noControlPanels) {
+            $tempArray = array_flip($this->fieldArray);
+            unset($tempArray['_CONTROL_']);
+            unset($tempArray['_CLIPBOARD_']);
+            $this->fieldArray = array_keys($tempArray);
+        }
 
-			// Creating the list of fields to include in the SQL query:
-		$selectFields = $this->fieldArray;
-		$selectFields[] = 'uid';
-		$selectFields[] = 'pid';
-		if ($thumbsCol) {
-			// adding column for thumbnails
-			$selectFields[] = $thumbsCol;
-		}
+            // Creating the list of fields to include in the SQL query:
+        $selectFields = $this->fieldArray;
+        $selectFields[] = 'uid';
+        $selectFields[] = 'pid';
+        if ($thumbsCol) {
+            // adding column for thumbnails
+            $selectFields[] = $thumbsCol;
+        }
 
-		if ($table=='pages') {
-			if (ExtensionManagementUtility::isLoaded('cms')) {
-				$selectFields[] = 'module';
-				$selectFields[] = 'extendToSubpages';
-			}
-			$selectFields[] = 'doktype';
-		}
-		if (is_array($GLOBALS['TCA'][$table]['ctrl']['enablecolumns'])) {
-			$selectFields = array_merge($selectFields,$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']);
-		}
-		if ($GLOBALS['TCA'][$table]['ctrl']['type']) {
-			$selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['type'];
-		}
-		if ($GLOBALS['TCA'][$table]['ctrl']['typeicon_column']) {
-			$selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['typeicon_column'];
-		}
-		if ($GLOBALS['TCA'][$table]['ctrl']['versioningWS']) {
-			$selectFields[] = 't3ver_id';
-			$selectFields[] = 't3ver_state';
-			$selectFields[] = 't3ver_wsid';
-			$selectFields[] = 't3ver_swapmode';		// Filtered out when pages in makeFieldList()
-		}
-		if ($l10nEnabled) {
-			$selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['languageField'];
-			$selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'];
-		}
-		if ($GLOBALS['TCA'][$table]['ctrl']['label_alt']) {
-			$selectFields = array_merge($selectFields,GeneralUtility::trimExplode(',',$GLOBALS['TCA'][$table]['ctrl']['label_alt'],1));
-		}
-		// Unique list!
-		$selectFields = array_unique($selectFields);
-		// Making sure that the fields in the field-list ARE in the field-list from TCA!
-		$selectFields = array_intersect($selectFields,$this->makeFieldList($table,1));
-		// implode it into a list of fields for the SQL-statement.
-		$selFieldList = implode(',',$selectFields);
+        if ($table=='pages') {
+            if (ExtensionManagementUtility::isLoaded('cms')) {
+                $selectFields[] = 'module';
+                $selectFields[] = 'extendToSubpages';
+            }
+            $selectFields[] = 'doktype';
+        }
+        if (is_array($GLOBALS['TCA'][$table]['ctrl']['enablecolumns'])) {
+            $selectFields = array_merge($selectFields, $GLOBALS['TCA'][$table]['ctrl']['enablecolumns']);
+        }
+        if ($GLOBALS['TCA'][$table]['ctrl']['type']) {
+            $selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['type'];
+        }
+        if ($GLOBALS['TCA'][$table]['ctrl']['typeicon_column']) {
+            $selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['typeicon_column'];
+        }
+        if ($GLOBALS['TCA'][$table]['ctrl']['versioningWS']) {
+            $selectFields[] = 't3ver_id';
+            $selectFields[] = 't3ver_state';
+            $selectFields[] = 't3ver_wsid';
+            $selectFields[] = 't3ver_swapmode';        // Filtered out when pages in makeFieldList()
+        }
+        if ($l10nEnabled) {
+            $selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['languageField'];
+            $selectFields[] = $GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'];
+        }
+        if ($GLOBALS['TCA'][$table]['ctrl']['label_alt']) {
+            $selectFields = array_merge($selectFields, GeneralUtility::trimExplode(',', $GLOBALS['TCA'][$table]['ctrl']['label_alt'], 1));
+        }
+        // Unique list!
+        $selectFields = array_unique($selectFields);
+        // Making sure that the fields in the field-list ARE in the field-list from TCA!
+        $selectFields = array_intersect($selectFields, $this->makeFieldList($table, 1));
+        // implode it into a list of fields for the SQL-statement.
+        $selFieldList = implode(',', $selectFields);
 
-			// ingo.renner@dkd.de
-		if($this->hideDisabledRecords) {
-			$addWhere .= ' AND '.$table.'.'
-				.$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled']
-				.' = 0';
-		}
+            // ingo.renner@dkd.de
+        if ($this->hideDisabledRecords) {
+            $addWhere .= ' AND '.$table.'.'
+                .$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled']
+                .' = 0';
+        }
 
-			//ingo.renner@dkd.de
-		if($GLOBALS['BE_USER']->user['admin'] == '0' && $table == 'be_users') {
-			$addWhere .= ' AND admin = 0';
-			$addWhere .= ' AND username NOT LIKE ("_cli%") ';
-		}
+            //ingo.renner@dkd.de
+        if ($GLOBALS['BE_USER']->user['admin'] == '0' && $table == 'be_users') {
+            $addWhere .= ' AND admin = 0';
+            $addWhere .= ' AND username NOT LIKE ("_cli%") ';
+        }
 
-		//dkd-kartolo
-		//mod2, exclude fe_user which is also be_user
-		if($table == 'fe_users') {
-			$addWhere .= ' AND username not in '.$this->excludeBE;
-		}
+        //dkd-kartolo
+        //mod2, exclude fe_user which is also be_user
+        if ($table == 'fe_users') {
+            $addWhere .= ' AND username not in '.$this->excludeBE;
+        }
 
-		//dkd-kartolo
-		//mod3, config dontShowPrefix
-		if($table == 'be_groups' && $GLOBALS['BE_USER']->user['admin']!= '1') {
-			$groupID = implode(',',TcBeuserUtility::showGroupID());
-			if(!empty($groupID)) {
-				$addWhere .= ' AND uid in ('.$groupID.')';
-			} else {
-				$addWhere .= ' AND uid not in ('.TcBeuserUtility::getAllGroupsID().')';
-			}
-		}
+        //dkd-kartolo
+        //mod3, config dontShowPrefix
+        if ($table == 'be_groups' && $GLOBALS['BE_USER']->user['admin']!= '1') {
+            $groupID = implode(',', TcBeuserUtility::showGroupID());
+            if (!empty($groupID)) {
+                $addWhere .= ' AND uid in ('.$groupID.')';
+            } else {
+                $addWhere .= ' AND uid not in ('.TcBeuserUtility::getAllGroupsID().')';
+            }
+        }
 
-			// Create the SQL query for selecting the elements in the listing:
-		// (API function from class.db_list.inc)
-		$queryParts = $this->makeQueryArray($table, $id,$addWhere,$selFieldList);
-		// Finding the total amount of records on the page (API function from class.db_list.inc)
-		$this->setTotalItems($queryParts);
+            // Create the SQL query for selecting the elements in the listing:
+        // (API function from class.db_list.inc)
+        $queryParts = $this->makeQueryArray($table, $id, $addWhere, $selFieldList);
+        // Finding the total amount of records on the page (API function from class.db_list.inc)
+        $this->setTotalItems($queryParts);
 
-			// Init:
-		$dbCount = 0;
-		$out = '';
+            // Init:
+        $dbCount = 0;
+        $out = '';
 
-			// If the count query returned any number of records, we perform the real query, selecting records.
-		if ($this->totalItems) {
-			$result = $GLOBALS['TYPO3_DB']->exec_SELECT_queryArray($queryParts);
-			$dbCount = $GLOBALS['TYPO3_DB']->sql_num_rows($result);
-		}
+            // If the count query returned any number of records, we perform the real query, selecting records.
+        if ($this->totalItems) {
+            $result = $GLOBALS['TYPO3_DB']->exec_SELECT_queryArray($queryParts);
+            $dbCount = $GLOBALS['TYPO3_DB']->sql_num_rows($result);
+        }
 
-		$LOISmode = $this->listOnlyInSingleTableMode && !$this->table;
+        $LOISmode = $this->listOnlyInSingleTableMode && !$this->table;
 
-			// If any records was selected, render the list:
-		if ($dbCount) {
-				// Half line is drawn between tables:
-			if (!$LOISmode) {
-				$theData = Array();
-				if (!$this->table && !$rowlist) {
-					$theData[$titleCol] = '<img src="clear.gif" width="'.($GLOBALS['SOBE']->MOD_SETTINGS['bigControlPanel']?'230':'350').'" height="1" alt="" />';
-					if (in_array('_CONTROL_',$this->fieldArray)) {
-						$theData['_CONTROL_'] = '';
-					}
-					if (in_array('_CLIPBOARD_',$this->fieldArray)) {
-						$theData['_CLIPBOARD_'] = '';
-					}
-				}
-				$out .= $this->addelement(0,'',$theData,'class="c-table-row-spacer"',$this->leftMargin);
-			}
+            // If any records was selected, render the list:
+        if ($dbCount) {
+            // Half line is drawn between tables:
+            if (!$LOISmode) {
+                $theData = array();
+                if (!$this->table && !$rowlist) {
+                    $theData[$titleCol] = '<img src="clear.gif" width="'.($GLOBALS['SOBE']->MOD_SETTINGS['bigControlPanel']?'230':'350').'" height="1" alt="" />';
+                    if (in_array('_CONTROL_', $this->fieldArray)) {
+                        $theData['_CONTROL_'] = '';
+                    }
+                    if (in_array('_CLIPBOARD_', $this->fieldArray)) {
+                        $theData['_CLIPBOARD_'] = '';
+                    }
+                }
+                $out .= $this->addelement(0, '', $theData, 'class="c-table-row-spacer"', $this->leftMargin);
+            }
 
-				// Header line is drawn
-			$theData = array();
-			if ($this->disableSingleTableView) {
-				$theData[$titleCol] = '<span class="c-table">'.$GLOBALS['LANG']->sL($GLOBALS['TCA'][$table]['ctrl']['title'],1).'</span> ('.$this->totalItems.')';
-			} else {
-				$theData[$titleCol] = $this->linkWrapTable($table,'<span class="c-table">'.$GLOBALS['LANG']->sL($GLOBALS['TCA'][$table]['ctrl']['title'],1).'</span> ('.$this->totalItems.') ');
-			}
-				// CSH:
-			$theData[$titleCol] .= BackendUtility::cshItem($table,'',$this->backPath,'',FALSE,'margin-bottom:0px; white-space: normal;');
+                // Header line is drawn
+            $theData = array();
+            if ($this->disableSingleTableView) {
+                $theData[$titleCol] = '<span class="c-table">'.$GLOBALS['LANG']->sL($GLOBALS['TCA'][$table]['ctrl']['title'], 1).'</span> ('.$this->totalItems.')';
+            } else {
+                $theData[$titleCol] = $this->linkWrapTable($table, '<span class="c-table">'.$GLOBALS['LANG']->sL($GLOBALS['TCA'][$table]['ctrl']['title'], 1).'</span> ('.$this->totalItems.') ');
+            }
+                // CSH:
+            $theData[$titleCol] .= BackendUtility::cshItem($table, '', $this->backPath, '', false, 'margin-bottom:0px; white-space: normal;');
 
-				// ingo.renner@dkd.de - moving the table title to the first column
-			$theData[$this->showFields[0]] = $theData[$titleCol];
+                // ingo.renner@dkd.de - moving the table title to the first column
+            $theData[$this->showFields[0]] = $theData[$titleCol];
 
-			if($this->showFields[0] != $titleCol){
-				unset($theData[$titleCol]);
-			}
+            if ($this->showFields[0] != $titleCol) {
+                unset($theData[$titleCol]);
+            }
 
-			if ($LOISmode) {
-				$out .= '
+            if ($LOISmode) {
+                $out .= '
 					<tr>
 						<td class="t3-row-header" style="width:95%;">'.$theData[$titleCol].'</td>
 					</tr>';
 
-				if ($GLOBALS['BE_USER']->uc["edit_showFieldHelp"]) {
-					$GLOBALS['LANG']->loadSingleTableDescription($table);
-					if (isset($GLOBALS['TCA_DESCR'][$table]['columns'][''])) {
-						$onClick = "vHWin=window.open('view_help.php?tfID=".$table.".','viewFieldHelp','height=400,width=600,status=0,menubar=0,scrollbars=1');vHWin.focus();return false;";
-						$out.='
+                if ($GLOBALS['BE_USER']->uc["edit_showFieldHelp"]) {
+                    $GLOBALS['LANG']->loadSingleTableDescription($table);
+                    if (isset($GLOBALS['TCA_DESCR'][$table]['columns'][''])) {
+                        $onClick = "vHWin=window.open('view_help.php?tfID=".$table.".','viewFieldHelp','height=400,width=600,status=0,menubar=0,scrollbars=1');vHWin.focus();return false;";
+                        $out.='
 					<tr>
-						<td class="c-tableDescription">'.BackendUtility::helpTextIcon($table,'',$this->backPath,TRUE).$GLOBALS['TCA_DESCR'][$table]['columns']['']['description'].'</td>
+						<td class="c-tableDescription">'.BackendUtility::helpTextIcon($table, '', $this->backPath, true).$GLOBALS['TCA_DESCR'][$table]['columns']['']['description'].'</td>
 					</tr>';
-					}
-				}
-			} else {
-				$theUpIcon = ($table=='pages'&&$this->id&&isset($this->pageRow['pid'])) ? '<a href="'.htmlspecialchars($this->listURL($this->pageRow['pid'])).'" onclick="setHighlight('.$this->pageRow['pid'].')"><img'.IconUtility::skinImg('','gfx/i/pages_up.gif','width="18" height="16"').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.upOneLevel',1).'" alt="" /></a>':'';
-				$out .= $this->addelement(
-					1,
-					$theUpIcon,
-					$theData,
-					' class="t3-row-header"',
-					''
-				);
-			}
+                    }
+                }
+            } else {
+                $theUpIcon = ($table=='pages'&&$this->id&&isset($this->pageRow['pid'])) ? '<a href="'.htmlspecialchars($this->listURL($this->pageRow['pid'])).'" onclick="setHighlight('.$this->pageRow['pid'].')"><img'.IconUtility::skinImg('', 'gfx/i/pages_up.gif', 'width="18" height="16"').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.upOneLevel', 1).'" alt="" /></a>':'';
+                $out .= $this->addelement(
+                    1,
+                    $theUpIcon,
+                    $theData,
+                    ' class="t3-row-header"',
+                    ''
+                );
+            }
 
-			if (!$LOISmode) {
-					// Fixing a order table for sortby tables
-				$this->currentTable = array();
-				$currentIdList = array();
-				$doSort = ($GLOBALS['TCA'][$table]['ctrl']['sortby'] && !$this->sortField);
+            if (!$LOISmode) {
+                // Fixing a order table for sortby tables
+                $this->currentTable = array();
+                $currentIdList = array();
+                $doSort = ($GLOBALS['TCA'][$table]['ctrl']['sortby'] && !$this->sortField);
 
-				$prevUid = 0;
-				$prevPrevUid = 0;
-				// Accumulate rows here
-				$accRows = array();
-				while($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($result)) {
-					$accRows[] = $row;
-					$currentIdList[] = $row['uid'];
-					if ($doSort) {
-						if ($prevUid) {
-							$this->currentTable['prev'][$row['uid']] = $prevPrevUid;
-							$this->currentTable['next'][$prevUid] = '-'.$row['uid'];
-							$this->currentTable['prevUid'][$row['uid']] = $prevUid;
-						}
-						$prevPrevUid = isset($this->currentTable['prev'][$row['uid']]) ? -$prevUid : $row['pid'];
-						$prevUid=$row['uid'];
-					}
-				}
-				$GLOBALS['TYPO3_DB']->sql_free_result($result);
+                $prevUid = 0;
+                $prevPrevUid = 0;
+                // Accumulate rows here
+                $accRows = array();
+                while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($result)) {
+                    $accRows[] = $row;
+                    $currentIdList[] = $row['uid'];
+                    if ($doSort) {
+                        if ($prevUid) {
+                            $this->currentTable['prev'][$row['uid']] = $prevPrevUid;
+                            $this->currentTable['next'][$prevUid] = '-'.$row['uid'];
+                            $this->currentTable['prevUid'][$row['uid']] = $prevUid;
+                        }
+                        $prevPrevUid = isset($this->currentTable['prev'][$row['uid']]) ? -$prevUid : $row['pid'];
+                        $prevUid=$row['uid'];
+                    }
+                }
+                $GLOBALS['TYPO3_DB']->sql_free_result($result);
 
-					// CSV initiated
-				if ($this->csvOutput) $this->initCSV();
+                    // CSV initiated
+                if ($this->csvOutput) {
+                    $this->initCSV();
+                }
 
-					// Render items:
-				$this->CBnames = array();
-				$this->duplicateStack = array();
-				$this->eCounter = $this->firstElementNumber;
+                    // Render items:
+                $this->CBnames = array();
+                $this->duplicateStack = array();
+                $this->eCounter = $this->firstElementNumber;
 
-				$iOut = '';
-				$cc = 0;
-				foreach($accRows as $row) {
+                $iOut = '';
+                $cc = 0;
+                foreach ($accRows as $row) {
 
-					// If render item, increment counter and call function
-					$cc++;
-					$iOut .= $this->renderListRow($table,$row,$cc,$titleCol,$thumbsCol);
+                    // If render item, increment counter and call function
+                    $cc++;
+                    $iOut .= $this->renderListRow($table, $row, $cc, $titleCol, $thumbsCol);
 
-						// If localization view is enabled it means that the selected records are either default or All language and here we will not select translations which point to the main record:
-					if ($this->localizationView && $l10nEnabled) {
+                        // If localization view is enabled it means that the selected records are either default or All language and here we will not select translations which point to the main record:
+                    if ($this->localizationView && $l10nEnabled) {
 
-							// Look for translations of this record:
-						$translations = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-							$selFieldList,
-							$table,
-							'pid='.$row['pid'].
-								' AND '.$GLOBALS['TCA'][$table]['ctrl']['languageField'].'>0'.
-								' AND '.$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'].'='.intval($row['uid']).
-								BackendUtility::deleteClause($table).
-								BackendUtility::versioningPlaceholderClause($table)
-						);
+                            // Look for translations of this record:
+                        $translations = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+                            $selFieldList,
+                            $table,
+                            'pid='.$row['pid'].
+                                ' AND '.$GLOBALS['TCA'][$table]['ctrl']['languageField'].'>0'.
+                                ' AND '.$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'].'='.intval($row['uid']).
+                                BackendUtility::deleteClause($table).
+                                BackendUtility::versioningPlaceholderClause($table)
+                        );
 
-							// For each available translation, render the record:
-						if (is_array($translations)) {
-							foreach($translations as $lRow) {
-								if ($GLOBALS['BE_USER']->checkLanguageAccess($lRow[$GLOBALS['TCA'][$table]['ctrl']['languageField']])) {
-									$iOut.=$this->renderListRow($table,$lRow,$cc,$titleCol,$thumbsCol,18);
-								}
-							}
-						}
-					}
+                            // For each available translation, render the record:
+                        if (is_array($translations)) {
+                            foreach ($translations as $lRow) {
+                                if ($GLOBALS['BE_USER']->checkLanguageAccess($lRow[$GLOBALS['TCA'][$table]['ctrl']['languageField']])) {
+                                    $iOut.=$this->renderListRow($table, $lRow, $cc, $titleCol, $thumbsCol, 18);
+                                }
+                            }
+                        }
+                    }
 
-						// Counter of total rows incremented:
-					$this->eCounter++;
-				}
+                        // Counter of total rows incremented:
+                    $this->eCounter++;
+                }
 
-					// The header row for the table is now created:
-				$out.=$this->renderListHeader($table,$currentIdList);
-			}
+                    // The header row for the table is now created:
+                $out.=$this->renderListHeader($table, $currentIdList);
+            }
 
-				// The list of records is added after the header:
-			$out.= $this->renderListNavigation('top') . $iOut . $this->renderListNavigation('bottom');
+                // The list of records is added after the header:
+            $out.= $this->renderListNavigation('top') . $iOut . $this->renderListNavigation('bottom');
 
-				// ... and it is all wrapped in a table:
-			$out='
+                // ... and it is all wrapped in a table:
+            $out='
 
 			<!--
 				DB listing of elements:	"'.htmlspecialchars($table).'"
@@ -410,265 +415,269 @@ class RecordListUtility extends DatabaseRecordList {
 					'.$out.'
 				</table>';
 
-				// Output csv if...
-			if ($this->csvOutput) {
-				// This ends the page with exit.
-				$this->outputCSV($table);
-			}
-		}
+                // Output csv if...
+            if ($this->csvOutput) {
+                // This ends the page with exit.
+                $this->outputCSV($table);
+            }
+        }
 
-			// Return content:
-		return $out;
-	}
+            // Return content:
+        return $out;
+    }
 
-	/**
-	 * Rendering the header row for a table
-	 *
-	 * @param	string		Table name
-	 * @param	array		Array of the currectly displayed uids of the table
-	 * @return	string		Header table row
-	 * @access private
-	 * @see getTable()
-	 */
-	function renderListHeader($table, $currentIdList) {
-			// Init:
-		$theData = array();
+    /**
+     * Rendering the header row for a table
+     *
+     * @param	string		Table name
+     * @param	array		Array of the currectly displayed uids of the table
+     * @return	string		Header table row
+     * @access private
+     * @see getTable()
+     */
+    public function renderListHeader($table, $currentIdList)
+    {
+        // Init:
+        $theData = array();
 
-			// Traverse the fields:
-		foreach($this->fieldArray as $fCol) {
+            // Traverse the fields:
+        foreach ($this->fieldArray as $fCol) {
 
-				// Calculate users permissions to edit records in the table:
-			$permsEdit = $this->calcPerms & ($table=='pages'?2:16);
+                // Calculate users permissions to edit records in the table:
+            $permsEdit = $this->calcPerms & ($table=='pages'?2:16);
 
-			switch((string)$fCol) {
-				case '_PATH_':
-					// Path
-					$theData[$fCol] = '<i>['.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels._PATH_',1).']</i>';
-				break;
-				case '_REF_':
-					// References
-					// ingo.renner@dkd.de
-					// removed as not needed
-					#$theData[$fCol] = '<i>['.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_mod_file_list.xml:c__REF_',1).']</i>';
-				break;
-				case '_LOCALIZATION_':
-					// Path
-					$theData[$fCol] = '<i>['.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels._LOCALIZATION_',1).']</i>';
-				break;
-				case '_LOCALIZATION_b':
-					// Path
-					$theData[$fCol] = $GLOBALS['LANG']->getLL('Localize',1);
-				break;
-				case '_CLIPBOARD_':
-					// Clipboard:
-					$cells = array();
+            switch ((string)$fCol) {
+                case '_PATH_':
+                    // Path
+                    $theData[$fCol] = '<i>['.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels._PATH_', 1).']</i>';
+                break;
+                case '_REF_':
+                    // References
+                    // ingo.renner@dkd.de
+                    // removed as not needed
+                    #$theData[$fCol] = '<i>['.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_mod_file_list.xml:c__REF_',1).']</i>';
+                break;
+                case '_LOCALIZATION_':
+                    // Path
+                    $theData[$fCol] = '<i>['.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels._LOCALIZATION_', 1).']</i>';
+                break;
+                case '_LOCALIZATION_b':
+                    // Path
+                    $theData[$fCol] = $GLOBALS['LANG']->getLL('Localize', 1);
+                break;
+                case '_CLIPBOARD_':
+                    // Clipboard:
+                    $cells = array();
 
-						// If there are elements on the clipboard for this table, then display the "paste into" icon:
-					$elFromTable = $this->clipObj->elFromTable($table);
-					if (count($elFromTable)) {
-						$cells[] = '<a href="'.htmlspecialchars($this->clipObj->pasteUrl($table,$this->id)).'" onclick="'.htmlspecialchars('return '.$this->clipObj->confirmMsg('pages',$this->pageRow,'into',$elFromTable)).'">'.
-								'<img'.IconUtility::skinImg('','gfx/clip_pasteafter.gif','width="12" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_paste',1).'" alt="" />'.
-								'</a>';
-					}
+                        // If there are elements on the clipboard for this table, then display the "paste into" icon:
+                    $elFromTable = $this->clipObj->elFromTable($table);
+                    if (count($elFromTable)) {
+                        $cells[] = '<a href="'.htmlspecialchars($this->clipObj->pasteUrl($table, $this->id)).'" onclick="'.htmlspecialchars('return '.$this->clipObj->confirmMsg('pages', $this->pageRow, 'into', $elFromTable)).'">'.
+                                '<img'.IconUtility::skinImg('', 'gfx/clip_pasteafter.gif', 'width="12" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_paste', 1).'" alt="" />'.
+                                '</a>';
+                    }
 
-						// If the numeric clipboard pads are enabled, display the control icons for that:
-					if ($this->clipObj->current != 'normal') {
+                        // If the numeric clipboard pads are enabled, display the control icons for that:
+                    if ($this->clipObj->current != 'normal') {
 
-							// The "select" link:
-						$cells[] = $this->linkClipboardHeaderIcon('<img'.IconUtility::skinImg('','gfx/clip_copy.gif','width="12" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_selectMarked',1).'" alt="" />',$table,'setCB');
+                            // The "select" link:
+                        $cells[] = $this->linkClipboardHeaderIcon('<img'.IconUtility::skinImg('', 'gfx/clip_copy.gif', 'width="12" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_selectMarked', 1).'" alt="" />', $table, 'setCB');
 
-							// The "edit marked" link:
-						$editIdList = implode(',', $currentIdList);
-						$editIdList = "'+editList('".$table."','".$editIdList."')+'";
-						$params = '&edit[' . $table . '][' . $editIdList . ']=edit&disHelp=1';
-						$cells[] = '<a href="#" onclick="' . htmlspecialchars(BackendUtility::editOnClick($params)) . '">' .
-							'<img' . IconUtility::skinImg('', 'gfx/edit2.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('clip_editMarked', 1) . '" alt="" />' .
-							'</a>';
+                            // The "edit marked" link:
+                        $editIdList = implode(',', $currentIdList);
+                        $editIdList = "'+editList('".$table."','".$editIdList."')+'";
+                        $params = '&edit[' . $table . '][' . $editIdList . ']=edit&disHelp=1';
+                        $cells[] = '<a href="#" onclick="' . htmlspecialchars(BackendUtility::editOnClick($params)) . '">' .
+                            '<img' . IconUtility::skinImg('', 'gfx/edit2.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('clip_editMarked', 1) . '" alt="" />' .
+                            '</a>';
 
-							// The "Delete marked" link:
-						$cells[] = $this->linkClipboardHeaderIcon('<img'.IconUtility::skinImg('','gfx/garbage.gif','width="11" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_deleteMarked',1).'" alt="" />',$table,'delete',sprintf($GLOBALS['LANG']->getLL('clip_deleteMarkedWarning'),$GLOBALS['LANG']->sL($GLOBALS['TCA'][$table]['ctrl']['title'])));
+                            // The "Delete marked" link:
+                        $cells[] = $this->linkClipboardHeaderIcon('<img'.IconUtility::skinImg('', 'gfx/garbage.gif', 'width="11" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_deleteMarked', 1).'" alt="" />', $table, 'delete', sprintf($GLOBALS['LANG']->getLL('clip_deleteMarkedWarning'), $GLOBALS['LANG']->sL($GLOBALS['TCA'][$table]['ctrl']['title'])));
 
-							// The "Select all" link:
-						$cells[] = '<a href="#" onclick="'.htmlspecialchars('checkOffCB(\''.implode(',',$this->CBnames).'\'); return false;').'">'.
-								'<img'.IconUtility::skinImg('','gfx/clip_select.gif','width="12" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_markRecords',1).'" alt="" />'.
-								'</a>';
-					} else {
-						$cells[] = '';
-					}
-					$theData[$fCol] = implode('',$cells);
-				break;
-				case '_CONTROL_':
-					// Control panel:
-					// ingo.renner@dkd.de
-					// removed as not needed
-				break;
-				default:
-					// Regular fields header:
-					$theData[$fCol] = '';
-					if ($this->table && is_array($currentIdList)) {
+                            // The "Select all" link:
+                        $cells[] = '<a href="#" onclick="'.htmlspecialchars('checkOffCB(\''.implode(',', $this->CBnames).'\'); return false;').'">'.
+                                '<img'.IconUtility::skinImg('', 'gfx/clip_select.gif', 'width="12" height="12"').' title="'.$GLOBALS['LANG']->getLL('clip_markRecords', 1).'" alt="" />'.
+                                '</a>';
+                    } else {
+                        $cells[] = '';
+                    }
+                    $theData[$fCol] = implode('', $cells);
+                break;
+                case '_CONTROL_':
+                    // Control panel:
+                    // ingo.renner@dkd.de
+                    // removed as not needed
+                break;
+                default:
+                    // Regular fields header:
+                    $theData[$fCol] = '';
+                    if ($this->table && is_array($currentIdList)) {
 
-							// If the numeric clipboard pads are selected, show duplicate sorting link:
-						if ($this->clipNumPane()) {
-							$theData[$fCol] .= '<a href="'.htmlspecialchars($this->listURL('',-1).'&duplicateField='.$fCol).'">'.
-											'<img'.IconUtility::skinImg('','gfx/select_duplicates.gif','width="11" height="11"').' title="'.$GLOBALS['LANG']->getLL('clip_duplicates',1).'" alt="" />'.
-											'</a>';
-						}
-					}
-					$theData[$fCol] .= $this->addSortLink($GLOBALS['LANG']->sL(BackendUtility::getItemLabel($table,$fCol,'<i>[|]</i>')),$fCol,$table);
-				break;
-			}
-		}
-			// Create and return header table row:
-		return $this->addelement(1,'',$theData,' class="c-headLine"','');
-	}
+                            // If the numeric clipboard pads are selected, show duplicate sorting link:
+                        if ($this->clipNumPane()) {
+                            $theData[$fCol] .= '<a href="'.htmlspecialchars($this->listURL('', -1).'&duplicateField='.$fCol).'">'.
+                                            '<img'.IconUtility::skinImg('', 'gfx/select_duplicates.gif', 'width="11" height="11"').' title="'.$GLOBALS['LANG']->getLL('clip_duplicates', 1).'" alt="" />'.
+                                            '</a>';
+                        }
+                    }
+                    $theData[$fCol] .= $this->addSortLink($GLOBALS['LANG']->sL(BackendUtility::getItemLabel($table, $fCol, '<i>[|]</i>')), $fCol, $table);
+                break;
+            }
+        }
+            // Create and return header table row:
+        return $this->addelement(1, '', $theData, ' class="c-headLine"', '');
+    }
 
-	/**
-	 * Rendering a single row for the list
-	 *
-	 * @param    string $table : Table name
-	 * @param    array $row : Current record
-	 * @param    integer $cc : Counter, counting for each time an element is rendered (used for alternating colors)
-	 * @param    string $titleCol : Table field (column) where header value is found
-	 * @param    string $thumbsCol : Table field (column) where (possible) thumbnails can be found
-	 * @param    int $indent : indent from left.
-	 * @return    string        Table row for the element
-	 * @access private
-	 * @see getTable()
-	 */
-	function renderListRow($table,$row,$cc,$titleCol,$thumbsCol,$indent=0) {
-		$iOut = '';
+    /**
+     * Rendering a single row for the list
+     *
+     * @param    string $table : Table name
+     * @param    array $row : Current record
+     * @param    integer $cc : Counter, counting for each time an element is rendered (used for alternating colors)
+     * @param    string $titleCol : Table field (column) where header value is found
+     * @param    string $thumbsCol : Table field (column) where (possible) thumbnails can be found
+     * @param    int $indent : indent from left.
+     * @return    string        Table row for the element
+     * @access private
+     * @see getTable()
+     */
+    public function renderListRow($table, $row, $cc, $titleCol, $thumbsCol, $indent=0)
+    {
+        $iOut = '';
 
-		if (strlen($this->searchString)) {
-			// If in search mode, make sure the preview will show the correct page
-			$id_orig = $this->id;
-			$this->id = $row['pid'];
-		}
+        if (strlen($this->searchString)) {
+            // If in search mode, make sure the preview will show the correct page
+            $id_orig = $this->id;
+            $this->id = $row['pid'];
+        }
 
-			// In offline workspace, look for alternative record:
-		BackendUtility::workspaceOL($table, $row, $GLOBALS['BE_USER']->workspace);
+            // In offline workspace, look for alternative record:
+        BackendUtility::workspaceOL($table, $row, $GLOBALS['BE_USER']->workspace);
 
-			// Background color, if any:
-		$row_bgColor = $this->alternateBgColors ? (($cc%2)?'' :' class="db_list_alt"') : '';
+            // Background color, if any:
+        $row_bgColor = $this->alternateBgColors ? (($cc%2)?'' :' class="db_list_alt"') : '';
 
-			// Overriding with versions background color if any:
-		$row_bgColor = $row['_CSSCLASS'] ? ' class="'.$row['_CSSCLASS'].'"' : $row_bgColor;
+            // Overriding with versions background color if any:
+        $row_bgColor = $row['_CSSCLASS'] ? ' class="'.$row['_CSSCLASS'].'"' : $row_bgColor;
 
-		$row_bgColor = 'class="db_list_normal"';
+        $row_bgColor = 'class="db_list_normal"';
 
-			// Initialization
-		$alttext = BackendUtility::getRecordIconAltText($row,$table);
-		$recTitle = BackendUtility::getRecordTitle($table,$row);
+            // Initialization
+        $alttext = BackendUtility::getRecordIconAltText($row, $table);
+        $recTitle = BackendUtility::getRecordTitle($table, $row);
 
-			// Incr. counter.
-		$this->counter++;
+            // Incr. counter.
+        $this->counter++;
 
-			// The icon with link
-		$this->clickMenuEnabled = 0;
-		$iconImg = IconUtility::getSpriteIconForRecord($table, $row, array('title' => htmlspecialchars($alttext), 'style' => 'margin-left: '.$indent.'px;'));
-		$theIcon = $this->clickMenuEnabled ? $GLOBALS['SOBE']->doc->wrapClickMenuOnIcon($iconImg,$table,$row['uid']) : $iconImg;
+            // The icon with link
+        $this->clickMenuEnabled = 0;
+        $iconImg = IconUtility::getSpriteIconForRecord($table, $row, array('title' => htmlspecialchars($alttext), 'style' => 'margin-left: '.$indent.'px;'));
+        $theIcon = $this->clickMenuEnabled ? $GLOBALS['SOBE']->doc->wrapClickMenuOnIcon($iconImg, $table, $row['uid']) : $iconImg;
 
-			// Preparing and getting the data-array
-		$theData = array();
-		foreach($this->fieldArray as $fCol) {
-			if ($fCol == $titleCol) {
-				if ($GLOBALS['TCA'][$table]['ctrl']['label_alt'] && ($GLOBALS['TCA'][$table]['ctrl']['label_alt_force'] || !strcmp($row[$fCol],''))) {
-					$altFields = GeneralUtility::trimExplode(',',$GLOBALS['TCA'][$table]['ctrl']['label_alt'],1);
-					$tA = array();
-					if ($row[$fCol]) {
-						$tA[]=$row[$fCol];
-					}
-					while(list(,$fN)=each($altFields)) {
-						$t = BackendUtility::getProcessedValueExtra($table,$fN,$row[$fN],$GLOBALS['BE_USER']->uc['titleLen'],$row['uid']);
-						if($t) {
-							$tA[] = $t;
-						}
-					}
-					if ($GLOBALS['TCA'][$table]['ctrl']['label_alt_force']) {
-						$t=implode(', ',$tA);
-					}
-					if ($t) {
-						$recTitle = $t;
-					}
-				} else {
-					$recTitle = BackendUtility::getProcessedValueExtra($table,$fCol,$row[$fCol],$GLOBALS['BE_USER']->uc['titleLen'],$row['uid']);
-				}
-				$theData[$fCol] = $this->linkWrapItems($table,$row['uid'],$recTitle,$row);
-			} elseif ($fCol == 'pid') {
-				$theData[$fCol] = $row[$fCol];
-			} elseif ($fCol == '_PATH_') {
-				$theData[$fCol] = $this->recPath($row['pid']);
-			} elseif ($fCol == '_REF_') {
-//				$theData[$fCol] = $this->makeRef($table,$row['uid']);
-			} elseif ($fCol == '_CONTROL_') {
-				$theData[$fCol] = $this->makeControl($table,$row);
-			} elseif ($fCol == '_CLIPBOARD_') {
-				$theData[$fCol] = $this->makeClip($table,$row);
-			} elseif ($fCol == '_LOCALIZATION_') {
-				list($lC1, $lC2) = $this->makeLocalizationPanel($table,$row);
-				$theData[$fCol] = $lC1;
-				$theData[$fCol.'b'] = $lC2;
-			} elseif ($fCol == '_LOCALIZATION_b') {
-				// Do nothing, has been done above.
-			} elseif($this->userMainGroupOnly && $table == 'be_users' && $fCol == 'usergroup') {
-					// ingo.renner@dkd.de
-				$theData[$fCol] = htmlspecialchars($this->getUserMainGroup($row[$fCol]));
-			} else {
-				$theData[$fCol] = $this->linkUrlMail(htmlspecialchars(BackendUtility::getProcessedValueExtra($table,$fCol,$row[$fCol],100,$row['uid'])),$row[$fCol]);
-			}
-		}
+            // Preparing and getting the data-array
+        $theData = array();
+        foreach ($this->fieldArray as $fCol) {
+            if ($fCol == $titleCol) {
+                if ($GLOBALS['TCA'][$table]['ctrl']['label_alt'] && ($GLOBALS['TCA'][$table]['ctrl']['label_alt_force'] || !strcmp($row[$fCol], ''))) {
+                    $altFields = GeneralUtility::trimExplode(',', $GLOBALS['TCA'][$table]['ctrl']['label_alt'], 1);
+                    $tA = array();
+                    if ($row[$fCol]) {
+                        $tA[]=$row[$fCol];
+                    }
+                    while (list(, $fN)=each($altFields)) {
+                        $t = BackendUtility::getProcessedValueExtra($table, $fN, $row[$fN], $GLOBALS['BE_USER']->uc['titleLen'], $row['uid']);
+                        if ($t) {
+                            $tA[] = $t;
+                        }
+                    }
+                    if ($GLOBALS['TCA'][$table]['ctrl']['label_alt_force']) {
+                        $t=implode(', ', $tA);
+                    }
+                    if ($t) {
+                        $recTitle = $t;
+                    }
+                } else {
+                    $recTitle = BackendUtility::getProcessedValueExtra($table, $fCol, $row[$fCol], $GLOBALS['BE_USER']->uc['titleLen'], $row['uid']);
+                }
+                $theData[$fCol] = $this->linkWrapItems($table, $row['uid'], $recTitle, $row);
+            } elseif ($fCol == 'pid') {
+                $theData[$fCol] = $row[$fCol];
+            } elseif ($fCol == '_PATH_') {
+                $theData[$fCol] = $this->recPath($row['pid']);
+            } elseif ($fCol == '_REF_') {
+                //				$theData[$fCol] = $this->makeRef($table,$row['uid']);
+            } elseif ($fCol == '_CONTROL_') {
+                $theData[$fCol] = $this->makeControl($table, $row);
+            } elseif ($fCol == '_CLIPBOARD_') {
+                $theData[$fCol] = $this->makeClip($table, $row);
+            } elseif ($fCol == '_LOCALIZATION_') {
+                list($lC1, $lC2) = $this->makeLocalizationPanel($table, $row);
+                $theData[$fCol] = $lC1;
+                $theData[$fCol.'b'] = $lC2;
+            } elseif ($fCol == '_LOCALIZATION_b') {
+                // Do nothing, has been done above.
+            } elseif ($this->userMainGroupOnly && $table == 'be_users' && $fCol == 'usergroup') {
+                // ingo.renner@dkd.de
+                $theData[$fCol] = htmlspecialchars($this->getUserMainGroup($row[$fCol]));
+            } else {
+                $theData[$fCol] = $this->linkUrlMail(htmlspecialchars(BackendUtility::getProcessedValueExtra($table, $fCol, $row[$fCol], 100, $row['uid'])), $row[$fCol]);
+            }
+        }
 
-		if (strlen($this->searchString)) {
-			// Reset the ID if it was overwritten
-			$this->id = $id_orig;
-		}
+        if (strlen($this->searchString)) {
+            // Reset the ID if it was overwritten
+            $this->id = $id_orig;
+        }
 
-			// Add row to CSV list:
-		if ($this->csvOutput) {
-			$this->addToCSV($row,$table);
-		}
+            // Add row to CSV list:
+        if ($this->csvOutput) {
+            $this->addToCSV($row, $table);
+        }
 
-			// Create element in table cells:
-		$iOut .= $this->addelement(1,$theIcon,$theData,$row_bgColor);
+            // Create element in table cells:
+        $iOut .= $this->addelement(1, $theIcon, $theData, $row_bgColor);
 
-			// Render thumbsnails if a thumbnail column exists and there is content in it:
-		if ($this->thumbs && trim($row[$thumbsCol])) {
-			$iOut .= $this->addelement(4,'', Array($titleCol=>$this->thumbCode($row,$table,$thumbsCol)),$row_bgColor);
-		}
+            // Render thumbsnails if a thumbnail column exists and there is content in it:
+        if ($this->thumbs && trim($row[$thumbsCol])) {
+            $iOut .= $this->addelement(4, '', array($titleCol=>$this->thumbCode($row, $table, $thumbsCol)), $row_bgColor);
+        }
 
-			// Finally, return table row element:
-		return $iOut;
-	}
+            // Finally, return table row element:
+        return $iOut;
+    }
 
-	function getUserMainGroup($allGroups) {
-		$allGroups = explode(',', $allGroups);
-		if(!empty($allGroups[0])) {
-			$mainGroup = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-				'title',
-				'be_groups',
-				'uid = '.$allGroups[0]
-			);
-		}
+    public function getUserMainGroup($allGroups)
+    {
+        $allGroups = explode(',', $allGroups);
+        if (!empty($allGroups[0])) {
+            $mainGroup = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+                'title',
+                'be_groups',
+                'uid = '.$allGroups[0]
+            );
+        }
 
-		return $mainGroup[0]['title'];
-	}
+        return $mainGroup[0]['title'];
+    }
 
-	/**
-	 * Creates the search box
-	 *
-	 * @param	boolean		$formFields:If true, the search box is wrapped in its own form-tags
-	 * @param	string		$label: the label
-	 * @return	string		HTML for the search box
-	 */
-	function getSearchBox($formFields=TRUE, $label) {
+    /**
+     * Creates the search box
+     *
+     * @param	boolean		$formFields:If true, the search box is wrapped in its own form-tags
+     * @param	string		$label: the label
+     * @return	string		HTML for the search box
+     */
+    public function getSearchBox($formFields=true, $label)
+    {
 
-			// Setting form-elements, if applicable:
-		$formElements=array('','');
-		if ($formFields) {
-			$formElements=array('<form action="'.htmlspecialchars($this->listURL()).'" method="post">','</form>');
-		}
+            // Setting form-elements, if applicable:
+        $formElements=array('','');
+        if ($formFields) {
+            $formElements=array('<form action="'.htmlspecialchars($this->listURL()).'" method="post">','</form>');
+        }
 
-			// Table with the search box:
-		$content = '
+            // Table with the search box:
+        $content = '
 			'.$formElements[0].'
 
 				<!--
@@ -677,160 +686,160 @@ class RecordListUtility extends DatabaseRecordList {
 				<table border="0" cellpadding="0" cellspacing="0" class="bgColor4" id="typo3-dblist-search">
 					<tr>
 						<td>'.$label.' <input type="text" name="search_field" value="'.htmlspecialchars($this->searchString).'"'.$GLOBALS['TBE_TEMPLATE']->formWidth(10).' /></td>
-						<td>&nbsp;<input type="submit" name="search" value="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.search',1).'" /></td>
+						<td>&nbsp;<input type="submit" name="search" value="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.search', 1).'" /></td>
 					</tr>
 				</table>
 			'.$formElements[1];
 
-		return $content;
-	}
+        return $content;
+    }
 
-	/**
-	 * ingo.renner@dkd.de: from BackendUtility, modified
-	 *
-	 * Returns a JavaScript string (for an onClick handler) which will load the alt_doc.php script that shows the form for editing of the record(s) you have send as params.
-	 * REMEMBER to always htmlspecialchar() content in href-properties to ampersands get converted to entities (XHTML requirement and XSS precaution)
-	 * Usage: 35
-	 *
-	 * @param	string		$params is parameters sent along to alt_doc.php. This requires a much more details description which you must seek in Inside TYPO3s documentation of the alt_doc.php API. And example could be '&edit[pages][123]=edit' which will show edit form for page record 123.
-	 * @param	string		$backPath must point back to the TYPO3_mainDir directory (where alt_doc.php is)
-	 * @param	string		$requestUri is an optional returnUrl you can set - automatically set to REQUEST_URI.
-	 * @return	string
-	 * @see template::issueCommand()
-	 */
-	function editOnClick($params, $backPath='', $requestUri='') {
-		$retUrl = 'returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
-		return "window.location.href='" . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']) . '&' . $retUrl . $params . "'; return false;";
-	}
+    /**
+     * ingo.renner@dkd.de: from BackendUtility, modified
+     *
+     * Returns a JavaScript string (for an onClick handler) which will load the alt_doc.php script that shows the form for editing of the record(s) you have send as params.
+     * REMEMBER to always htmlspecialchar() content in href-properties to ampersands get converted to entities (XHTML requirement and XSS precaution)
+     * Usage: 35
+     *
+     * @param	string		$params is parameters sent along to alt_doc.php. This requires a much more details description which you must seek in Inside TYPO3s documentation of the alt_doc.php API. And example could be '&edit[pages][123]=edit' which will show edit form for page record 123.
+     * @param	string		$backPath must point back to the TYPO3_mainDir directory (where alt_doc.php is)
+     * @param	string		$requestUri is an optional returnUrl you can set - automatically set to REQUEST_URI.
+     * @return	string
+     * @see template::issueCommand()
+     */
+    public function editOnClick($params, $backPath='', $requestUri='')
+    {
+        $retUrl = 'returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
+        return "window.location.href='" . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']) . '&' . $retUrl . $params . "'; return false;";
+    }
 
-	/**
-	 * Creates the control panel for a single record in the listing.
-	 *
-	 * @param	string		$table: The table
-	 * @param	array		$row: The record for which to make the control panel.
-	 * @return	string		HTML table with the control panel (unless disabled)
-	 */
-	function makeControl($table,$row) {
-		if ($this->dontShowClipControlPanels) {
-			return '';
-		}
+    /**
+     * Creates the control panel for a single record in the listing.
+     *
+     * @param	string		$table: The table
+     * @param	array		$row: The record for which to make the control panel.
+     * @return	string		HTML table with the control panel (unless disabled)
+     */
+    public function makeControl($table, $row)
+    {
+        if ($this->dontShowClipControlPanels) {
+            return '';
+        }
 
-		$cells = array();
+        $cells = array();
 
-			// If the listed table is 'pages' we have to request the permission settings for each page:
-		if ($table == 'pages') {
-			$localCalcPerms = $GLOBALS['BE_USER']->calcPerms(BackendUtility::getRecord('pages',$row['uid']));
-		}
+            // If the listed table is 'pages' we have to request the permission settings for each page:
+        if ($table == 'pages') {
+            $localCalcPerms = $GLOBALS['BE_USER']->calcPerms(BackendUtility::getRecord('pages', $row['uid']));
+        }
 
-			// This expresses the edit permissions for this particular element:
-		$permsEdit = ($table=='pages' && ($localCalcPerms&2)) || ($table!='pages' && ($this->calcPerms&16));
+            // This expresses the edit permissions for this particular element:
+        $permsEdit = ($table=='pages' && ($localCalcPerms&2)) || ($table!='pages' && ($this->calcPerms&16));
 
-			// "Edit" link: ( Only if permissions to edit the page-record of the content of the parent page ($this->id)
-		if ($permsEdit && !$this->disableControls['edit']) {
-			$params='&edit['.$table.']['.$row['uid'].']=edit&SET[function]=edit';
-			$cells[]='<a href="#" onclick="'.htmlspecialchars($this->editOnClick($params)).'">'.
-					'<img'.IconUtility::skinImg($this->backPath,'gfx/edit2'.(!$GLOBALS['TCA'][$table]['ctrl']['readOnly']?'':'_d').'.gif','width="11" height="12"').' title="'.$GLOBALS['LANG']->getLL('edit',1).'" alt="" />'.
-					'</a>';
-		}
+            // "Edit" link: ( Only if permissions to edit the page-record of the content of the parent page ($this->id)
+        if ($permsEdit && !$this->disableControls['edit']) {
+            $params='&edit['.$table.']['.$row['uid'].']=edit&SET[function]=edit';
+            $cells[]='<a href="#" onclick="'.htmlspecialchars($this->editOnClick($params)).'">'.
+                    '<img'.IconUtility::skinImg($this->backPath, 'gfx/edit2'.(!$GLOBALS['TCA'][$table]['ctrl']['readOnly']?'':'_d').'.gif', 'width="11" height="12"').' title="'.$GLOBALS['LANG']->getLL('edit', 1).'" alt="" />'.
+                    '</a>';
+        }
 
-			//dkd-kartolo
-			//show magnifier (mod4)
-		if (!$this->disableControls['detail']) {
-			$cells[] = '<a href="#" onclick="javascript:top.goToModule(\'txtcbeuserM1_txtcbeuserM4\', 1, \'&' . $this->analyzeParam . '=' . $row['uid'] . '\')">' .
-				'<img ' . IconUtility::skinImg($this->backPath, 'gfx/zoom.gif', 'width="12" height="12"') . 'title="' . $this->analyzeLabel . '" alt="" />' .
-				'</a>';
-		}
+            //dkd-kartolo
+            //show magnifier (mod4)
+        if (!$this->disableControls['detail']) {
+            $cells[] = '<a href="#" onclick="javascript:top.goToModule(\'txtcbeuserM1_txtcbeuserM4\', 1, \'&' . $this->analyzeParam . '=' . $row['uid'] . '\')">' .
+                '<img ' . IconUtility::skinImg($this->backPath, 'gfx/zoom.gif', 'width="12" height="12"') . 'title="' . $this->analyzeLabel . '" alt="" />' .
+                '</a>';
+        }
 
-			//dkd-kartolo
-			//show import fe user icon
-		if(!$this->disableControls['import']) {
-			$scriptname = GeneralUtility::getIndpEnv('SCRIPT_NAME');
-			$params = '&SET[function]=import&feID=' . $row['uid'];
-			$cells[] = '<a href="#" onclick="' . htmlspecialchars($this->editOnClick($params)) . '">' .
-				'<img ' . IconUtility::skinImg($this->backPath, 'gfx/edit2.gif', 'width="12" height="12"') . 'title="' . $GLOBALS['LANG']->getLL('import',1) . '" alt="" />' .
-				'</a>';
-		}
+            //dkd-kartolo
+            //show import fe user icon
+        if (!$this->disableControls['import']) {
+            $scriptname = GeneralUtility::getIndpEnv('SCRIPT_NAME');
+            $params = '&SET[function]=import&feID=' . $row['uid'];
+            $cells[] = '<a href="#" onclick="' . htmlspecialchars($this->editOnClick($params)) . '">' .
+                '<img ' . IconUtility::skinImg($this->backPath, 'gfx/edit2.gif', 'width="12" height="12"') . 'title="' . $GLOBALS['LANG']->getLL('import', 1) . '" alt="" />' .
+                '</a>';
+        }
 
-			// If the extended control panel is enabled OR if we are seeing a single table:
-		if ($GLOBALS['SOBE']->MOD_SETTINGS['bigControlPanel'] || $this->table) {
-			// "Info": (All records)
-			// show for all
-			$cells[] = '<a href="#" onclick="' . htmlspecialchars('top.launchView(\'' . $table . '\', \'' . $row['uid'] . '\'); return false;') . '">' .
-				'<img' . IconUtility::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('showInfo', 1) . '" alt="" />' .
-				'</a>';
+            // If the extended control panel is enabled OR if we are seeing a single table:
+        if ($GLOBALS['SOBE']->MOD_SETTINGS['bigControlPanel'] || $this->table) {
+            // "Info": (All records)
+            // show for all
+            $cells[] = '<a href="#" onclick="' . htmlspecialchars('top.launchView(\'' . $table . '\', \'' . $row['uid'] . '\'); return false;') . '">' .
+                '<img' . IconUtility::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('showInfo', 1) . '" alt="" />' .
+                '</a>';
 
-				// If the table is NOT a read-only table, then show these links:
-			if (!$GLOBALS['TCA'][$table]['ctrl']['readOnly']) {
-					// "Hide/Unhide" links:
-				$hiddenField = $GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled'];
-				if ($permsEdit && $hiddenField && $GLOBALS['TCA'][$table]['columns'][$hiddenField] && (!$GLOBALS['TCA'][$table]['columns'][$hiddenField]['exclude'] || $GLOBALS['BE_USER']->check('non_exclude_fields', $table . ':' . $hiddenField)) && !$this->disableControls['hide']) {
-					if ($row[$hiddenField]) {
-						$params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
-						$cells[] = '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' . $this->actionOnClick($params) . '\');') . '">' .
-							'<img' . IconUtility::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="' . $GLOBALS['LANG']->getLL('unHide' . ($table == 'pages' ? 'Page' : ''), 1) . '" alt="" />' .
-							'</a>';
-					} else {
-						$params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
-						$cells[] = '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' . $this->actionOnClick($params) . '\');') . '">' .
-							'<img' . IconUtility::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="' . $GLOBALS['LANG']->getLL('hide' . ($table == 'pages' ? 'Page' : ''), 1) . '" alt="" />' .
-							'</a>';
-					}
-				}
+                // If the table is NOT a read-only table, then show these links:
+            if (!$GLOBALS['TCA'][$table]['ctrl']['readOnly']) {
+                // "Hide/Unhide" links:
+                $hiddenField = $GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled'];
+                if ($permsEdit && $hiddenField && $GLOBALS['TCA'][$table]['columns'][$hiddenField] && (!$GLOBALS['TCA'][$table]['columns'][$hiddenField]['exclude'] || $GLOBALS['BE_USER']->check('non_exclude_fields', $table . ':' . $hiddenField)) && !$this->disableControls['hide']) {
+                    if ($row[$hiddenField]) {
+                        $params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
+                        $cells[] = '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' . $this->actionOnClick($params) . '\');') . '">' .
+                            '<img' . IconUtility::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="' . $GLOBALS['LANG']->getLL('unHide' . ($table == 'pages' ? 'Page' : ''), 1) . '" alt="" />' .
+                            '</a>';
+                    } else {
+                        $params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
+                        $cells[] = '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' . $this->actionOnClick($params) . '\');') . '">' .
+                            '<img' . IconUtility::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="' . $GLOBALS['LANG']->getLL('hide' . ($table == 'pages' ? 'Page' : ''), 1) . '" alt="" />' .
+                            '</a>';
+                    }
+                }
 
-					// "Delete" link:
-				if ( ($table=='pages' && ($localCalcPerms&4)) || ($table!='pages' && ($this->calcPerms&16) && !$this->disableControls['delete']) ) {
-					$params = '&cmd[' . $table . '][' . $row['uid'] . '][delete]=1&SET[function]=action';
-					$cells[] = '<a href="#" onclick="' . htmlspecialchars('if (confirm(' . $GLOBALS['LANG']->JScharCode($GLOBALS['LANG']->getLL('deleteWarning') . BackendUtility::referenceCount($table, $row['uid'], ' (There are %s reference(s) to this record!)')) . ')) {jumpToUrl(\'' . $this->actionOnClick($params) . '\');}') . '">' .
-						'<img' . IconUtility::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
-						'</a>';
-				}
-			}
-		}
+                    // "Delete" link:
+                if (($table=='pages' && ($localCalcPerms&4)) || ($table!='pages' && ($this->calcPerms&16) && !$this->disableControls['delete'])) {
+                    $params = '&cmd[' . $table . '][' . $row['uid'] . '][delete]=1&SET[function]=action';
+                    $cells[] = '<a href="#" onclick="' . htmlspecialchars('if (confirm(' . $GLOBALS['LANG']->JScharCode($GLOBALS['LANG']->getLL('deleteWarning') . BackendUtility::referenceCount($table, $row['uid'], ' (There are %s reference(s) to this record!)')) . ')) {jumpToUrl(\'' . $this->actionOnClick($params) . '\');}') . '">' .
+                        '<img' . IconUtility::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
+                        '</a>';
+                }
+            }
+        }
 
-		//TODO: only for admins or authorized user
-		// swith user / switch user back
-		if ($table == 'be_users') {
-			if(!$row[$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled']] && ($GLOBALS['BE_USER']->user['tc_beuser_switch_to'] || $GLOBALS['BE_USER']->isAdmin())) {
-				$cells[] = '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$row['uid'])).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$row['username']).' [change-to mode]" alt="" /></a>'.
-					'<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$row['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.IconUtility::skinImg($this->backPath,'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$row['username']).' [switch-back mode]" alt="" /></a>'
-					.chr(10).chr(10);
-			}
-		}
+        //TODO: only for admins or authorized user
+        // swith user / switch user back
+        if ($table == 'be_users') {
+            if (!$row[$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled']] && ($GLOBALS['BE_USER']->user['tc_beuser_switch_to'] || $GLOBALS['BE_USER']->isAdmin())) {
+                $cells[] = '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$row['uid'])).'" target="_top"><img '.IconUtility::skinImg($this->backPath, 'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$row['username']).' [change-to mode]" alt="" /></a>'.
+                    '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$row['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.IconUtility::skinImg($this->backPath, 'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$row['username']).' [switch-back mode]" alt="" /></a>'
+                    .chr(10).chr(10);
+            }
+        }
 
-			// If the record is edit-locked	by another user, we will show a little warning sign:
-		if ($lockInfo = BackendUtility::isRecordLocked($table,$row['uid'])) {
-			$cells[]='<a href="#" onclick="'.htmlspecialchars('alert('.$GLOBALS['LANG']->JScharCode($lockInfo['msg']).');return false;').'">'.
-					'<img'.IconUtility::skinImg($this->backPath,'gfx/recordlock_warning3.gif','width="17" height="12"').' title="'.htmlspecialchars($lockInfo['msg']).'" alt="" />'.
-					'</a>';
-		}
+            // If the record is edit-locked	by another user, we will show a little warning sign:
+        if ($lockInfo = BackendUtility::isRecordLocked($table, $row['uid'])) {
+            $cells[]='<a href="#" onclick="'.htmlspecialchars('alert('.$GLOBALS['LANG']->JScharCode($lockInfo['msg']).');return false;').'">'.
+                    '<img'.IconUtility::skinImg($this->backPath, 'gfx/recordlock_warning3.gif', 'width="17" height="12"').' title="'.htmlspecialchars($lockInfo['msg']).'" alt="" />'.
+                    '</a>';
+        }
 
 
-			// Compile items into a DIV-element:
-		return '
+            // Compile items into a DIV-element:
+        return '
 											<!-- CONTROL PANEL: '.$table.':'.$row['uid'].' -->
-											<div class="typo3-DBctrl">'.implode('',$cells).'</div>';
-	}
+											<div class="typo3-DBctrl">'.implode('', $cells).'</div>';
+    }
 
-	/**
-	 * create link for the hide/unhide and delete icon.
-	 * not using tce_db.php, because we need to manipulate user's permission
-	 *
-	 * @param	string		param with command (hide/unhide, delete) and records id
-	 * @param	string		redirect link, after process the command
-	 * @return	string		jumpTo URL link with redirect
-	 */
-	function actionOnClick($params, $requestURI = '') {
-		$redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : GeneralUtility::getIndpEnv('REQUEST_URI'))) .
-			'&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
-		return BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']) . $params . $redirect;
-	}
-
+    /**
+     * create link for the hide/unhide and delete icon.
+     * not using tce_db.php, because we need to manipulate user's permission
+     *
+     * @param	string		param with command (hide/unhide, delete) and records id
+     * @param	string		redirect link, after process the command
+     * @return	string		jumpTo URL link with redirect
+     */
+    public function actionOnClick($params, $requestURI = '')
+    {
+        $redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : GeneralUtility::getIndpEnv('REQUEST_URI'))) .
+            '&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
+        return BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']) . $params . $redirect;
+    }
 }
 
 
 
 if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_recordlist.php']) {
-	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_recordlist.php']);
+    include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_recordlist.php']);
 }
-
-?>

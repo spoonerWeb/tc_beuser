@@ -1,5 +1,6 @@
 <?php
 namespace dkd\TcBeuser\Controller;
+
 /***************************************************************
  *  Copyright notice
  *
@@ -36,550 +37,565 @@ use TYPO3\CMS\Core\Utility\MathUtility;
  * @package	TYPO3
  * @subpackage	tx_tcbeuser
  */
-class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass {
-	var $content;
-	var $doc;
-	var $jsCode;
-	var $MOD_MENU = array();
-	var $MOD_SETTINGS = array();
-	var $pageinfo;
+class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
+{
+    public $content;
+    public $doc;
+    public $jsCode;
+    public $MOD_MENU = array();
+    public $MOD_SETTINGS = array();
+    public $pageinfo;
 
-	/** @var  dkd\TcBeuser\Utility\EditFormUtility */
-	var $editform;
+    /** @var  dkd\TcBeuser\Utility\EditFormUtility */
+    public $editform;
 
-	function main() {
-		$this->init();
+    public function main()
+    {
+        $this->init();
 
-		//TODO more access check!?
-		$access = $GLOBALS['BE_USER']->modAccess($this->MCONF, true);
+        //TODO more access check!?
+        $access = $GLOBALS['BE_USER']->modAccess($this->MCONF, true);
 
-		if ($access || $GLOBALS['BE_USER']->isAdmin()) {
-			// We need some uid in rootLine for the access check, so use first webmount
-			$webmounts = $GLOBALS['BE_USER']->returnWebmounts();
-			$this->pageinfo['uid'] = $webmounts[0];
+        if ($access || $GLOBALS['BE_USER']->isAdmin()) {
+            // We need some uid in rootLine for the access check, so use first webmount
+            $webmounts = $GLOBALS['BE_USER']->returnWebmounts();
+            $this->pageinfo['uid'] = $webmounts[0];
 
-			$title = $GLOBALS['LANG']->getLL('title');
-			$menu  = BackendUtility::getFuncMenu(
-				$this->id,
-				'SET[function]',
-				$this->MOD_SETTINGS['function'],
-				$this->MOD_MENU['function']
-			);
+            $title = $GLOBALS['LANG']->getLL('title');
+            $menu  = BackendUtility::getFuncMenu(
+                $this->id,
+                'SET[function]',
+                $this->MOD_SETTINGS['function'],
+                $this->MOD_MENU['function']
+            );
 
-			$moduleContent = $this->moduleContent();
+            $moduleContent = $this->moduleContent();
 
-			// all necessary JS code needs to be set before this line!
-			/** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
-			$this->tceforms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
-			$this->tceforms->backPath = $GLOBALS['BACK_PATH'];
-			$this->doc->JScode = $this->tceforms->JSbottom('editform');
-			$this->doc->JScode .= $this->doc->wrapScriptTags($this->jsCode);
+            // all necessary JS code needs to be set before this line!
+            /** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
+            $this->tceforms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
+            $this->tceforms->backPath = $GLOBALS['BACK_PATH'];
+            $this->doc->JScode = $this->tceforms->JSbottom('editform');
+            $this->doc->JScode .= $this->doc->wrapScriptTags($this->jsCode);
 
-			$this->content  = '';
+            $this->content  = '';
 
-			$this->content .= $this->doc->spacer(5);
-			$this->content .= $this->doc->section(
-				'',
-				$this->doc->funcMenu(
-					$this->doc->header($title),
-					$menu
-				)
-			);
-			$this->content .= $this->doc->divider(5);
-			$this->content .= $moduleContent;
+            $this->content .= $this->doc->spacer(5);
+            $this->content .= $this->doc->section(
+                '',
+                $this->doc->funcMenu(
+                    $this->doc->header($title),
+                    $menu
+                )
+            );
+            $this->content .= $this->doc->divider(5);
+            $this->content .= $moduleContent;
 
-			$docHeaderButtons = $this->getButtons();
-			$markers['CSH'] = $this->docHeaderButtons['csh'];
-			$markers['FUNC_MENU'] = BackendUtility::getFuncMenu($this->id, 'SET[mode]', $this->MOD_SETTINGS['mode'], $this->MOD_MENU['mode']);
-			$markers['CONTENT'] = $this->content;
+            $docHeaderButtons = $this->getButtons();
+            $markers['CSH'] = $this->docHeaderButtons['csh'];
+            $markers['FUNC_MENU'] = BackendUtility::getFuncMenu($this->id, 'SET[mode]', $this->MOD_SETTINGS['mode'], $this->MOD_MENU['mode']);
+            $markers['CONTENT'] = $this->content;
 
-			// Build the <body> for the module
-			$this->content = $this->doc->moduleBody($this->pageinfo, $docHeaderButtons, $markers);
+            // Build the <body> for the module
+            $this->content = $this->doc->moduleBody($this->pageinfo, $docHeaderButtons, $markers);
 
-			$this->content = $this->doc->render($GLOBALS['LANG']->getLL('permissions'), $this->content);
-		}
-	}
+            $this->content = $this->doc->render($GLOBALS['LANG']->getLL('permissions'), $this->content);
+        }
+    }
 
-	/**
-	 * First initialization.
-	 *
-	 * @return	void
-	 */
-	function preInit() {
-		// Setting GPvars:
-		$this->editconf = GeneralUtility::_GP('edit');
-		$this->defVals = GeneralUtility::_GP('defVals');
-		$this->overrideVals = GeneralUtility::_GP('overrideVals');
-		$this->columnsOnly = GeneralUtility::_GP('columnsOnly');
-		$this->returnUrl = GeneralUtility::_GP('returnUrl');
-		$this->closeDoc = GeneralUtility::_GP('closeDoc');
-		$this->doSave = GeneralUtility::_GP('doSave');
-		$this->returnEditConf = GeneralUtility::_GP('returnEditConf');
+    /**
+     * First initialization.
+     *
+     * @return	void
+     */
+    public function preInit()
+    {
+        // Setting GPvars:
+        $this->editconf = GeneralUtility::_GP('edit');
+        $this->defVals = GeneralUtility::_GP('defVals');
+        $this->overrideVals = GeneralUtility::_GP('overrideVals');
+        $this->columnsOnly = GeneralUtility::_GP('columnsOnly');
+        $this->returnUrl = GeneralUtility::_GP('returnUrl');
+        $this->closeDoc = GeneralUtility::_GP('closeDoc');
+        $this->doSave = GeneralUtility::_GP('doSave');
+        $this->returnEditConf = GeneralUtility::_GP('returnEditConf');
 
-		// Setting override values as default if defVals does not exist.
-		if (!is_array($this->defVals) && is_array($this->overrideVals)) {
-			$this->defVals = $this->overrideVals;
-		}
+        // Setting override values as default if defVals does not exist.
+        if (!is_array($this->defVals) && is_array($this->overrideVals)) {
+            $this->defVals = $this->overrideVals;
+        }
 
-		// Setting return URL
-		$this->retUrl = $this->returnUrl ? $this->returnUrl : BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
+        // Setting return URL
+        $this->retUrl = $this->returnUrl ? $this->returnUrl : BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
 
-		// Make R_URL (request url) based on input GETvars:
-		$this->R_URL_parts = parse_url(GeneralUtility::getIndpEnv('REQUEST_URI'));
-		$this->R_URL_getvars = GeneralUtility::_GET();
-		$this->R_URL_getvars['edit'] = $this->editconf;
+        // Make R_URL (request url) based on input GETvars:
+        $this->R_URL_parts = parse_url(GeneralUtility::getIndpEnv('REQUEST_URI'));
+        $this->R_URL_getvars = GeneralUtility::_GET();
+        $this->R_URL_getvars['edit'] = $this->editconf;
 
-		if ($this->closeDoc > 0 ) {
-			$this->closeDocument();
-		}
-	}
+        if ($this->closeDoc > 0) {
+            $this->closeDocument();
+        }
+    }
 
-	/**
-	 * Detects, if a save command has been triggered.
-	 *
-	 * @return	boolean		True, then save the document (data submitted)
-	 */
-	function doProcessData() {
-		$out = $this->doSave || isset($_POST['_savedok_x']) || isset($_POST['_saveandclosedok_x']) || isset($_POST['_savedokview_x']) || isset($_POST['_savedoknew_x']);
-		return $out;
-	}
+    /**
+     * Detects, if a save command has been triggered.
+     *
+     * @return	boolean		True, then save the document (data submitted)
+     */
+    public function doProcessData()
+    {
+        $out = $this->doSave || isset($_POST['_savedok_x']) || isset($_POST['_saveandclosedok_x']) || isset($_POST['_savedokview_x']) || isset($_POST['_savedoknew_x']);
+        return $out;
+    }
 
-	/**
-	 * Do processing of data, submitting it to TCEmain.
-	 *
-	 * @return	void
-	 */
-	function processData() {
+    /**
+     * Do processing of data, submitting it to TCEmain.
+     *
+     * @return	void
+     */
+    public function processData()
+    {
+        if ($GLOBALS['BE_USER']->user['admin'] != 1) {
+            //make fake Admin
+            TcBeuserUtility::fakeAdmin();
+            $fakeAdmin = 1;
+        }
 
-		if($GLOBALS['BE_USER']->user['admin'] != 1) {
-			//make fake Admin
-			TcBeuserUtility::fakeAdmin();
-			$fakeAdmin = 1;
-		}
+        // GPvars specifically for processing:
+        $this->data = GeneralUtility::_GP('data');
+        $this->cmd = GeneralUtility::_GP('cmd')?GeneralUtility::_GP('cmd'):array();
+        $this->disableRTE = GeneralUtility::_GP('_disableRTE');
 
-		// GPvars specifically for processing:
-		$this->data = GeneralUtility::_GP('data');
-		$this->cmd = GeneralUtility::_GP('cmd')?GeneralUtility::_GP('cmd'):array();
-		$this->disableRTE = GeneralUtility::_GP('_disableRTE');
+        //set path to be relative to fileadmin
+        if (is_array($this->data)) {
+            $table = array_keys($this->data);
+            $uid = array_keys($this->data[$table[0]]);
+            if (!is_numeric($uid)) {
+                $this->data[$table[0]][$uid[0]]['base']=1;
 
-		//set path to be relative to fileadmin
-		if (is_array($this->data)) {
-			$table = array_keys($this->data);
-			$uid = array_keys($this->data[$table[0]]);
-			if(!is_numeric($uid)) {
-				$this->data[$table[0]][$uid[0]]['base']=1;
+                //check the new path
+                $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+                    '*',
+                    $this->table,
+                    'path = '.$GLOBALS['TYPO3_DB']->fullQuoteStr($this->data[$table[0]][$uid[0]]['path'], $this->table)
+                );
 
-				//check the new path
-				$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-					'*',
-					$this->table,
-					'path = '.$GLOBALS['TYPO3_DB']->fullQuoteStr($this->data[$table[0]][$uid[0]]['path'],$this->table)
-				);
+                $pathExists = false;
+                if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) > 0) {
+                    while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+                        if ($row['uid'] != $uid[0]) {
+                            $pathExists = true;
+                        }
+                    }
+                }
+            }
+        }
+        if ($pathExists) {
+            $this->error[] = array('error',$GLOBALS['LANG']->getLL('error-path'));
+        } else {
+            // See tce_db.php for relevate options here:
+            // Only options related to $this->data submission are included here.
+            /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
+            $tce = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Core\\DataHandling\\DataHandler');
+            $tce->stripslashes_values = 0;
 
-				$pathExists = false;
-				if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) > 0) {
-					while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
-						if($row['uid'] != $uid[0]) {
-							$pathExists = true;
-						}
-					}
-				}
-			}
-		}
-		if ($pathExists) {
-			$this->error[] = array('error',$GLOBALS['LANG']->getLL('error-path'));
-		} else {
-			// See tce_db.php for relevate options here:
-			// Only options related to $this->data submission are included here.
-			/** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
-			$tce = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Core\\DataHandling\\DataHandler');
-			$tce->stripslashes_values = 0;
+            // Setting default values specific for the user:
+            $TCAdefaultOverride = $GLOBALS['BE_USER']->getTSConfigProp('TCAdefaults');
+            if (is_array($TCAdefaultOverride)) {
+                $tce->setDefaultsFromUserTS($TCAdefaultOverride);
+            }
 
-			// Setting default values specific for the user:
-			$TCAdefaultOverride = $GLOBALS['BE_USER']->getTSConfigProp('TCAdefaults');
-			if (is_array($TCAdefaultOverride)) {
-				$tce->setDefaultsFromUserTS($TCAdefaultOverride);
-			}
+            // Setting internal vars:
+            if ($GLOBALS['BE_USER']->uc['neverHideAtCopy']) {
+                $tce->neverHideAtCopy = 1;
+            }
+            $tce->debug = 0;
+            $tce->disableRTE = $this->disableRTE;
 
-			// Setting internal vars:
-			if ($GLOBALS['BE_USER']->uc['neverHideAtCopy']) {
-				$tce->neverHideAtCopy = 1;
-			}
-			$tce->debug = 0;
-			$tce->disableRTE = $this->disableRTE;
+            // Loading TCEmain with data:
+            $tce->start($this->data, $this->cmd);
+            if (is_array($this->mirror)) {
+                $tce->setMirror($this->mirror);
+            }
 
-			// Loading TCEmain with data:
-			$tce->start($this->data,$this->cmd);
-			if (is_array($this->mirror)) {
-				$tce->setMirror($this->mirror);
-			}
-
-			// If pages are being edited, we set an instruction about updating the page tree after this operation.
-			if (isset($this->data['pages'])) {
-				BackendUtility::setUpdateSignal('updatePageTree');
-			}
-
-
-			// Checking referer / executing
-			$refInfo = parse_url(GeneralUtility::getIndpEnv('HTTP_REFERER'));
-			$httpHost = GeneralUtility::getIndpEnv('TYPO3_HOST_ONLY');
-			if ($httpHost!=$refInfo['host'] && $this->vC!=$GLOBALS['BE_USER']->veriCode() && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
-				$tce->log('',0,0,0,1,"Referer host '%s' and server host '%s' did not match and veriCode was not valid either!",1,array($refInfo['host'],$httpHost));
-				debug('Error: Referer host did not match with server host.');
-			} else {
-				// Perform the saving operation with TCEmain:
-				$tce->process_uploads($_FILES);
-				$tce->process_datamap();
-				$tce->process_cmdmap();
-
-				// If there was saved any new items, load them:
-				if (count($tce->substNEWwithIDs_table)) {
-					// Resetting editconf:
-					$this->editconf = array();
-
-					// Traverse all new records and forge the content of ->editconf so we can continue to EDIT these records!
-					foreach($tce->substNEWwithIDs_table as $nKey => $nTable) {
-						$editId = $tce->substNEWwithIDs[$nKey];
-						// translate new id to the workspace version:
-						if ($versionRec = BackendUtility::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace, $nTable, $editId,'uid')) {
-							$editId = $versionRec['uid'];
-						}
-
-						$this->editconf[$nTable][$editId]='edit';
-						if ($nTable=='pages' && $this->retUrl!='dummy.php' && $this->returnNewPageId) {
-							$this->retUrl .= '&id='.$tce->substNEWwithIDs[$nKey];
-						}
-					}
-				}
-
-				// See if any records was auto-created as new versions?
-				if (count($tce->autoVersionIdMap)) {
-					$this->fixWSversioningInEditConf($tce->autoVersionIdMap);
-				}
-
-				// If a document is saved and a new one is created right after.
-				if (isset($_POST['_savedoknew_x']) && is_array($this->editconf)) {
-
-					// Finding the current table:
-					reset($this->editconf);
-					$nTable = key($this->editconf);
-
-					// Finding the first id, getting the records pid+uid
-					reset($this->editconf[$nTable]);
-					$nUid = key($this->editconf[$nTable]);
-					$nRec = BackendUtility::getRecord($nTable,$nUid,'pid,uid');
-
-					// Setting a blank editconf array for a new record:
-					$this->editconf = array();
-					if ($this->getNewIconMode($nTable)=='top') {
-						$this->editconf[$nTable][$nRec['pid']] = 'new';
-					} else {
-						$this->editconf[$nTable][-$nRec['uid']] = 'new';
-					}
-				}
-
-				$tce->printLogErrorMessages(
-					isset($_POST['_saveandclosedok_x']) ?
-						$this->retUrl :
-						// popView will not be invoked here, because the information from the submit button for save/view will be lost .... But does it matter if there is an error anyways?
-						$this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('',$this->R_URL_getvars)
-				);
-			}
-			if (isset($_POST['_saveandclosedok_x']) || $this->closeDoc<0) {
-				//  || count($tce->substNEWwithIDs)... If any new items has been save, the document is CLOSED because if not, we just get that element re-listed as new. And we don't want that!
-				$this->closeDocument(abs($this->closeDoc));
-			}
-		}
-
-		if($fakeAdmin) {
-			TcBeuserUtility::removeFakeAdmin();
-		}
-	}
+            // If pages are being edited, we set an instruction about updating the page tree after this operation.
+            if (isset($this->data['pages'])) {
+                BackendUtility::setUpdateSignal('updatePageTree');
+            }
 
 
-	/**
-	 * close the document and send to the previous page
-	 */
-	function closeDocument() {
-		if($this->retUrl == 'dummy.php') {
-			$this->retUrl = BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
-		}
-		$retUrl = explode('/', $this->retUrl);
-		$this->retUrl = $retUrl[count($retUrl)-1];
-		Header('Location: '.$this->retUrl);
-		exit;
-	}
+            // Checking referer / executing
+            $refInfo = parse_url(GeneralUtility::getIndpEnv('HTTP_REFERER'));
+            $httpHost = GeneralUtility::getIndpEnv('TYPO3_HOST_ONLY');
+            if ($httpHost!=$refInfo['host'] && $this->vC!=$GLOBALS['BE_USER']->veriCode() && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
+                $tce->log('', 0, 0, 0, 1, "Referer host '%s' and server host '%s' did not match and veriCode was not valid either!", 1, array($refInfo['host'], $httpHost));
+                debug('Error: Referer host did not match with server host.');
+            } else {
+                // Perform the saving operation with TCEmain:
+                $tce->process_uploads($_FILES);
+                $tce->process_datamap();
+                $tce->process_cmdmap();
 
-	function init() {
-		parent::init();
+                // If there was saved any new items, load them:
+                if (count($tce->substNEWwithIDs_table)) {
+                    // Resetting editconf:
+                    $this->editconf = array();
 
-		// Initializing document template object:
-		$this->doc = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Template\\DocumentTemplate');
-		$this->doc->backPath = $GLOBALS['BACK_PATH'];
-		$this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/module.html');
-		$this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';
-		$this->doc->getPageRenderer()->loadPrototype();
-		// Setting up the context sensitive menu:
-		$this->doc->getContextMenuCode();
+                    // Traverse all new records and forge the content of ->editconf so we can continue to EDIT these records!
+                    foreach ($tce->substNEWwithIDs_table as $nKey => $nTable) {
+                        $editId = $tce->substNEWwithIDs[$nKey];
+                        // translate new id to the workspace version:
+                        if ($versionRec = BackendUtility::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace, $nTable, $editId, 'uid')) {
+                            $editId = $versionRec['uid'];
+                        }
 
-		// JavaScript
-		$this->doc->postCode .= $this->doc->wrapScriptTags('
+                        $this->editconf[$nTable][$editId]='edit';
+                        if ($nTable=='pages' && $this->retUrl!='dummy.php' && $this->returnNewPageId) {
+                            $this->retUrl .= '&id='.$tce->substNEWwithIDs[$nKey];
+                        }
+                    }
+                }
+
+                // See if any records was auto-created as new versions?
+                if (count($tce->autoVersionIdMap)) {
+                    $this->fixWSversioningInEditConf($tce->autoVersionIdMap);
+                }
+
+                // If a document is saved and a new one is created right after.
+                if (isset($_POST['_savedoknew_x']) && is_array($this->editconf)) {
+
+                    // Finding the current table:
+                    reset($this->editconf);
+                    $nTable = key($this->editconf);
+
+                    // Finding the first id, getting the records pid+uid
+                    reset($this->editconf[$nTable]);
+                    $nUid = key($this->editconf[$nTable]);
+                    $nRec = BackendUtility::getRecord($nTable, $nUid, 'pid,uid');
+
+                    // Setting a blank editconf array for a new record:
+                    $this->editconf = array();
+                    if ($this->getNewIconMode($nTable)=='top') {
+                        $this->editconf[$nTable][$nRec['pid']] = 'new';
+                    } else {
+                        $this->editconf[$nTable][-$nRec['uid']] = 'new';
+                    }
+                }
+
+                $tce->printLogErrorMessages(
+                    isset($_POST['_saveandclosedok_x']) ?
+                        $this->retUrl :
+                        // popView will not be invoked here, because the information from the submit button for save/view will be lost .... But does it matter if there is an error anyways?
+                        $this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('', $this->R_URL_getvars)
+                );
+            }
+            if (isset($_POST['_saveandclosedok_x']) || $this->closeDoc<0) {
+                //  || count($tce->substNEWwithIDs)... If any new items has been save, the document is CLOSED because if not, we just get that element re-listed as new. And we don't want that!
+                $this->closeDocument(abs($this->closeDoc));
+            }
+        }
+
+        if ($fakeAdmin) {
+            TcBeuserUtility::removeFakeAdmin();
+        }
+    }
+
+
+    /**
+     * close the document and send to the previous page
+     */
+    public function closeDocument()
+    {
+        if ($this->retUrl == 'dummy.php') {
+            $this->retUrl = BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
+        }
+        $retUrl = explode('/', $this->retUrl);
+        $this->retUrl = $retUrl[count($retUrl)-1];
+        Header('Location: '.$this->retUrl);
+        exit;
+    }
+
+    public function init()
+    {
+        parent::init();
+
+        // Initializing document template object:
+        $this->doc = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Template\\DocumentTemplate');
+        $this->doc->backPath = $GLOBALS['BACK_PATH'];
+        $this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/module.html');
+        $this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';
+        $this->doc->getPageRenderer()->loadPrototype();
+        // Setting up the context sensitive menu:
+        $this->doc->getContextMenuCode();
+
+        // JavaScript
+        $this->doc->postCode .= $this->doc->wrapScriptTags('
 				script_ended = 1;
 				if (top.fsMod) top.fsMod.recentIds["web"] = 0;
 		');
 
-		$this->doc->postCode .= $this->doc->wrapScriptTags('
+        $this->doc->postCode .= $this->doc->wrapScriptTags('
 			script_ended = 0;
 			function jumpToUrl(URL) {
 				document.location = URL;
 			}
 		');
 
-		$this->id = 0;
-		$this->search_field = GeneralUtility::_GP('search_field');
-		$this->pointer = MathUtility::forceIntegerInRange(
-			GeneralUtility::_GP('pointer'),
-			0,
-			100000
-		);
-		$this->table = 'sys_filemounts';
+        $this->id = 0;
+        $this->search_field = GeneralUtility::_GP('search_field');
+        $this->pointer = MathUtility::forceIntegerInRange(
+            GeneralUtility::_GP('pointer'),
+            0,
+            100000
+        );
+        $this->table = 'sys_filemounts';
 
-		$SET = GeneralUtility::_GET('SET');
-		if($SET['function'] == 'action'){
-			$this->MOD_SETTINGS['function'] = $SET['function'];
-		}
-	}
+        $SET = GeneralUtility::_GET('SET');
+        if ($SET['function'] == 'action') {
+            $this->MOD_SETTINGS['function'] = $SET['function'];
+        }
+    }
 
-	/**
-	 * Adds items to the ->MOD_MENU array. Used for the function menu selector.
-	 *
-	 * @return	void
-	 */
-	function menuConfig() {
-		$this->MOD_MENU = array (
-			'function' => array (
-				'1' => $GLOBALS['LANG']->getLL('list-filemounts'),
-				'2' => $GLOBALS['LANG']->getLL('create-filemount'),
-			),
+    /**
+     * Adds items to the ->MOD_MENU array. Used for the function menu selector.
+     *
+     * @return	void
+     */
+    public function menuConfig()
+    {
+        $this->MOD_MENU = array(
+            'function' => array(
+                '1' => $GLOBALS['LANG']->getLL('list-filemounts'),
+                '2' => $GLOBALS['LANG']->getLL('create-filemount'),
+            ),
 //			'hideDeactivatedUsers' => '0'
-		);
-		parent::menuConfig();
-	}
+        );
+        parent::menuConfig();
+    }
 
-	/**
-	 * Generates the module content
-	 *
-	 * @return	string
-	 */
-	function moduleContent() {
-		$content = '';
+    /**
+     * Generates the module content
+     *
+     * @return	string
+     */
+    public function moduleContent()
+    {
+        $content = '';
 
-		if(!empty($this->editconf)){
-			$this->MOD_SETTINGS['function'] = 'edit';
-		}
+        if (!empty($this->editconf)) {
+            $this->MOD_SETTINGS['function'] = 'edit';
+        }
 
-		switch((string)$this->MOD_SETTINGS['function']) {
-			case '1':
-				// list Filemounts
-				$content .= $this->doc->section(
-					'',
-					$this->getFilemountList()
-				);
-				break;
-			case '2':
-				// create new Filemount
-				$data = GeneralUtility::_GP('data');
-				$dataKey = is_array($data) ? array_keys($data[$this->table]): array();
-				if(is_numeric($dataKey[0])){
-					$this->editconf = array($this->table => array($dataKey[0] => 'edit'));
-				}else{ // create new user
-					$this->editconf = array($this->table => array(0=>'new'));
-				}
-				$content .= $this->doc->section(
-					'',
-					$this->getFilemountEdit()
-				);
-				break;
-			case 'edit':
-				$content .= $this->doc->section(
-					'',
-					$this->getFilemountEdit()
-				);
+        switch ((string)$this->MOD_SETTINGS['function']) {
+            case '1':
+                // list Filemounts
+                $content .= $this->doc->section(
+                    '',
+                    $this->getFilemountList()
+                );
+                break;
+            case '2':
+                // create new Filemount
+                $data = GeneralUtility::_GP('data');
+                $dataKey = is_array($data) ? array_keys($data[$this->table]): array();
+                if (is_numeric($dataKey[0])) {
+                    $this->editconf = array($this->table => array($dataKey[0] => 'edit'));
+                } else { // create new user
+                    $this->editconf = array($this->table => array(0=>'new'));
+                }
+                $content .= $this->doc->section(
+                    '',
+                    $this->getFilemountEdit()
+                );
+                break;
+            case 'edit':
+                $content .= $this->doc->section(
+                    '',
+                    $this->getFilemountEdit()
+                );
 
-				break;
-			case 'action':
-				$this->processData();
-				Header('Location: '.GeneralUtility::locationHeaderUrl(GeneralUtility::_GP('redirect')));
-				break;
-		}
+                break;
+            case 'action':
+                $this->processData();
+                Header('Location: '.GeneralUtility::locationHeaderUrl(GeneralUtility::_GP('redirect')));
+                break;
+        }
 
-		return $content;
-	}
+        return $content;
+    }
 
-	function printContent() {
-		$this->content .= $this->doc->endPage();
-		echo $this->content;
-	}
+    public function printContent()
+    {
+        $this->content .= $this->doc->endPage();
+        echo $this->content;
+    }
 
-	function getFilemountList() {
-		$content = '';
+    public function getFilemountList()
+    {
+        $content = '';
 
-		/** @var dkd\TcBeuser\Utility\RecordListUtility $dblist */
-		$dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
-		$dblist->backPath = $this->doc->backPath;
-		$dblist->script = GeneralUtility::linkThisScript();
-		$dblist->alternateBgColors = true;
-		$dblist->calcPerms = $GLOBALS['BE_USER']->calcPerms($this->pageinfo);
-		$dblist->showFields = array('title', 'path');
-		$dblist->disableControls = array('edit' => true, 'detail' => true, 'import' => true);
+        /** @var dkd\TcBeuser\Utility\RecordListUtility $dblist */
+        $dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
+        $dblist->backPath = $this->doc->backPath;
+        $dblist->script = GeneralUtility::linkThisScript();
+        $dblist->alternateBgColors = true;
+        $dblist->calcPerms = $GLOBALS['BE_USER']->calcPerms($this->pageinfo);
+        $dblist->showFields = array('title', 'path');
+        $dblist->disableControls = array('edit' => true, 'detail' => true, 'import' => true);
 
-		$dblist->start(0, $this->table, $this->pointer, $this->search_field);
+        $dblist->start(0, $this->table, $this->pointer, $this->search_field);
 
-		// default sorting, needs to be set after $dblist->start()
-		$sort = GeneralUtility::_GET('sortField');
-		if(is_null($sort)) {
-			$dblist->sortField = 'title';
-		}
-		$dblist->generateList();
-		$content .= $dblist->HTMLcode;
+        // default sorting, needs to be set after $dblist->start()
+        $sort = GeneralUtility::_GET('sortField');
+        if (is_null($sort)) {
+            $dblist->sortField = 'title';
+        }
+        $dblist->generateList();
+        $content .= $dblist->HTMLcode;
 
-		// make new user link
-		$content .= '<!--
+        // make new user link
+        $content .= '<!--
 						Link for creating a new record:
 					-->
 		<div id="typo3-newRecordLink">
 		<a href="' . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 2)) . '">' .
-			'<img' . IconUtility::skinImg($this->doc->backPath, 'gfx/new_el.gif', 'width="11" height="12"') . ' alt="' . $GLOBALS['LANG']->getLL('create-filemount') . '" />' .
-			$GLOBALS['LANG']->getLL('create-filemount') .
-			'</a>';
+            '<img' . IconUtility::skinImg($this->doc->backPath, 'gfx/new_el.gif', 'width="11" height="12"') . ' alt="' . $GLOBALS['LANG']->getLL('create-filemount') . '" />' .
+            $GLOBALS['LANG']->getLL('create-filemount') .
+            '</a>';
 
-		$this->jsCode .= $this->doc->redirectUrls($dblist->listURL())."\n";
+        $this->jsCode .= $this->doc->redirectUrls($dblist->listURL())."\n";
 
-		return $content;
-	}
+        return $content;
+    }
 
-	function getFilemountEdit() {
-		$content = '';
+    public function getFilemountEdit()
+    {
+        $content = '';
 
-		//show warning
-		$this->error[] = array(
-			'warning',
-			$GLOBALS['LANG']->getLL('filemount-msg')
-		);
+        //show warning
+        $this->error[] = array(
+            'warning',
+            $GLOBALS['LANG']->getLL('filemount-msg')
+        );
 
-		/** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
-		$this->tceforms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
-		$this->tceforms->backPath = $this->doc->backPath;
-		$this->tceforms->initDefaultBEMode();
-		$this->tceforms->doSaveFieldName = 'doSave';
-		$this->tceforms->localizationMode = GeneralUtility::inList('text,media',$this->localizationMode) ? $this->localizationMode : '';	// text,media is keywords defined in TYPO3 Core API..., see "l10n_cat"
-		$this->tceforms->returnUrl = $this->R_URI;
-		$this->tceforms->disableRTE = true; // not needed anyway, might speed things up
+        /** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
+        $this->tceforms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
+        $this->tceforms->backPath = $this->doc->backPath;
+        $this->tceforms->initDefaultBEMode();
+        $this->tceforms->doSaveFieldName = 'doSave';
+        $this->tceforms->localizationMode = GeneralUtility::inList('text,media', $this->localizationMode) ? $this->localizationMode : '';    // text,media is keywords defined in TYPO3 Core API..., see "l10n_cat"
+        $this->tceforms->returnUrl = $this->R_URI;
+        $this->tceforms->disableRTE = true; // not needed anyway, might speed things up
 
-		// Setting external variables:
-		#if ($GLOBAL['BE_USER']->uc['edit_showFieldHelp']!='text')	$this->tceforms->edit_showFieldHelp='text';
+        // Setting external variables:
+        #if ($GLOBAL['BE_USER']->uc['edit_showFieldHelp']!='text')	$this->tceforms->edit_showFieldHelp='text';
 
-		// Creating the editing form, wrap it with buttons, document selector etc.
-		/** @var dkd\TcBeuser\Utility\EditFormUtility editForm */
-		$this->editForm = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\EditFormUtility');
-		$this->editForm->tceforms = &$this->tceforms;
-		$this->editForm->columnsOnly = 'title,path';
-		$this->editForm->editconf = $this->editconf;
-		$this->editForm->error = $this->error;
-		$this->editForm->inputData = $this->data;
+        // Creating the editing form, wrap it with buttons, document selector etc.
+        /** @var dkd\TcBeuser\Utility\EditFormUtility editForm */
+        $this->editForm = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\EditFormUtility');
+        $this->editForm->tceforms = &$this->tceforms;
+        $this->editForm->columnsOnly = 'title,path';
+        $this->editForm->editconf = $this->editconf;
+        $this->editForm->error = $this->error;
+        $this->editForm->inputData = $this->data;
 
-		$editForm = $this->editForm->makeEditForm();
-		$this->viewId = $this->editForm->viewId;
+        $editForm = $this->editForm->makeEditForm();
+        $this->viewId = $this->editForm->viewId;
 
-		if ($editForm) {
-			// ingo.renner@dkd.de
-			reset($this->editForm->elementsData);
-			$this->firstEl = current($this->editForm->elementsData);
+        if ($editForm) {
+            // ingo.renner@dkd.de
+            reset($this->editForm->elementsData);
+            $this->firstEl = current($this->editForm->elementsData);
 
-			if ($this->viewId) {
-				// Module configuration:
-				$this->modTSconfig = BackendUtility::getModTSconfig($this->viewId,'mod.xMOD_alt_doc');
-			} else $this->modTSconfig=array();
+            if ($this->viewId) {
+                // Module configuration:
+                $this->modTSconfig = BackendUtility::getModTSconfig($this->viewId, 'mod.xMOD_alt_doc');
+            } else {
+                $this->modTSconfig=array();
+            }
 
-			$panel = $this->makeButtonPanel();
-			$formContent = $this->compileForm($panel,'','',$editForm);
+            $panel = $this->makeButtonPanel();
+            $formContent = $this->compileForm($panel, '', '', $editForm);
 
-			$content .= $this->tceforms->printNeededJSFunctions_top().
-				$formContent.
-				$this->tceforms->printNeededJSFunctions();
-			#$this->tceformMessages();
-		}
+            $content .= $this->tceforms->printNeededJSFunctions_top().
+                $formContent.
+                $this->tceforms->printNeededJSFunctions();
+            #$this->tceformMessages();
+        }
 
-		return $content;
-	}
+        return $content;
+    }
 
-	/**
-	 * ingo.renner@dkd.de: from alt_doc.php, modified
-	 *
-	 * Create the panel of buttons for submitting the form or otherwise perform operations.
-	 *
-	 * @return	string		HTML code, comprised of images linked to various actions.
-	 */
-	function makeButtonPanel() {
-		$panel='';
+    /**
+     * ingo.renner@dkd.de: from alt_doc.php, modified
+     *
+     * Create the panel of buttons for submitting the form or otherwise perform operations.
+     *
+     * @return	string		HTML code, comprised of images linked to various actions.
+     */
+    public function makeButtonPanel()
+    {
+        $panel='';
 
-		// Render SAVE type buttons:
-		// The action of each button is decided by its name attribute. (See doProcessData())
-		if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']) {
+        // Render SAVE type buttons:
+        // The action of each button is decided by its name attribute. (See doProcessData())
+        if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']) {
 
-			// SAVE button:
-			$panel.= '<input type="image" class="c-inputButton" name="_savedok"'.IconUtility::skinImg($this->doc->backPath,'gfx/savedok.gif','').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveDoc',1).'" />';
+            // SAVE button:
+            $panel.= '<input type="image" class="c-inputButton" name="_savedok"'.IconUtility::skinImg($this->doc->backPath, 'gfx/savedok.gif', '').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveDoc', 1).'" />';
 
-			// SAVE / CLOSE
-			$panel.= '<input type="image" class="c-inputButton" name="_saveandclosedok"'.IconUtility::skinImg($this->doc->backPath,'gfx/saveandclosedok.gif','').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveCloseDoc',1).'" />';
-		}
+            // SAVE / CLOSE
+            $panel.= '<input type="image" class="c-inputButton" name="_saveandclosedok"'.IconUtility::skinImg($this->doc->backPath, 'gfx/saveandclosedok.gif', '').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveCloseDoc', 1).'" />';
+        }
 
-		// CLOSE button:
-		$panel.= '<a href="#" onclick="document.editform.closeDoc.value=1; document.editform.submit(); return false;">'.
-			'<img'.IconUtility::skinImg($this->doc->backPath,'gfx/closedok.gif','width="21" height="16"').' class="c-inputButton" title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.closeDoc',1).'" alt="" />'.
-			'</a>';
+        // CLOSE button:
+        $panel.= '<a href="#" onclick="document.editform.closeDoc.value=1; document.editform.submit(); return false;">'.
+            '<img'.IconUtility::skinImg($this->doc->backPath, 'gfx/closedok.gif', 'width="21" height="16"').' class="c-inputButton" title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.closeDoc', 1).'" alt="" />'.
+            '</a>';
 
-		// UNDO buttons:
-		if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly'] && count($this->elementsData)==1) {
-			if ($this->firstEl['cmd']!='new' && GeneralUtility::testInt($this->firstEl['uid'])) {
+        // UNDO buttons:
+        if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly'] && count($this->elementsData)==1) {
+            if ($this->firstEl['cmd']!='new' && GeneralUtility::testInt($this->firstEl['uid'])) {
 
-				// Undo:
-				$undoButton = 0;
-				$undoRes = $GLOBALS['TYPO3_DB']->exec_SELECTquery('tstamp', 'sys_history', 'tablename='.$GLOBALS['TYPO3_DB']->fullQuoteStr($this->firstEl['table'], 'sys_history').' AND recuid='.intval($this->firstEl['uid']), '', 'tstamp DESC', '1');
-				if ($undoButtonR = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($undoRes)) {
-					$undoButton = 1;
-				}
-				if ($undoButton) {
-					$aOnClick = 'window.location.href=\'show_rechis.php?element='.rawurlencode($this->firstEl['table'].':'.$this->firstEl['uid']).'&revert=ALL_FIELDS&sumUp=-1&returnUrl='.rawurlencode($this->R_URI).'\'; return false;';
-					$panel.= '<a href="#" onclick="'.htmlspecialchars($aOnClick).'">'.
-						'<img'.IconUtility::skinImg($this->doc->backPath,'gfx/undo.gif','width="21" height="16"').' class="c-inputButton" title="'.htmlspecialchars(sprintf($GLOBALS['LANG']->getLL('undoLastChange'),BackendUtility::calcAge(time()-$undoButtonR['tstamp'],$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')))).'" alt="" />'.
-						'</a>';
-				}
+                // Undo:
+                $undoButton = 0;
+                $undoRes = $GLOBALS['TYPO3_DB']->exec_SELECTquery('tstamp', 'sys_history', 'tablename='.$GLOBALS['TYPO3_DB']->fullQuoteStr($this->firstEl['table'], 'sys_history').' AND recuid='.intval($this->firstEl['uid']), '', 'tstamp DESC', '1');
+                if ($undoButtonR = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($undoRes)) {
+                    $undoButton = 1;
+                }
+                if ($undoButton) {
+                    $aOnClick = 'window.location.href=\'show_rechis.php?element='.rawurlencode($this->firstEl['table'].':'.$this->firstEl['uid']).'&revert=ALL_FIELDS&sumUp=-1&returnUrl='.rawurlencode($this->R_URI).'\'; return false;';
+                    $panel.= '<a href="#" onclick="'.htmlspecialchars($aOnClick).'">'.
+                        '<img'.IconUtility::skinImg($this->doc->backPath, 'gfx/undo.gif', 'width="21" height="16"').' class="c-inputButton" title="'.htmlspecialchars(sprintf($GLOBALS['LANG']->getLL('undoLastChange'), BackendUtility::calcAge(time()-$undoButtonR['tstamp'], $GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')))).'" alt="" />'.
+                        '</a>';
+                }
 
-				// If only SOME fields are shown in the form, this will link the user to the FULL form:
-				if ($this->columnsOnly) {
-					$panel.= '<a href="'.htmlspecialchars($this->R_URI.'&columnsOnly=').'">'.
-						'<img'.IconUtility::skinImg($this->doc->backPath,'gfx/edit2.gif','width="11" height="12"').' class="c-inputButton" title="'.$GLOBALS['LANG']->getLL('editWholeRecord',1).'" alt="" />'.
-						'</a>';
-				}
-			}
-		}
-		return $panel;
-	}
+                // If only SOME fields are shown in the form, this will link the user to the FULL form:
+                if ($this->columnsOnly) {
+                    $panel.= '<a href="'.htmlspecialchars($this->R_URI.'&columnsOnly=').'">'.
+                        '<img'.IconUtility::skinImg($this->doc->backPath, 'gfx/edit2.gif', 'width="11" height="12"').' class="c-inputButton" title="'.$GLOBALS['LANG']->getLL('editWholeRecord', 1).'" alt="" />'.
+                        '</a>';
+                }
+            }
+        }
+        return $panel;
+    }
 
-	/**
-	 * Put together the various elements (buttons, selectors, form) into a table
-	 *
-	 * @param	string		The button panel HTML
-	 * @param	string		Document selector HTML
-	 * @param	string		Clear-cache menu HTML
-	 * @param	string		HTML form.
-	 * @param	string		Language selector HTML for localization
-	 * @return	string		Composite HTML
-	 */
-	function compileForm($panel,$docSel,$cMenu,$editForm, $langSelector='') {
-		$formContent = '';
-		$formContent .= '
+    /**
+     * Put together the various elements (buttons, selectors, form) into a table
+     *
+     * @param	string		The button panel HTML
+     * @param	string		Document selector HTML
+     * @param	string		Clear-cache menu HTML
+     * @param	string		HTML form.
+     * @param	string		Language selector HTML for localization
+     * @return	string		Composite HTML
+     */
+    public function compileForm($panel, $docSel, $cMenu, $editForm, $langSelector='')
+    {
+        $formContent = '';
+        $formContent .= '
 
 			<!--
 			 	Header of the editing page.
@@ -592,12 +608,12 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 					<td nowrap="nowrap" valign="top" align="right">'.$docSel.$cMenu.'</td>
 				</tr>';
 
-		if ($langSelector) {
-			$langSelector ='<div id="typo3-altdoc-lang-selector">'.$langSelector.'</div>';
-		}
-		$pagePath = '<div id="typo3-altdoc-page-path">'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.path',1).': '.htmlspecialchars($this->generalPathOfForm).'</div>';
+        if ($langSelector) {
+            $langSelector ='<div id="typo3-altdoc-lang-selector">'.$langSelector.'</div>';
+        }
+        $pagePath = '<div id="typo3-altdoc-page-path">'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.path', 1).': '.htmlspecialchars($this->generalPathOfForm).'</div>';
 
-		$formContent.='
+        $formContent.='
 				<tr>
 					<td colspan="2"><div id="typo3-altdoc-header-info-options">'.$pagePath.$langSelector.'<div></td>
 				</tr>
@@ -614,47 +630,48 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 			-->
 
 			'.$panel.
-			'<input type="hidden" name="returnUrl" value="'.htmlspecialchars($this->retUrl).'" />
+            '<input type="hidden" name="returnUrl" value="'.htmlspecialchars($this->retUrl).'" />
 			<input type="hidden" name="viewUrl" value="'.htmlspecialchars($this->viewUrl).'" />';
 
-		if ($this->returnNewPageId) {
-			$formContent .= '<input type="hidden" name="returnNewPageId" value="1" />';
-		}
-		$formContent .= '<input type="hidden" name="popViewId" value="'.htmlspecialchars($this->viewId).'" />';
-		if ($this->viewId_addParams) {
-			$formContent .= '<input type="hidden" name="popViewId_addParams" value="'.htmlspecialchars($this->viewId_addParams).'" />';
-		}
-		$formContent .= '<input type="hidden" name="closeDoc" value="0" />';
-		$formContent .= '<input type="hidden" name="doSave" value="0" />';
-		$formContent .= '<input type="hidden" name="_serialNumber" value="'.md5(microtime()).'" />';
-		$formContent .= '<input type="hidden" name="_disableRTE" value="'.$this->tceforms->disableRTE.'" />';
+        if ($this->returnNewPageId) {
+            $formContent .= '<input type="hidden" name="returnNewPageId" value="1" />';
+        }
+        $formContent .= '<input type="hidden" name="popViewId" value="'.htmlspecialchars($this->viewId).'" />';
+        if ($this->viewId_addParams) {
+            $formContent .= '<input type="hidden" name="popViewId_addParams" value="'.htmlspecialchars($this->viewId_addParams).'" />';
+        }
+        $formContent .= '<input type="hidden" name="closeDoc" value="0" />';
+        $formContent .= '<input type="hidden" name="doSave" value="0" />';
+        $formContent .= '<input type="hidden" name="_serialNumber" value="'.md5(microtime()).'" />';
+        $formContent .= '<input type="hidden" name="_disableRTE" value="'.$this->tceforms->disableRTE.'" />';
 
-		return $formContent;
-	}
+        return $formContent;
+    }
 
-	/**
-	 * Create the panel of buttons for submitting the form or otherwise perform operations.
-	 *
-	 * @return 	array		all available buttons as an assoc. array
-	 */
-	protected function getButtons() {
-		$buttons = array(
-			'csh' => '',
-			'view' => '',
-			'shortcut' => ''
-		);
-		// CSH
-		$buttons['csh'] = BackendUtility::cshItem('_MOD_web_info', '', $GLOBALS['BACK_PATH'], '', TRUE);
-		// Shortcut
-		if ($GLOBALS['BE_USER']->mayMakeShortcut()) {
-			$buttons['shortcut'] = $this->doc->makeShortcutIcon('id, edit_record, pointer, new_unique_uid, search_field, search_levels, showLimit', implode(',', array_keys($this->MOD_MENU)), $this->MCONF['name']);
-		}
-		return $buttons;
-	}
+    /**
+     * Create the panel of buttons for submitting the form or otherwise perform operations.
+     *
+     * @return 	array		all available buttons as an assoc. array
+     */
+    protected function getButtons()
+    {
+        $buttons = array(
+            'csh' => '',
+            'view' => '',
+            'shortcut' => ''
+        );
+        // CSH
+        $buttons['csh'] = BackendUtility::cshItem('_MOD_web_info', '', $GLOBALS['BACK_PATH'], '', true);
+        // Shortcut
+        if ($GLOBALS['BE_USER']->mayMakeShortcut()) {
+            $buttons['shortcut'] = $this->doc->makeShortcutIcon('id, edit_record, pointer, new_unique_uid, search_field, search_levels, showLimit', implode(',', array_keys($this->MOD_MENU)), $this->MCONF['name']);
+        }
+        return $buttons;
+    }
 }
 
 
 
 if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php']) {
-	include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php']);
+    include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php']);
 }

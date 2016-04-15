@@ -6,4 +6,3 @@ $MCONF['script'] = '_DISPATCH';
 
 $MLANG['default']['tabs_images']['tab'] = 'moduleicon.gif';
 $MLANG['default']['ll_ref'] = 'LLL:EXT:tc_beuser/mod5/locallang_mod.xml';
-?>

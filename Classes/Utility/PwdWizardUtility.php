@@ -34,24 +34,25 @@ use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
  *
  * @author Ivan Kartolo <ivan.kartolo@dkd.de>
  */
-class PwdWizardUtility {
+class PwdWizardUtility
+{
 
-var $backPath = '../../../../typo3/';
+    public $backPath = '../../../../typo3/';
 
-	function main($PA, $pObj) {
-		$output = '<script src="'.ExtensionManagementUtility::extRelPath('tc_beuser').'mod2/pwdgen.js" type="text/javascript"></script>';
-		$onclick = 'pass = mkpass();' .
-					'document.'.$PA['formName'].'[\''.$PA['itemName'].'\'].value = pass;';
-		$onclick .= implode('',$PA['fieldChangeFunc']);
+    public function main($PA, $pObj)
+    {
+        $output = '<script src="'.ExtensionManagementUtility::extRelPath('tc_beuser').'mod2/pwdgen.js" type="text/javascript"></script>';
+        $onclick = 'pass = mkpass();' .
+                    'document.'.$PA['formName'].'[\''.$PA['itemName'].'\'].value = pass;';
+        $onclick .= implode('', $PA['fieldChangeFunc']);
 
-		$output .= '<a href="#" onclick="'.htmlspecialchars($onclick).'">'.
-			IconUtility::getSpriteIcon('actions-move-left', array('title' => $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:password-wizard', 1))).
-			'</a>';
-		return $output;
-	}
+        $output .= '<a href="#" onclick="'.htmlspecialchars($onclick).'">'.
+            IconUtility::getSpriteIcon('actions-move-left', array('title' => $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:password-wizard', 1))).
+            '</a>';
+        return $output;
+    }
 }
 
 if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_pwd_wizard.php']) {
-	include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_pwd_wizard.php']);
+    include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_pwd_wizard.php']);
 }
-?>

@@ -35,16 +35,14 @@ $SOBE = GeneralUtility::makeInstance('dkd\\TcBeuser\\Controller\\UserAdminContro
 $SOBE->preInit();
 
 // Include files?
-foreach($SOBE->include_once as $INC_FILE) {
-	include_once($INC_FILE);
+foreach ($SOBE->include_once as $INC_FILE) {
+    include_once($INC_FILE);
 }
 $SOBE->preInit();
 if ($SOBE->doProcessData()) {
-	// Checks, if a save button has been clicked (or the doSave variable is sent)
-	$SOBE->processData();
+    // Checks, if a save button has been clicked (or the doSave variable is sent)
+    $SOBE->processData();
 }
 
 $SOBE->main();
 $SOBE->printContent();
-
-?>
