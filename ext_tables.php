@@ -21,7 +21,6 @@ if (TYPO3_MODE == 'BE') {
         $GLOBALS['TBE_MODULES'] = $temp_TBE_MODULES;
     }
 
-    \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule('tcTools', 'txtcbeuserM3', 'bottom', $extPath . 'mod3/');
     \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule('tcTools', 'txtcbeuserM5', 'bottom', $extPath . 'mod5/');
     \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule('tcTools', 'txtcbeuserM4', 'bottom', $extPath . 'mod4/');
     \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule('web', 'txtcbeuserM6', '', $extPath . 'mod6/');
@@ -60,6 +59,26 @@ if (TYPO3_MODE == 'BE') {
                     'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleUserAdmin.gif',
                 ),
                 'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleUserAdmin.xml',
+            )
+        )
+    );
+
+    # GroupAdmin Module
+    TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule(
+        'tcTools',
+        'GroupAdmin',
+        'bottom',
+        '',
+        array(
+            'routeTarget' => dkd\TcBeuser\Controller\GroupAdminController::class . '::mainAction',
+            'access' => 'group,user',
+            'name' => 'tcTools_GroupAdmin',
+            'workspaces' => 'online',
+            'labels' => array(
+                'tabs_images' => array(
+                    'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleGroupAdmin.gif',
+                ),
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleGroupAdmin.xml',
             )
         )
     );

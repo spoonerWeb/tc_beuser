@@ -445,7 +445,7 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         // delete
         $params = '&cmd['.$this->table.']['.$userRecord['uid'].'][delete]=1&SET[function]=action&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
         $control .= '<a href="#" onclick="' . htmlspecialchars('if (confirm(' .
-                $GLOBALS['LANG']->JScharCode(
+                GeneralUtility::quoteJSvalue(
                     $GLOBALS['LANG']->getLL('deleteWarning') .
                     BackendUtility::referenceCount(
                         $this->table,

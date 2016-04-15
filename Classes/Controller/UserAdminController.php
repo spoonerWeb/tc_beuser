@@ -130,7 +130,7 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             $moduleContent = $this->moduleContent();
 
             // all necessary JS code needs to be set before this line!
-            $this->tceforms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
+            $this->tceforms = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Form\\FormEngine');
             $this->tceforms->backPath = $GLOBALS['BACK_PATH'];
             $this->doc->JScode = $this->tceforms->JSbottom('editform');
             $this->doc->JScode .= $this->doc->wrapScriptTags($this->jsCode);
@@ -261,7 +261,7 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
             /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
-            $tce = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Core\\DataHandling\\DataHandler');
+            $tce = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\DataHandling\\DataHandler');
             $tce->stripslashes_values = 0;
 
             // Setting default values specific for the user:

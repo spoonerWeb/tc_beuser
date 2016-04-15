@@ -791,7 +791,7 @@ class RecordListUtility extends DatabaseRecordList
                     // "Delete" link:
                 if (($table=='pages' && ($localCalcPerms&4)) || ($table!='pages' && ($this->calcPerms&16) && !$this->disableControls['delete'])) {
                     $params = '&cmd[' . $table . '][' . $row['uid'] . '][delete]=1&SET[function]=action';
-                    $cells[] = '<a href="#" onclick="' . htmlspecialchars('if (confirm(' . $GLOBALS['LANG']->JScharCode($GLOBALS['LANG']->getLL('deleteWarning') . BackendUtility::referenceCount($table, $row['uid'], ' (There are %s reference(s) to this record!)')) . ')) {jumpToUrl(\'' . $this->actionOnClick($params) . '\');}') . '">' .
+                    $cells[] = '<a href="#" onclick="' . htmlspecialchars('if (confirm(' . GeneralUtility::quoteJSvalue($GLOBALS['LANG']->getLL('deleteWarning') . BackendUtility::referenceCount($table, $row['uid'], ' (There are %s reference(s) to this record!)')) . ')) {jumpToUrl(\'' . $this->actionOnClick($params) . '\');}') . '">' .
                         '<img' . IconUtility::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
                         '</a>';
                 }
@@ -810,7 +810,7 @@ class RecordListUtility extends DatabaseRecordList
 
             // If the record is edit-locked	by another user, we will show a little warning sign:
         if ($lockInfo = BackendUtility::isRecordLocked($table, $row['uid'])) {
-            $cells[]='<a href="#" onclick="'.htmlspecialchars('alert('.$GLOBALS['LANG']->JScharCode($lockInfo['msg']).');return false;').'">'.
+            $cells[]='<a href="#" onclick="'.htmlspecialchars('alert('.GeneralUtility::quoteJSvalue($lockInfo['msg']).');return false;').'">'.
                     '<img'.IconUtility::skinImg($this->backPath, 'gfx/recordlock_warning3.gif', 'width="17" height="12"').' title="'.htmlspecialchars($lockInfo['msg']).'" alt="" />'.
                     '</a>';
         }
