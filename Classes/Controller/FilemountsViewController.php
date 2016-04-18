@@ -25,6 +25,8 @@ namespace dkd\TcBeuser\Controller;
  ***************************************************************/
 
 use dkd\TcBeuser\Utility\TcBeuserUtility;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -39,6 +41,14 @@ use TYPO3\CMS\Core\Utility\MathUtility;
  */
 class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 {
+
+    /**
+     * Name of the module
+     *
+     * @var string
+     */
+    protected $moduleName = 'tcTools_FilemountsView';
+
     public $content;
     public $doc;
     public $jsCode;
@@ -48,6 +58,43 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 
     /** @var  dkd\TcBeuser\Utility\EditFormUtility */
     public $editform;
+
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        $this->MCONF = array(
+            'name' => $this->moduleName
+        );
+    }
+
+    /**
+     * Entrance from the backend module. This replace the _dispatch
+     *
+     * @param ServerRequestInterface $request The request object from the backend
+     * @param ResponseInterface $response The reponse object sent to the backend
+     *
+     * @return ResponseInterface Return the response object
+     */
+    public function mainAction(ServerRequestInterface $request, ResponseInterface $response)
+    {
+        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangFilemountsView.xml');
+        $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
+
+
+        $this->preInit();
+        if ($this->doProcessData()) {
+            // Checks, if a save button has been clicked (or the doSave variable is sent)
+            $this->processData();
+        }
+
+        $this->main();
+        $this->printContent();
+
+        $response->getBody()->write($this->content);
+        return $response;
+    }
 
     public function main()
     {
@@ -325,7 +372,6 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         $this->doc->backPath = $GLOBALS['BACK_PATH'];
         $this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/module.html');
         $this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';
-        $this->doc->getPageRenderer()->loadPrototype();
         // Setting up the context sensitive menu:
         $this->doc->getContextMenuCode();
 
@@ -428,7 +474,6 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     public function printContent()
     {
         $this->content .= $this->doc->endPage();
-        echo $this->content;
     }
 
     public function getFilemountList()
