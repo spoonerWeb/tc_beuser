@@ -83,6 +83,26 @@ if (TYPO3_MODE == 'BE') {
         )
     );
 
+    # Overview Module
+    TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule(
+        'tcTools',
+        'Overview',
+        'bottom',
+        '',
+        array(
+            'routeTarget' => dkd\TcBeuser\Controller\OverviewController::class . '::mainAction',
+            'access' => 'group,user',
+            'name' => 'tcTools_Overview',
+            'workspaces' => 'online',
+            'labels' => array(
+                'tabs_images' => array(
+                    'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleOverview.gif',
+                ),
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleOverview.xml',
+            )
+        )
+    );
+
     \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::registerAjaxHandler(
         'PermissionAjaxController::dispatch',
         'dkd\\TcBeuser\\Controller\\PermissionAjaxController->dispatch'

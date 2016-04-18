@@ -534,7 +534,6 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     public function printContent()
     {
         $this->content .= $this->doc->endPage();
-        echo $this->content;
     }
 
     public function getUserList()

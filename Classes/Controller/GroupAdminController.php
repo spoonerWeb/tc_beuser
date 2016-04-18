@@ -25,6 +25,7 @@ namespace dkd\TcBeuser\Controller;
  ***************************************************************/
 
 use dkd\TcBeuser\Utility\TcBeuserUtility;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
@@ -73,7 +74,7 @@ class GroupAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
      *
      * @return ResponseInterface Return the response object
      */
-    public function mainAction(ServerRequestInterface $request, \Psr\Http\Message\ResponseInterface $response)
+    public function mainAction(ServerRequestInterface $request, ResponseInterface $response)
     {
         $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xml');
         $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
@@ -480,7 +481,6 @@ class GroupAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     public function printContent()
     {
         $this->content .= $this->doc->endPage();
-        echo $this->content;
     }
 
     public function getGroupList()

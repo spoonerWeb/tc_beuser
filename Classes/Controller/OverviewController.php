@@ -25,6 +25,8 @@ namespace dkd\TcBeuser\Controller;
  ***************************************************************/
 
 use dkd\TcBeuser\Utility\TcBeuserUtility;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
@@ -41,6 +43,13 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 {
 
+    /**
+     * Name of the module
+     *
+     * @var string
+     */
+    protected $moduleName = 'tcTools_Overview';
+
     public $content;
     public $doc;
     public $jsCode;
@@ -51,6 +60,52 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     public $be_user;
     public $be_group;
     public $table;
+
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        $this->MCONF = array(
+            'name' => $this->moduleName
+        );
+    }
+
+    /**
+     * Entrance from the backend module. This replace the _dispatch
+     *
+     * @param ServerRequestInterface $request The request object from the backend
+     * @param ResponseInterface $response The reponse object sent to the backend
+     *
+     * @return ResponseInterface Return the response object
+     */
+    public function mainAction(ServerRequestInterface $request, ResponseInterface $response)
+    {
+        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangOverview.xml');
+        $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
+
+
+        if (GeneralUtility::_POST('ajaxCall')) {
+            $method   = GeneralUtility::_POST('method');
+            $groupId  = GeneralUtility::_POST('groupId');
+            $open     = GeneralUtility::_POST('open');
+            $backPath = GeneralUtility::_POST('backPath');
+
+            $userView = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\OverviewUtility');
+            $content  = $userView->handleMethod($method, $groupId, $open, $backPath);
+
+            echo $content;
+        } else {
+            $this->init();
+
+
+            $this->main();
+            $this->printContent();
+
+            $response->getBody()->write($this->content);
+            return $response;
+        }
+    }
 
     public function main()
     {
@@ -133,7 +188,6 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         $this->doc->backPath = $GLOBALS['BACK_PATH'];
         $this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/module.html');
         $this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';        // JavaScript
-        $this->doc->getPageRenderer()->loadPrototype();
         $this->doc->postCode .= $this->doc->wrapScriptTags('
 				script_ended = 1;
 				if (top.fsMod) top.fsMod.recentIds["web"] = 0;
@@ -247,7 +301,6 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     public function printContent()
     {
         $this->content .= $this->doc->endPage();
-        echo $this->content;
     }
 
     public function getUserView($userUid)
