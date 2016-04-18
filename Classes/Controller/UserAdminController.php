@@ -27,10 +27,16 @@ namespace dkd\TcBeuser\Controller;
 use dkd\TcBeuser\Utility\TcBeuserUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Module\BaseScriptClass;
+use TYPO3\CMS\Backend\Template\Components\ButtonBar;
+use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Imaging\Icon;
+use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
+use TYPO3\CMS\Lang\LanguageService;
 
 /**
  * Module 'User Admin' for the 'tc_beuser' extension.
@@ -39,7 +45,7 @@ use TYPO3\CMS\Core\Utility\MathUtility;
  * @package	TYPO3
  * @subpackage	tx_tcbeuser
  */
-class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
+class UserAdminController extends BaseScriptClass
 {
 
     /**
@@ -67,12 +73,41 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     public $permChecker;
 
     /**
+     * ModuleTemplate object
+     *
+     * @var ModuleTemplate
+     */
+    public $moduleTemplate;
+
+    /**
+     * iconFactory to get TYPO3 icon
+     *
+     * @var iconFactory
+     */
+    protected $iconFactory;
+
+    /**
      * Constructor
      */
     public function __construct()
     {
         $this->MCONF = array(
             'name' => $this->moduleName
+        );
+
+        $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
+
+        $this->moduleTemplate->getPageRenderer()->loadJquery();
+        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/FieldSelectBox');
+        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/Recordlist');
+        $this->moduleTemplate->addJavaScriptCode(
+            'jumpToUrl',
+            '
+                function jumpToUrl(URL) {
+                    window.location.href = URL;
+                    return false;
+                }
+                '
         );
     }
 
@@ -97,9 +132,8 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         }
 
         $this->main();
-        $this->printContent();
-
-        $response->getBody()->write($this->content);
+        $this->moduleTemplate->setContent($this->content);
+        $response->getBody()->write($this->moduleTemplate->renderContent());
         return $response;
     }
 
@@ -120,43 +154,15 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             $this->pageinfo['_thePath'] = '/';
 
             $title = $GLOBALS['LANG']->getLL('title');
-            $menu  = BackendUtility::getFuncMenu(
-                $this->id,
-                'SET[function]',
-                $this->MOD_SETTINGS['function'],
-                $this->MOD_MENU['function']
-            );
+            $this->body = $this->moduleTemplate->header($title);
+            $this->moduleTemplate->setTitle($title);
 
-            $moduleContent = $this->moduleContent();
-
-            // all necessary JS code needs to be set before this line!
-            $this->tceforms = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Form\\FormEngine');
-            $this->tceforms->backPath = $GLOBALS['BACK_PATH'];
-            $this->doc->JScode = $this->tceforms->JSbottom('editform');
-            $this->doc->JScode .= $this->doc->wrapScriptTags($this->jsCode);
-
-            $this->content  = '';
-            $this->content .= $this->doc->spacer(5);
-            $this->content .= $this->doc->section(
-                '',
-                $this->doc->funcMenu(
-                    $this->doc->header($title),
-                    $menu
-                )
-            );
-            $this->content .= $this->doc->divider(5);
-            $this->content .= $moduleContent;
+            $this->content = $this->moduleContent();
 
 
-            $docHeaderButtons = $this->getButtons();
-            $markers['CSH'] = $this->docHeaderButtons['csh'];
-            $markers['FUNC_MENU'] = BackendUtility::getFuncMenu($this->id, 'SET[mode]', $this->MOD_SETTINGS['mode'], $this->MOD_MENU['mode']);
-            $markers['CONTENT'] = $this->content;
+            $this->getButtons();
+            $this->generateMenu();
 
-            // Build the <body> for the module
-            $this->content = $this->doc->moduleBody($this->pageinfo, $docHeaderButtons, $markers);
-
-            $this->content = $this->doc->render($GLOBALS['LANG']->getLL('permissions'), $this->content);
         }
 
         $GLOBALS['BE_USER']->user['admin'] = 0;
@@ -165,7 +171,7 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     /**
      * First initialization.
      *
-     * @return	void
+     * @return void
      */
     public function preInit()
     {
@@ -204,7 +210,7 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     /**
      * Detects, if a save command has been triggered.
      *
-     * @return	boolean		True, then save the document (data submitted)
+     * @return boolean True, then save the document (data submitted)
      */
     public function doProcessData()
     {
@@ -215,7 +221,7 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     /**
      * Do processing of data, submitting it to TCEmain.
      *
-     * @return	void
+     * @return void
      */
     public function processData()
     {
@@ -384,30 +390,10 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         parent::init();
 
         TcBeuserUtility::switchUser(GeneralUtility::_GP('SwitchUser'));
+        $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
 
-        // Initializing document template object:
-        /** @var $doc \TYPO3\CMS\Backend\Template\DocumentTemplate */
-        $this->doc = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Template\\DocumentTemplate');
-        $this->doc->backPath = $GLOBALS['BACK_PATH'];
-        $this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/module.html');
-        $this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';
-        // Setting up the context sensitive menu:
-        $this->doc->getContextMenuCode();
         // Set up menus:
         $this->menuConfig();
-
-        // JavaScript
-        $this->doc->postCode .= $this->doc->wrapScriptTags('
-				script_ended = 1;
-				if (top.fsMod) top.fsMod.recentIds["web"] = 0;
-		');
-
-        $this->doc->postCode .= $this->doc->wrapScriptTags('
-			script_ended = 0;
-			function jumpToUrl(URL) {
-				document.location = URL;
-			}
-		');
 
         $this->id = 0;
         $this->search_field = GeneralUtility::_GP('search_field');
@@ -455,7 +441,7 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     /**
      * Generates the module content
      *
-     * @return	void
+     * @return string
      */
     public function moduleContent()
     {
@@ -468,12 +454,9 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             case '1':
                 // list users
                 BackendUtility::lockRecords();
-                $content .= $this->doc->section(
-                    '',
-                    $this->getUserList()
-                );
-//				$content .= $debug_content;
+                $content .=  $this->getUserList();
                 break;
+
             case '2':
                 $data = GeneralUtility::_GP('data');
                 $dataKey = is_array($data) ? array_keys($data[$this->table]): array();
@@ -483,29 +466,20 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
                     // create new user
                     $this->editconf = array($this->table => array(0 => 'new'));
                 }
-                $content .= $this->doc->section(
-                    '',
-                    $this->getUserEdit()
-                );
+                $content .= $this->getUserEdit();
                 break;
-            case '3':
 
+            case '3':
                 //show list of fe users
                 $this->table = 'fe_users';
-                $content .= $this->doc->section(
-                    '',
-                    $this->getUserList()
-                );
-//				$content .= $debug_content;
+                $content .= $this->getUserList();
                 break;
+
             case 'edit':
                 // edit user
-                $content .= $this->doc->section(
-                    '',
-                    $this->getUserEdit()
-                );
-//				$content .= $debug_content;
+                $content .= $this->getUserEdit();
                 break;
+
             case 'import':
                 $this->feID = GeneralUtility::_GP('feID');
                 $this->R_URI = $this->retUrl = BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']);
@@ -516,12 +490,9 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
                 } else { // create new user
                     $this->editconf = array($this->table => array(0=>'new'));
                 }
-                $content .= $this->doc->section(
-                    '',
-                    $this->getUserEdit()
-                );
-//				$content .= $debug_content;
+                $content .= $this->getUserEdit();
                 break;
+
             case 'action':
                 $this->processData();
                 Header('Location: '.GeneralUtility::locationHeaderUrl(GeneralUtility::_GP('redirect')));
@@ -531,19 +502,14 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         return $content;
     }
 
-    public function printContent()
-    {
-        $this->content .= $this->doc->endPage();
-    }
-
     public function getUserList()
     {
         $content = '';
-        /** @var dkd\TcBeuser\Utility\RecordListUtility $dblist */
+        /** @var \dkd\TcBeuser\Utility\RecordListUtility $dblist */
         $dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
         $dblist->permChecker = &$this->permChecker;
         $dblist->backPath = $this->doc->backPath;
-        $dblist->script = GeneralUtility::getIndpEnv('SCRIPT_NAME');
+        $dblist->script = BackendUtility::getModuleUrl($this->moduleName);
         $dblist->alternateBgColors = true;
         $dblist->userMainGroupOnly = true;
 
@@ -595,18 +561,96 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             $dblist->sortField = $sortField;
         }
         $dblist->generateList();
-        $content .= $dblist->HTMLcode ? $dblist->HTMLcode : $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:not-found').'<br />';
-        $content .= '<br />'.BackendUtility::getFuncCheck(
+        $content .= $dblist->HTMLcode ? $dblist->HTMLcode : $this->getLanguageService()->getLL('not-found').'<br />';
+        $content .= '<br />' .
+            '<div class="checkbox">' .
+            '<label for="SET[hideDeactivatedUsers]">' .
+            BackendUtility::getFuncCheck(
                 $this->id,
                 'SET[hideDeactivatedUsers]',
                 $this->MOD_SETTINGS['hideDeactivatedUsers'],
                 '',
                 '&search_field='.$this->search_field.'&sortField='.$sort.'&sortRev='.GeneralUtility::_GET('sortRev')
-            ).' '.$GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:hide-deaktivated-users');
-        $content .= $dblist->getSearchBox(
-            false,
-            $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:search-user', 1)
+            ) .
+            $this->getLanguageService()->getLL('hide-deaktivated-users') .
+            '</label>' .
+            '</div>';
+
+        // Add JavaScript functions to the page:
+
+        $this->moduleTemplate->addJavaScriptCode(
+            'RecordListInlineJS',
+            '
+				function jumpExt(URL,anchor) {	//
+					var anc = anchor?anchor:"";
+					window.location.href = URL+(T3_THIS_LOCATION?"&returnUrl="+T3_THIS_LOCATION:"")+anc;
+					return false;
+				}
+				function jumpSelf(URL) {	//
+					window.location.href = URL+(T3_RETURN_URL?"&returnUrl="+T3_RETURN_URL:"");
+					return false;
+				}
+				function jumpToUrl(URL) {
+					window.location.href = URL;
+					return false;
+				}
+
+				function setHighlight(id) {	//
+					top.fsMod.recentIds["web"]=id;
+					top.fsMod.navFrameHighlightedID["web"]="pages"+id+"_"+top.fsMod.currentBank;	// For highlighting
+
+					if (top.content && top.content.nav_frame && top.content.nav_frame.refresh_nav) {
+						top.content.nav_frame.refresh_nav();
+					}
+				}
+				' . $this->moduleTemplate->redirectUrls($dblist->listURL()) . '
+				' . $dblist->CBfunctions() . '
+				function editRecords(table,idList,addParams,CBflag) {	//
+					window.location.href="' . BackendUtility::getModuleUrl('record_edit', array('returnUrl' => GeneralUtility::getIndpEnv('REQUEST_URI'))) . '&edit["+table+"]["+idList+"]=edit"+addParams;
+				}
+				function editList(table,idList) {	//
+					var list="";
+
+						// Checking how many is checked, how many is not
+					var pointer=0;
+					var pos = idList.indexOf(",");
+					while (pos!=-1) {
+						if (cbValue(table+"|"+idList.substr(pointer,pos-pointer))) {
+							list+=idList.substr(pointer,pos-pointer)+",";
+						}
+						pointer=pos+1;
+						pos = idList.indexOf(",",pointer);
+					}
+					if (cbValue(table+"|"+idList.substr(pointer))) {
+						list+=idList.substr(pointer)+",";
+					}
+
+					return list ? list : idList;
+				}
+
+				if (top.fsMod) top.fsMod.recentIds["web"] = ' . (int)$this->id . ';
+			'
         );
+
+
+        // searchbox toolbar
+        if (!$this->modTSconfig['properties']['disableSearchBox'] && ($dblist->HTMLcode || !empty($dblist->searchString))) {
+            $searchBox = $dblist->getSearchBox();
+            $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/ToggleSearchToolbox');
+
+            $searchButton = $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->makeLinkButton();
+            $searchButton
+                ->setHref('#')
+                ->setClasses('t3js-toggle-search-toolbox')
+                ->setTitle($this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:labels.title.searchIcon'))
+                ->setIcon($this->iconFactory->getIcon('actions-search', Icon::SIZE_SMALL));
+            $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
+                $searchButton,
+                ButtonBar::BUTTON_POSITION_LEFT,
+                90
+            );
+        }
+
         // make new user link
         $content .= ($this->table != 'fe_users') ?
             '<!--
@@ -614,13 +658,18 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 			-->
 <div id="typo3-newRecordLink">
 <a href="' . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 2)) . '">' .
-            '<img' . IconUtility::skinImg($this->doc->backPath, 'gfx/new_el.gif', 'width="11" height="12"') . ' alt="' . $GLOBALS['LANG']->getLL('create-user') . '" />' .
+            $this->iconFactory->getIcon('actions-document-new', Icon::SIZE_SMALL)->render() .
+            ' ' .
             $GLOBALS['LANG']->getLL('create-user') .
             '</a>' : '';
 
-        $this->jsCode .= $this->doc->redirectUrls($dblist->listURL())."\n";
+        $this->jsCode .= $this->moduleTemplate->redirectUrls($dblist->listURL())."\n";
 
-        return $content;
+        $content = '<form action="' . htmlspecialchars($dblist->listURL()) . '" method="post" name="dblistForm">' .
+            $content .
+            '<input type="hidden" name="cmd_table" /><input type="hidden" name="cmd" /></form>';
+
+        return $searchBox . $content;
     }
 
     public function getUserEdit()
@@ -643,7 +692,7 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         }
 
         /** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
-        $this->tceforms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
+        $this->tceforms = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Form\\FormEngine');
         $this->tceforms->backPath = $this->doc->backPath;
         $this->tceforms->initDefaultBEMode();
         $this->tceforms->doSaveFieldName = 'doSave';
@@ -814,28 +863,68 @@ class UserAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 
     /**
      * Create the panel of buttons for submitting the form or otherwise perform operations.
-     *
-     * @return 	array		all available buttons as an assoc. array
      */
     protected function getButtons()
     {
-        $buttons = array(
-            'csh' => '',
-            'view' => '',
-            'shortcut' => ''
-        );
+        $buttonBar = $this->moduleTemplate->getDocHeaderComponent()->getButtonBar();
         // CSH
-        $buttons['csh'] = BackendUtility::cshItem('_MOD_web_info', '', $GLOBALS['BACK_PATH'], '', true);
+        $cshButton = $buttonBar->makeHelpButton()
+            ->setModuleName('_MOD_web_info')
+            ->setFieldName('');
+        $buttonBar->addButton($cshButton, ButtonBar::BUTTON_POSITION_LEFT, 0);
         // Shortcut
-        if ($GLOBALS['BE_USER']->mayMakeShortcut()) {
-            $buttons['shortcut'] = $this->doc->makeShortcutIcon('id, edit_record, pointer, new_unique_uid, search_field, search_levels, showLimit', implode(',', array_keys($this->MOD_MENU)), $this->MCONF['name']);
-        }
-        return $buttons;
+        $shortCutButton = $buttonBar->makeShortcutButton()
+            ->setModuleName($this->moduleName)
+            ->setDisplayName($this->MOD_MENU['function'][$this->MOD_SETTINGS['function']])
+            ->setGetVariables([
+                'M',
+                'id',
+                'edit_record',
+                'pointer',
+                'new_unique_uid',
+                'search_field',
+                'search_levels',
+                'showLimit'
+            ])
+            ->setSetVariables(array_keys($this->MOD_MENU));
+        $buttonBar->addButton($shortCutButton, ButtonBar::BUTTON_POSITION_RIGHT);
     }
-}
 
+    /**
+     * Generate the ModuleMenu
+     */
+    protected function generateMenu()
+    {
+        $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
+        $menu->setIdentifier('WebInfoJumpMenu');
+        foreach ($this->MOD_MENU['function'] as $controller => $title) {
+            $item = $menu
+                ->makeMenuItem()
+                ->setHref(
+                    BackendUtility::getModuleUrl(
+                        $this->moduleName,
+                        [
+                            'id' => $this->id,
+                            'SET' => [
+                                'function' => $controller
+                            ]
+                        ]
+                    )
+                )
+                ->setTitle($title);
+            if ($controller === $this->MOD_SETTINGS['function']) {
+                $item->setActive(true);
+            }
+            $menu->addMenuItem($item);
+        }
+        $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($menu);
+    }
 
-
-if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod2/index.php']) {
-    include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod2/index.php']);
+    /**
+     * @return LanguageService
+     */
+    protected function getLanguageService()
+    {
+        return $GLOBALS['LANG'];
+    }
 }

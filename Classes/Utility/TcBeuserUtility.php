@@ -24,7 +24,9 @@ namespace dkd\TcBeuser\Utility;
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\HttpUtility;
 
 /**
  * clas for module configuration handling
@@ -272,7 +274,7 @@ class TcBeuserUtility
         $param['items'] = array();
 
         while ($row=$GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
-            $param['items'][]= array($pObj->sL($row['title']),$row['uid'],'');
+            $param['items'][]= array($GLOBALS['LANG']->sL($row['title']),$row['uid'],'');
         }
         return $param;
     }
@@ -294,26 +296,36 @@ class TcBeuserUtility
         return implode(',', $id);
     }
 
+
     /**
-     * [Describe function...]
-     * ingo.renner@dkd.de: from tools/beusers
+     * Switches to a given user (SU-mode) and then redirects to the start page of the backend to refresh the navigation etc.
      *
-     * @param	int		$switchUser: ...
-     * @return	void		...
+     * @param string $switchUser BE-user record that will be switched to
+     * @return void
      */
     public static function switchUser($switchUser)
     {
-        $uRec = BackendUtility::getRecord('be_users', $switchUser);
-        if (is_array($uRec)) {
-            $updateData['ses_userid'] = $uRec['uid'];
-            // user switchback
-            if (GeneralUtility::_GP('switchBackUser')) {
-                $updateData['ses_backuserid'] = intval($GLOBALS['BE_USER']->user['uid']);
-            }
-            $GLOBALS['TYPO3_DB']->exec_UPDATEquery('be_sessions', 'ses_id='.$GLOBALS['TYPO3_DB']->fullQuoteStr($GLOBALS['BE_USER']->id, 'be_sessions').' AND ses_name=\'be_typo_user\' AND ses_userid='.intval($GLOBALS['BE_USER']->user['uid']), $updateData);
+        $targetUser = BackendUtility::getRecord('be_users', $switchUser);
+        if (is_array($targetUser)) {
+            $updateData['ses_userid'] = (int)$targetUser['uid'];
+            $updateData['ses_backuserid'] = intval($GLOBALS['BE_USER']->user['uid']);
 
-            header('Location: '.GeneralUtility::locationHeaderUrl($GLOBALS['BACK_PATH'].'index.php'.($GLOBALS['TYPO3_CONF_VARS']['BE']['interfaces']?'':'?commandLI=1')));
-            exit;
+            // Set backend user listing module as starting module for switchback
+            $GLOBALS['BE_USER']->uc['startModuleOnFirstLogin'] = 'tctools_UserAdmin';
+            $GLOBALS['BE_USER']->writeUC();
+
+            $whereClause = 'ses_id=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($GLOBALS['BE_USER']->id, 'be_sessions');
+            $whereClause .= ' AND ses_name=' . $GLOBALS['TYPO3_DB']->fullQuoteStr(BackendUserAuthentication::getCookieName(), 'be_sessions');
+            $whereClause .= ' AND ses_userid=' . (int)$GLOBALS['BE_USER']->user['uid'];
+
+            $GLOBALS['TYPO3_DB']->exec_UPDATEquery(
+                'be_sessions',
+                $whereClause,
+                $updateData
+            );
+
+            $redirectUrl = 'index.php' . ($GLOBALS['TYPO3_CONF_VARS']['BE']['interfaces'] ? '' : '?commandLI=1');
+            HttpUtility::redirect($redirectUrl);
         }
     }
 }
