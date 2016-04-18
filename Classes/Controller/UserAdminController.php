@@ -100,6 +100,7 @@ class UserAdminController extends BaseScriptClass
         $this->moduleTemplate->getPageRenderer()->loadJquery();
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/FieldSelectBox');
         $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/Recordlist');
+        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/AjaxDataHandler');
         $this->moduleTemplate->addJavaScriptCode(
             'jumpToUrl',
             '
@@ -556,7 +557,7 @@ class UserAdminController extends BaseScriptClass
         $dblist->start($pid, $this->table, $this->pointer, $this->search_field);
 
         // default sorting, needs to be set after $dblist->start()
-        $sort = GeneralUtility::_GET('sortField');
+        $sort = GeneralUtility::_GET('sortField') ? GeneralUtility::_GET('sortField') : $sortField;
         if (is_null($sort)) {
             $dblist->sortField = $sortField;
         }

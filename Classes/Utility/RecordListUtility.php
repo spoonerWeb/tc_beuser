@@ -933,6 +933,7 @@ class RecordListUtility extends DatabaseRecordList
             } else {
                 $hideTitle = $this->getLanguageService()->getLL('hide' . ($table == 'pages' ? 'Page' : ''), true);
                 $unhideTitle = $this->getLanguageService()->getLL('unHide' . ($table == 'pages' ? 'Page' : ''), true);
+
                 if ($row[$hiddenField]) {
                     $params = 'data[' . $table . '][' . $rowUid . '][' . $hiddenField . ']=0';
                     $hideAction = '<a class="btn btn-default t3js-record-hide" data-state="hidden" href="#"'
@@ -1001,6 +1002,8 @@ class RecordListUtility extends DatabaseRecordList
                         '</a>' .
                         chr(10) . chr(10);
                 }
+            } else {
+                $switchAction = $this->spaceIcon;
             }
             $this->addActionToCellGroup($cells, $switchAction, 'switch');
         }
