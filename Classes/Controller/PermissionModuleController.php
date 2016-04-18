@@ -14,6 +14,8 @@ namespace dkd\TcBeuser\Controller;
  * The TYPO3 project - inspiring people to share!
  */
 
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -34,6 +36,14 @@ use TYPO3\CMS\Backend\Utility\IconUtility;
  */
 class PermissionModuleController
 {
+
+    /**
+     * Name of the module
+     *
+     * @var string
+     */
+    protected $moduleName = 'web_PermissionModule';
+
 
     /**
      * Number of levels to enable recursive settings for
@@ -154,8 +164,31 @@ class PermissionModuleController
      */
     public function __construct()
     {
-        $GLOBALS['LANG']->includeLLFile('EXT:lang/locallang_mod_web_perm.xlf');
-        $GLOBALS['BE_USER']->modAccess($GLOBALS['MCONF'], true);
+        $GLOBALS['LANG']->includeLLFile('EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf');
+        $GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangPermission.xml');
+
+        $this->MCONF = array(
+            'name' => $this->moduleName
+        );
+    }
+
+    /**
+     * Entrance from the backend module. This replace the _dispatch
+     *
+     * @param ServerRequestInterface $request The request object from the backend
+     * @param ResponseInterface $response The reponse object sent to the backend
+     *
+     * @return ResponseInterface Return the response object
+     */
+    public function mainAction(ServerRequestInterface $request, ResponseInterface $response)
+    {
+
+        $this->init();
+        $this->main();
+        $this->printContent();
+
+        $response->getBody()->write($this->content);
+        return $response;
     }
 
     /**
@@ -170,8 +203,7 @@ class PermissionModuleController
         $this->edit = GeneralUtility::_GP('edit');
         $this->return_id = GeneralUtility::_GP('return_id');
         $this->lastEdited = GeneralUtility::_GP('lastEdited');
-        // Module name;
-        $this->MCONF = $GLOBALS['MCONF'];
+
         // Page select clause:
         $this->perms_clause = $GLOBALS['BE_USER']->getPagePermsClause(1);
         // Initializing document template object:
@@ -180,7 +212,6 @@ class PermissionModuleController
         $this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/module.html');
         $this->doc->form = '<form action="' . $GLOBALS['BACK_PATH'] . 'tce_db.php" method="post" name="editform">';
         $this->doc->loadJavascriptLib('js/jsfunc.updateform.js');
-        $this->doc->getPageRenderer()->loadPrototype();
         $this->doc->loadJavascriptLib(ExtensionManagementUtility::extRelPath('tc_beuser') . 'mod6/perm.js');
         // Setting up the context sensitive menu:
         $this->doc->getContextMenuCode();
@@ -217,9 +248,6 @@ class PermissionModuleController
     public function main()
     {
         // Access check...
-
-        // load Locallang
-        $GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod6/locallang.xml');
 
         // The page will show only if there is a valid page and if this page may be viewed by the user
         $this->pageinfo = BackendUtility::readPageAccess($this->id, $this->perms_clause);
@@ -281,7 +309,6 @@ class PermissionModuleController
     public function printContent()
     {
         $this->content = $this->doc->insertStylesAndJS($this->content);
-        echo $this->content;
     }
 
     /**
@@ -441,10 +468,10 @@ class PermissionModuleController
 			<input type="submit" name="submit" value="' . $GLOBALS['LANG']->getLL('Save', true) . '" />
 			<input type="submit" value="' . $GLOBALS['LANG']->getLL('Abort', true) . '" onclick="' .
                 htmlspecialchars(('jumpToUrl(' . GeneralUtility::quoteJSvalue(
-                        (BackendUtility::getModuleUrl('web_txtcbeuserM6') . '&id=' . $this->id), true) .
+                        (BackendUtility::getModuleUrl('web_PermissionModule') . '&id=' . $this->id), true) .
                 '); return false;')) . '" />
-			<input type="hidden" name="redirect" value="' . htmlspecialchars((BackendUtility::getModuleUrl('web_txtcbeuserM6') . '&mode=' . $this->MOD_SETTINGS['mode'] . '&depth=' . $this->MOD_SETTINGS['depth'] . '&id=' . (int)$this->return_id . '&lastEdited=' . $this->id)) . '" />
-			' . \TYPO3\CMS\Backend\Form\FormEngine::getHiddenTokenField('tceAction');
+			<input type="hidden" name="redirect" value="' . htmlspecialchars((BackendUtility::getModuleUrl('web_PermissionModule') . '&mode=' . $this->MOD_SETTINGS['mode'] . '&depth=' . $this->MOD_SETTINGS['depth'] . '&id=' . (int)$this->return_id . '&lastEdited=' . $this->id)) . '" />
+			'; // . \TYPO3\CMS\Backend\Form\FormEngine::getHiddenTokenField('tceAction');
 
         // Adding section with the permission setting matrix:
         $this->content .= $this->doc->section($GLOBALS['LANG']->getLL('permissions'), $code, true);
@@ -571,7 +598,7 @@ class PermissionModuleController
 
             // "Edit permissions" -icon
             if ($editPermsAllowed && $pageId) {
-                $aHref = BackendUtility::getModuleUrl('web_txtcbeuserM6') . '&mode=' . $this->MOD_SETTINGS['mode'] . '&depth=' . $this->MOD_SETTINGS['depth'] . '&id=' . ($data['row']['_ORIG_uid'] ? $data['row']['_ORIG_uid'] : $pageId) . '&return_id=' . $this->id . '&edit=1';
+                $aHref = BackendUtility::getModuleUrl('web_PermissionModule') . '&mode=' . $this->MOD_SETTINGS['mode'] . '&depth=' . $this->MOD_SETTINGS['depth'] . '&id=' . ($data['row']['_ORIG_uid'] ? $data['row']['_ORIG_uid'] : $pageId) . '&return_id=' . $this->id . '&edit=1';
                 $cells[] = '<td' . $bgCol . '><a href="' . htmlspecialchars($aHref) . '" title="' . $GLOBALS['LANG']->getLL('ch_permissions', true) . '">' .
                     IconUtility::getSpriteIcon('actions-document-open') . '</a></td>';
             } else {

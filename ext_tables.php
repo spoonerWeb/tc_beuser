@@ -21,9 +21,6 @@ if (TYPO3_MODE == 'BE') {
         $GLOBALS['TBE_MODULES'] = $temp_TBE_MODULES;
     }
 
-    \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule('web', 'txtcbeuserM6', '', $extPath . 'mod6/');
-
-
     TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule(
         'tcTools',
         '',
@@ -117,6 +114,26 @@ if (TYPO3_MODE == 'BE') {
                     'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleOverview.gif',
                 ),
                 'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleOverview.xml',
+            )
+        )
+    );
+
+    # Overview Module
+    TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule(
+        'web',
+        'PermissionModule',
+        'bottom',
+        '',
+        array(
+            'routeTarget' => dkd\TcBeuser\Controller\PermissionModuleController::class . '::mainAction',
+            'access' => 'group,user',
+            'name' => 'web_PermissionModule',
+            'workspaces' => 'online',
+            'labels' => array(
+                'tabs_images' => array(
+                    'tab' => 'EXT:tc_beuser/Resources/Public/Images/modulePermission.png',
+                ),
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xml',
             )
         )
     );
