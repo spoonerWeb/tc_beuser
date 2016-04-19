@@ -36,14 +36,14 @@ use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
-use TYPO3\CMS\Lang\LanguageService;
 
 /**
  * Module 'User Admin' for the 'tc_beuser' extension.
  *
- * @author	Ingo Renner <ingo.renner@dkd.de>
- * @package	TYPO3
- * @subpackage	tx_tcbeuser
+ * @author Ingo Renner <ingo.renner@dkd.de>
+ * @author Ivan Kartolo <ivan.kartolo@dkd.de>
+ * @package TYPO3
+ * @subpackage tx_tcbeuser
  */
 class UserAdminController extends BaseScriptClass
 {
@@ -55,20 +55,14 @@ class UserAdminController extends BaseScriptClass
      */
     protected $moduleName = 'tcTools_UserAdmin';
 
-    public $content;
-
-    /** @var $doc \TYPO3\CMS\Backend\Template\DocumentTemplate */
-    public $doc;
     public $jsCode;
-    public $MOD_MENU = array();
-    public $MOD_SETTINGS = array();
     public $pageinfo;
 
     /** @var $tceforms \TYPO3\CMS\Backend\Form\FormEngine */
     public $tceforms;
 
     /**
-     * @var	object tx_tcbeuser_config	$permChecker helps checking BE user permissions
+     * @var object tx_tcbeuser_config $permChecker helps checking BE user permissions
      */
     public $permChecker;
 
@@ -155,10 +149,10 @@ class UserAdminController extends BaseScriptClass
             $this->pageinfo['_thePath'] = '/';
 
             $title = $GLOBALS['LANG']->getLL('title');
-            $this->body = $this->moduleTemplate->header($title);
             $this->moduleTemplate->setTitle($title);
 
-            $this->content = $this->moduleContent();
+            $this->content = $this->moduleTemplate->header($title);
+            $this->content .= $this->moduleContent();
 
 
             $this->getButtons();
@@ -215,7 +209,11 @@ class UserAdminController extends BaseScriptClass
      */
     public function doProcessData()
     {
-        $out = $this->doSave || isset($_POST['_savedok_x']) || isset($_POST['_saveandclosedok_x']) || isset($_POST['_savedokview_x']) || isset($_POST['_savedoknew_x']);
+        $out = $this->doSave ||
+            isset($_POST['_savedok_x']) ||
+            isset($_POST['_saveandclosedok_x']) ||
+            isset($_POST['_savedokview_x']) ||
+            isset($_POST['_savedoknew_x']);
         return $out;
     }
 
@@ -245,7 +243,10 @@ class UserAdminController extends BaseScriptClass
             $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
                 '*',
                 'fe_users',
-                'pid = '.$fePID.BackendUtility::deleteClause('fe_users').' AND username = '.$GLOBALS['TYPO3_DB']->fullQuoteStr($data['username'], 'fe_users')
+                'pid = ' . $fePID .
+                BackendUtility::deleteClause('fe_users') .
+                ' AND username = ' .
+                $GLOBALS['TYPO3_DB']->fullQuoteStr($data['username'], 'fe_users')
             );
 
             while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
@@ -299,11 +300,20 @@ class UserAdminController extends BaseScriptClass
             // Checking referer / executing
             $refInfo = parse_url(GeneralUtility::getIndpEnv('HTTP_REFERER'));
             $httpHost = GeneralUtility::getIndpEnv('TYPO3_HOST_ONLY');
-            if ($httpHost!=$refInfo['host'] && $this->vC!=$GLOBALS['BE_USER']->veriCode() && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
-                $tce->log('', 0, 0, 0, 1, "Referer host '%s' and server host '%s' did not match and veriCode was not valid either!", 1, array($refInfo['host'], $httpHost));
-                debug('Error: Referer host did not match with server host.');
+            if ($httpHost!=$refInfo['host'] &&
+                $this->vC!=$GLOBALS['BE_USER']->veriCode() &&
+                !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
+                $tce->log(
+                    '',
+                    0,
+                    0,
+                    0,
+                    1,
+                    "Referer host '%s' and server host '%s' did not match and veriCode was not valid either!",
+                    1,
+                    array($refInfo['host'], $httpHost)
+                );
             } else {
-
                 // Perform the saving operation with TCEmain:
                 $tce->process_uploads($_FILES);
                 $tce->process_datamap();
@@ -311,11 +321,11 @@ class UserAdminController extends BaseScriptClass
 
                 // If there was saved any new items, load them:
                 if (count($tce->substNEWwithIDs_table)) {
-
                     // Resetting editconf:
                     $this->editconf = array();
 
-                    // Traverse all new records and forge the content of ->editconf so we can continue to EDIT these records!
+                    // Traverse all new records and forge the content of ->editconf
+                    // so we can continue to EDIT these records!
                     foreach ($tce->substNEWwithIDs_table as $nKey => $nTable) {
                         $editId = $tce->substNEWwithIDs[$nKey];
                         // translate new id to the workspace version:
@@ -868,11 +878,6 @@ class UserAdminController extends BaseScriptClass
     protected function getButtons()
     {
         $buttonBar = $this->moduleTemplate->getDocHeaderComponent()->getButtonBar();
-        // CSH
-        $cshButton = $buttonBar->makeHelpButton()
-            ->setModuleName('_MOD_web_info')
-            ->setFieldName('');
-        $buttonBar->addButton($cshButton, ButtonBar::BUTTON_POSITION_LEFT, 0);
         // Shortcut
         $shortCutButton = $buttonBar->makeShortcutButton()
             ->setModuleName($this->moduleName)
@@ -897,7 +902,7 @@ class UserAdminController extends BaseScriptClass
     protected function generateMenu()
     {
         $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
-        $menu->setIdentifier('WebInfoJumpMenu');
+        $menu->setIdentifier('UserAdminMenu');
         foreach ($this->MOD_MENU['function'] as $controller => $title) {
             $item = $menu
                 ->makeMenuItem()
@@ -913,19 +918,11 @@ class UserAdminController extends BaseScriptClass
                     )
                 )
                 ->setTitle($title);
-            if ($controller === $this->MOD_SETTINGS['function']) {
+            if ($controller == $this->MOD_SETTINGS['function']) {
                 $item->setActive(true);
             }
             $menu->addMenuItem($item);
         }
         $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($menu);
-    }
-
-    /**
-     * @return LanguageService
-     */
-    protected function getLanguageService()
-    {
-        return $GLOBALS['LANG'];
     }
 }

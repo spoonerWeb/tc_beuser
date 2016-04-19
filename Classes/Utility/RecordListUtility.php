@@ -908,8 +908,10 @@ class RecordListUtility extends DatabaseRecordList
         if (!$this->disableControls['import']) {
             $scriptname = GeneralUtility::getIndpEnv('SCRIPT_NAME');
             $params = '&SET[function]=import&feID=' . $row['uid'];
-            $importAction = '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars($this->editOnClick($params)) . '">' .
-                '<img ' . IconUtility::skinImg($this->backPath, 'gfx/edit2.gif', 'width="12" height="12"') . 'title="' . $GLOBALS['LANG']->getLL('import', 1) . '" alt="" />' .
+            $importAction = '<a href="#" class="btn btn-default" onclick="' .
+                htmlspecialchars($this->editOnClick($params)) .
+                '" title="' . $GLOBALS['LANG']->getLL('import', 1) .'">' .
+                $this->iconFactory->getIcon('actions-document-import-t3d', Icon::SIZE_SMALL)->render() .
                 '</a>';
             $this->addActionToCellGroup($cells, $importAction, 'import');
         }
