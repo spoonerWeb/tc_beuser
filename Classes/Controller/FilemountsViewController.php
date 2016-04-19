@@ -522,7 +522,7 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             $searchButton
                 ->setHref('#')
                 ->setClasses('t3js-toggle-search-toolbox')
-                ->setTitle($this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:labels.title.searchIcon'))
+                ->setTitle($this->getLanguageService()->getLL('search-filemount'))
                 ->setIcon($this->iconFactory->getIcon('actions-search', Icon::SIZE_SMALL));
             $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
                 $searchButton,

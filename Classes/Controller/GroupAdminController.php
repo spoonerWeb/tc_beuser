@@ -507,7 +507,7 @@ class GroupAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 				}
 
 				function setHighlight(id) {	//
-					top.fsMod.recentIds["tcTiiks"]=id;
+					top.fsMod.recentIds["tcTools"]=id;
 					top.fsMod.navFrameHighlightedID["tcTools"]="pages"+id+"_"+top.fsMod.currentBank;	// For highlighting
 
 					if (top.content && top.content.nav_frame && top.content.nav_frame.refresh_nav) {
