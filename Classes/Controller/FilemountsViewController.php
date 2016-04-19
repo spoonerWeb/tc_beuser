@@ -27,17 +27,22 @@ namespace dkd\TcBeuser\Controller;
 use dkd\TcBeuser\Utility\TcBeuserUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Template\Components\ButtonBar;
+use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Imaging\Icon;
+use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
  * Module 'User / Group Overview' for the 'tc_beuser' extension.
  *
- * @author	Ingo Renner <ingo.renner@dkd.de>
- * @package	TYPO3
- * @subpackage	tx_tcbeuser
+ * @author Ingo Renner <ingo.renner@dkd.de>
+ * @author Ivan Kartolo <ivan.kartolo@dkd.de>
+ * @package TYPO3
+ * @subpackage tx_tcbeuser
  */
 class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 {
@@ -49,15 +54,18 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
      */
     protected $moduleName = 'tcTools_FilemountsView';
 
-    public $content;
-    public $doc;
     public $jsCode;
-    public $MOD_MENU = array();
-    public $MOD_SETTINGS = array();
     public $pageinfo;
 
-    /** @var  dkd\TcBeuser\Utility\EditFormUtility */
+    /** @var  \dkd\TcBeuser\Utility\EditFormUtility */
     public $editform;
+
+    /**
+     * IconFactory
+     *
+     * @var IconFactory
+     */
+    protected $iconFactory;
 
     /**
      * Constructor
@@ -66,6 +74,22 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     {
         $this->MCONF = array(
             'name' => $this->moduleName
+        );
+
+        $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
+
+        $this->moduleTemplate->getPageRenderer()->loadJquery();
+        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/FieldSelectBox');
+        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/Recordlist');
+        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/AjaxDataHandler');
+        $this->moduleTemplate->addJavaScriptCode(
+            'jumpToUrl',
+            '
+                function jumpToUrl(URL) {
+                    window.location.href = URL;
+                    return false;
+                }
+                '
         );
     }
 
@@ -90,9 +114,8 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         }
 
         $this->main();
-        $this->printContent();
-
-        $response->getBody()->write($this->content);
+        $this->moduleTemplate->setContent($this->content);
+        $response->getBody()->write($this->moduleTemplate->renderContent());
         return $response;
     }
 
@@ -109,44 +132,14 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             $this->pageinfo['uid'] = $webmounts[0];
 
             $title = $GLOBALS['LANG']->getLL('title');
-            $menu  = BackendUtility::getFuncMenu(
-                $this->id,
-                'SET[function]',
-                $this->MOD_SETTINGS['function'],
-                $this->MOD_MENU['function']
-            );
+            $this->moduleTemplate->setTitle($title);
 
-            $moduleContent = $this->moduleContent();
+            $this->content = $this->moduleTemplate->header($title);
+            $this->content .= $this->moduleContent();
 
-            // all necessary JS code needs to be set before this line!
-            /** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
-            $this->tceforms = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Form\\FormEngine');
-            $this->tceforms->backPath = $GLOBALS['BACK_PATH'];
-            $this->doc->JScode = $this->tceforms->JSbottom('editform');
-            $this->doc->JScode .= $this->doc->wrapScriptTags($this->jsCode);
 
-            $this->content  = '';
-
-            $this->content .= $this->doc->spacer(5);
-            $this->content .= $this->doc->section(
-                '',
-                $this->doc->funcMenu(
-                    $this->doc->header($title),
-                    $menu
-                )
-            );
-            $this->content .= $this->doc->divider(5);
-            $this->content .= $moduleContent;
-
-            $docHeaderButtons = $this->getButtons();
-            $markers['CSH'] = $this->docHeaderButtons['csh'];
-            $markers['FUNC_MENU'] = BackendUtility::getFuncMenu($this->id, 'SET[mode]', $this->MOD_SETTINGS['mode'], $this->MOD_MENU['mode']);
-            $markers['CONTENT'] = $this->content;
-
-            // Build the <body> for the module
-            $this->content = $this->doc->moduleBody($this->pageinfo, $docHeaderButtons, $markers);
-
-            $this->content = $this->doc->render($GLOBALS['LANG']->getLL('permissions'), $this->content);
+            $this->getButtons();
+            $this->generateMenu();
         }
     }
 
@@ -366,27 +359,7 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     public function init()
     {
         parent::init();
-
-        // Initializing document template object:
-        $this->doc = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Template\\DocumentTemplate');
-        $this->doc->backPath = $GLOBALS['BACK_PATH'];
-        $this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/module.html');
-        $this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';
-        // Setting up the context sensitive menu:
-        $this->doc->getContextMenuCode();
-
-        // JavaScript
-        $this->doc->postCode .= $this->doc->wrapScriptTags('
-				script_ended = 1;
-				if (top.fsMod) top.fsMod.recentIds["web"] = 0;
-		');
-
-        $this->doc->postCode .= $this->doc->wrapScriptTags('
-			script_ended = 0;
-			function jumpToUrl(URL) {
-				document.location = URL;
-			}
-		');
+        $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
 
         $this->id = 0;
         $this->search_field = GeneralUtility::_GP('search_field');
@@ -436,10 +409,7 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         switch ((string)$this->MOD_SETTINGS['function']) {
             case '1':
                 // list Filemounts
-                $content .= $this->doc->section(
-                    '',
-                    $this->getFilemountList()
-                );
+                $content .= $this->getFilemountList();
                 break;
             case '2':
                 // create new Filemount
@@ -450,17 +420,10 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
                 } else { // create new user
                     $this->editconf = array($this->table => array(0=>'new'));
                 }
-                $content .= $this->doc->section(
-                    '',
-                    $this->getFilemountEdit()
-                );
+                $content .= $this->getFilemountEdit();
                 break;
             case 'edit':
-                $content .= $this->doc->section(
-                    '',
-                    $this->getFilemountEdit()
-                );
-
+                $content .= $this->getFilemountEdit();
                 break;
             case 'action':
                 $this->processData();
@@ -471,16 +434,11 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         return $content;
     }
 
-    public function printContent()
-    {
-        $this->content .= $this->doc->endPage();
-    }
-
     public function getFilemountList()
     {
         $content = '';
 
-        /** @var dkd\TcBeuser\Utility\RecordListUtility $dblist */
+        /** @var \dkd\TcBeuser\Utility\RecordListUtility $dblist */
         $dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
         $dblist->backPath = $this->doc->backPath;
         $dblist->script = GeneralUtility::linkThisScript();
@@ -499,19 +457,95 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         $dblist->generateList();
         $content .= $dblist->HTMLcode;
 
-        // make new user link
+        // Add JavaScript functions to the page:
+
+        $this->moduleTemplate->addJavaScriptCode(
+            'RecordListInlineJS',
+            '
+				function jumpExt(URL,anchor) {	//
+					var anc = anchor?anchor:"";
+					window.location.href = URL+(T3_THIS_LOCATION?"&returnUrl="+T3_THIS_LOCATION:"")+anc;
+					return false;
+				}
+				function jumpSelf(URL) {	//
+					window.location.href = URL+(T3_RETURN_URL?"&returnUrl="+T3_RETURN_URL:"");
+					return false;
+				}
+				function jumpToUrl(URL) {
+					window.location.href = URL;
+					return false;
+				}
+
+				function setHighlight(id) {	//
+					top.fsMod.recentIds["tcTools"]=id;
+					top.fsMod.navFrameHighlightedID["web"]="pages"+id+"_"+top.fsMod.currentBank;	// For highlighting
+
+					if (top.content && top.content.nav_frame && top.content.nav_frame.refresh_nav) {
+						top.content.nav_frame.refresh_nav();
+					}
+				}
+				' . $this->moduleTemplate->redirectUrls($dblist->listURL()) . '
+				' . $dblist->CBfunctions() . '
+				function editRecords(table,idList,addParams,CBflag) {	//
+					window.location.href="' . BackendUtility::getModuleUrl('record_edit', array('returnUrl' => GeneralUtility::getIndpEnv('REQUEST_URI'))) . '&edit["+table+"]["+idList+"]=edit"+addParams;
+				}
+				function editList(table,idList) {	//
+					var list="";
+
+						// Checking how many is checked, how many is not
+					var pointer=0;
+					var pos = idList.indexOf(",");
+					while (pos!=-1) {
+						if (cbValue(table+"|"+idList.substr(pointer,pos-pointer))) {
+							list+=idList.substr(pointer,pos-pointer)+",";
+						}
+						pointer=pos+1;
+						pos = idList.indexOf(",",pointer);
+					}
+					if (cbValue(table+"|"+idList.substr(pointer))) {
+						list+=idList.substr(pointer)+",";
+					}
+
+					return list ? list : idList;
+				}
+
+				if (top.fsMod) top.fsMod.recentIds["tcTools"] = ' . (int)$this->id . ';
+			'
+        );
+
+        // searchbox toolbar
+        if (!$this->modTSconfig['properties']['disableSearchBox'] && ($dblist->HTMLcode || !empty($dblist->searchString))) {
+            $searchBox = $dblist->getSearchBox();
+            $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/ToggleSearchToolbox');
+
+            $searchButton = $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->makeLinkButton();
+            $searchButton
+                ->setHref('#')
+                ->setClasses('t3js-toggle-search-toolbox')
+                ->setTitle($this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:labels.title.searchIcon'))
+                ->setIcon($this->iconFactory->getIcon('actions-search', Icon::SIZE_SMALL));
+            $this->moduleTemplate->getDocHeaderComponent()->getButtonBar()->addButton(
+                $searchButton,
+                ButtonBar::BUTTON_POSITION_LEFT,
+                90
+            );
+        }
+
+        // make new filemount link
         $content .= '<!--
 						Link for creating a new record:
 					-->
 		<div id="typo3-newRecordLink">
-		<a href="' . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 2)) . '">' .
-            '<img' . IconUtility::skinImg($this->doc->backPath, 'gfx/new_el.gif', 'width="11" height="12"') . ' alt="' . $GLOBALS['LANG']->getLL('create-filemount') . '" />' .
+		<a href="' . BackendUtility::getModuleUrl($this->moduleName, array('SET[function]' => 2)) . '">' .
+            $this->iconFactory->getIcon('actions-document-new', Icon::SIZE_SMALL)->render() . ' ' .
             $GLOBALS['LANG']->getLL('create-filemount') .
             '</a>';
 
-        $this->jsCode .= $this->doc->redirectUrls($dblist->listURL())."\n";
+        $content = '<form action="' . htmlspecialchars($dblist->listURL()) . '" method="post" name="dblistForm">' .
+            $content .
+            '<input type="hidden" name="cmd_table" /><input type="hidden" name="cmd" /></form>';
 
-        return $content;
+        return $searchBox . $content;
     }
 
     public function getFilemountEdit()
@@ -695,28 +729,55 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 
     /**
      * Create the panel of buttons for submitting the form or otherwise perform operations.
-     *
-     * @return 	array		all available buttons as an assoc. array
      */
     protected function getButtons()
     {
-        $buttons = array(
-            'csh' => '',
-            'view' => '',
-            'shortcut' => ''
-        );
-        // CSH
-        $buttons['csh'] = BackendUtility::cshItem('_MOD_web_info', '', $GLOBALS['BACK_PATH'], '', true);
+        $buttonBar = $this->moduleTemplate->getDocHeaderComponent()->getButtonBar();
         // Shortcut
-        if ($GLOBALS['BE_USER']->mayMakeShortcut()) {
-            $buttons['shortcut'] = $this->doc->makeShortcutIcon('id, edit_record, pointer, new_unique_uid, search_field, search_levels, showLimit', implode(',', array_keys($this->MOD_MENU)), $this->MCONF['name']);
-        }
-        return $buttons;
+        $shortCutButton = $buttonBar->makeShortcutButton()
+            ->setModuleName($this->moduleName)
+            ->setDisplayName($this->MOD_MENU['function'][$this->MOD_SETTINGS['function']])
+            ->setGetVariables([
+                'M',
+                'id',
+                'edit_record',
+                'pointer',
+                'new_unique_uid',
+                'search_field',
+                'search_levels',
+                'showLimit'
+            ])
+            ->setSetVariables(array_keys($this->MOD_MENU));
+        $buttonBar->addButton($shortCutButton, ButtonBar::BUTTON_POSITION_RIGHT);
     }
-}
 
-
-
-if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php']) {
-    include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/mod5/index.php']);
+    /**
+     * Generate the ModuleMenu
+     */
+    protected function generateMenu()
+    {
+        $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
+        $menu->setIdentifier('FilemountAdminMenu');
+        foreach ($this->MOD_MENU['function'] as $controller => $title) {
+            $item = $menu
+                ->makeMenuItem()
+                ->setHref(
+                    BackendUtility::getModuleUrl(
+                        $this->moduleName,
+                        [
+                            'id' => $this->id,
+                            'SET' => [
+                                'function' => $controller
+                            ]
+                        ]
+                    )
+                )
+                ->setTitle($title);
+            if ($controller == $this->MOD_SETTINGS['function']) {
+                $item->setActive(true);
+            }
+            $menu->addMenuItem($item);
+        }
+        $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($menu);
+    }
 }

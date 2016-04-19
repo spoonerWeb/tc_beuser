@@ -566,7 +566,7 @@ class GroupAdminController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 						Link for creating a new record:
 					-->
 		<div id="typo3-newRecordLink">
-		<a href="' . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 2)) . '">' .
+		<a href="' . BackendUtility::getModuleUrl($this->moduleName, array('SET[function]' => 2)) . '">' .
             $this->iconFactory->getIcon('actions-document-new', Icon::SIZE_SMALL)->render() . ' ' .
             $GLOBALS['LANG']->getLL('create-group') .
             '</a>';
