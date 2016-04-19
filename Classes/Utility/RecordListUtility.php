@@ -897,7 +897,9 @@ class RecordListUtility extends DatabaseRecordList
             //dkd-kartolo
             //show magnifier (mod4)
         if (!$this->disableControls['detail']) {
-            $infoAction = '<a href="#" class="btn btn-default" onclick="javascript:top.goToModule(\'tcTools_Overview\', 1, \'&' . $this->analyzeParam . '=' . $row['uid'] . '\')">' .
+            $infoAction = '<a href="#" class="btn btn-default" onclick="javascript:top.goToModule(\'tcTools_Overview\', 1, \'&' .
+                $this->analyzeParam . '=' . $row['uid'] . '\')"' .
+                ' title="' . $this->analyzeLabel . '">' .
                 $this->iconFactory->getIcon('apps-toolbar-menu-search', Icon::SIZE_SMALL)->render() .
                 '</a>';
             $this->addActionToCellGroup($cells, $infoAction, 'info');

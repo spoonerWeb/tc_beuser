@@ -607,7 +607,7 @@ class UserAdminController extends BaseScriptClass
 				}
 
 				function setHighlight(id) {	//
-					top.fsMod.recentIds["web"]=id;
+					top.fsMod.recentIds["tcTools"]=id;
 					top.fsMod.navFrameHighlightedID["web"]="pages"+id+"_"+top.fsMod.currentBank;	// For highlighting
 
 					if (top.content && top.content.nav_frame && top.content.nav_frame.refresh_nav) {
@@ -639,7 +639,7 @@ class UserAdminController extends BaseScriptClass
 					return list ? list : idList;
 				}
 
-				if (top.fsMod) top.fsMod.recentIds["web"] = ' . (int)$this->id . ';
+				if (top.fsMod) top.fsMod.recentIds["tcTools"] = ' . (int)$this->id . ';
 			'
         );
 
