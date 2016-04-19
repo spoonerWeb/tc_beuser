@@ -85,7 +85,7 @@ class UserAdminController extends BaseScriptClass
      */
     public function __construct()
     {
-        $this->MCONF = array(
+        $GLOBALS['MCONF'] = $this->MCONF = array(
             'name' => $this->moduleName
         );
 
