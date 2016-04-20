@@ -1,8 +1,18 @@
 <?php
 namespace dkd\TcBeuser\Utility;
 
+use TYPO3\CMS\Backend\Form\Exception\AccessDeniedException;
+use TYPO3\CMS\Backend\Form\FormDataCompiler;
+use TYPO3\CMS\Backend\Form\FormDataGroup\TcaDatabaseRecord;
+use TYPO3\CMS\Backend\Form\NodeFactory;
+use TYPO3\CMS\Backend\Form\Utility\FormEngineUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
+use TYPO3\CMS\Core\Messaging\FlashMessageService;
+use TYPO3\CMS\Core\Type\Bitmask\Permission;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
+use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /***************************************************************
@@ -39,299 +49,284 @@ class EditFormUtility
     public $tceforms;
     public $inputData;
 
-    /**
-     * ingo.renner@dkd.de: from alt_doc.php
-     *
-     * Creates the editing form with TCEforms, based on the input from GPvars.
-     *
-     * @return	string		HTML form elements wrapped in tables
-     */
-
     public function makeEditForm()
     {
         // Initialize variables:
         $this->elementsData = array();
         $this->errorC = 0;
         $this->newC = 0;
-        $thePrevUid = '';
         $editForm = '';
-
-            // Traverse the GPvar edit array
+        $trData = null;
+        $beUser = $this->getBackendUser();
+        // Traverse the GPvar edit array
+        // Tables:
         foreach ($this->editconf as $table => $conf) {
-            // Tables:
-            if (is_array($conf) && $GLOBALS['TCA'][$table] && $GLOBALS['BE_USER']->check('tables_modify', $table)) {
+            if (is_array($conf) && $GLOBALS['TCA'][$table] && $beUser->check('tables_modify', $table)) {
                 // Traverse the keys/comments of each table (keys can be a commalist of uids)
-                foreach ($conf as $cKey => $cmd) {
-                    if ($cmd=='edit' || $cmd=='new') {
+                foreach ($conf as $cKey => $command) {
+                    if ($command == 'edit' || $command == 'new') {
                         // Get the ids:
-                        $ids = GeneralUtility::trimExplode(',', $cKey, 1);
-
-                            // Traverse the ids:
+                        $ids = GeneralUtility::trimExplode(',', $cKey, true);
+                        // Traverse the ids:
                         foreach ($ids as $theUid) {
-                            // Checking if the user has permissions? (Only working as a precaution, because the final permission check is always down in TCE. But it's good to notify the user on beforehand...)
-                                // First, resetting flags.
-                            $hasAccess = 1;
-                            $deniedAccessReason = '';
-                            $deleteAccess = 0;
-                            $this->viewId = 0;
-
-                            // We need some uid in rootLine for the access check, so use first webmount
-                            $webmounts = $GLOBALS['BE_USER']->returnWebmounts();
-
-                                // If the command is to create a NEW record...:
-                            if ($cmd=='new') {
-                                if (intval($theUid)) {
-                                    // NOTICE: the id values in this case points to the page uid onto which the record should be create OR (if the id is negativ) to a record from the same table AFTER which to create the record.
-
-                                        // Find parent page on which the new record reside
-                                    if ($theUid<0) {
-                                        // Less than zero - find parent page
-                                        $calcPRec = BackendUtility::getRecord($table, abs($theUid));
-                                        $calcPRec = BackendUtility::getRecord('pages', $calcPRec['pid']);
-                                    } else {
-                                        // always a page
-                                        $calcPRec = BackendUtility::getRecord('pages', abs($theUid));
-                                    }
-
-                                        // Now, calculate whether the user has access to creating new records on this position:
-                                    if (is_array($calcPRec)) {
-                                        $CALC_PERMS = $GLOBALS['BE_USER']->calcPerms($calcPRec);    // Permissions for the parent page
-                                        if ($table == 'pages') {
-                                            // If pages:
-                                            $hasAccess = $CALC_PERMS&8 ? 1 : 0;
-                                            $this->viewId = $calcPRec['pid'];
-                                        } else {
-                                            $hasAccess = $CALC_PERMS&16 ? 1 : 0;
-                                            $this->viewId = $calcPRec['uid'];
-                                        }
-                                    }
-                                }
-                                // Don't save this document title in the document selector if the document is new.
-                                $this->dontStoreDocumentRef=1;
-                            } else {
-                                // Edit:
-                                $calcPRec = BackendUtility::getRecord($table, $theUid);
-                                BackendUtility::fixVersioningPid($table, $calcPRec);
-                                if (is_array($calcPRec)) {
-                                    if ($table=='pages') {
-                                        // If pages:
-                                        $CALC_PERMS = $GLOBALS['BE_USER']->calcPerms($calcPRec);
-                                        $hasAccess = $CALC_PERMS&2 ? 1 : 0;
-                                        $deleteAccess = $CALC_PERMS&4 ? 1 : 0;
-                                        $this->viewId = $calcPRec['uid'];
-                                    } else {
-                                        // Fetching pid-record first.
-                                        $CALC_PERMS = $GLOBALS['BE_USER']->calcPerms(array('uid' => $webmounts[0]));
-                                        $hasAccess = $CALC_PERMS&16 ? 1 : 0;
-                                        $deleteAccess = $CALC_PERMS&16 ? 1 : 0;
-                                        $this->viewId = $calcPRec['pid'];
-
-                                            // Adding "&L=xx" if the record being edited has a languageField with a value larger than zero!
-                                        if ($GLOBALS['TCA'][$table]['ctrl']['languageField'] && $calcPRec[$GLOBALS['TCA'][$table]['ctrl']['languageField']]>0) {
-                                            $this->viewId_addParams = '&L='.$calcPRec[$GLOBALS['TCA'][$table]['ctrl']['languageField']];
-                                        }
-                                    }
-
-                                        // Check internals regarding access:
-                                    if ($hasAccess) {
-                                        $hasAccess = $GLOBALS['BE_USER']->recordEditAccessInternals($table, $calcPRec);
-                                        $deniedAccessReason = $GLOBALS['BE_USER']->errorMsg;
-                                    }
-                                } else {
-                                    $hasAccess = 0;
-                                }
+                            // Don't save this document title in the document selector if the document is new.
+                            if ($command === 'new') {
+                                $this->dontStoreDocumentRef = 1;
                             }
 
-                            // AT THIS POINT we have checked the access status of the editing/creation of records and we can now proceed with creating the form elements:
+                            /** @var TcaDatabaseRecord $formDataGroup */
+                            $formDataGroup = GeneralUtility::makeInstance(TcaDatabaseRecord::class);
+                            /** @var FormDataCompiler $formDataCompiler */
+                            $formDataCompiler = GeneralUtility::makeInstance(FormDataCompiler::class, $formDataGroup);
+                            /** @var NodeFactory $nodeFactory */
+                            $nodeFactory = GeneralUtility::makeInstance(NodeFactory::class);
 
-                            if ($hasAccess) {
-                                $prevPageID = is_object($trData) ? $trData->prevPageID : '';
-                                $trData = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\DataPreprocessor');
-                                $trData->addRawData = true;
-                                $trData->defVals = $this->defVals;
-                                $trData->lockRecords = 1;
-                                $trData->disableRTE = $this->MOD_SETTINGS['disableRTE'];
-                                $trData->prevPageID = $prevPageID;
-                                $trData->fetchRecord($table, $theUid, $cmd=='new'?'new':'');    // 'new'
-                                reset($trData->regTableItems_data);
-                                $rec = current($trData->regTableItems_data);
-                                $rec['uid'] = ($cmd=='new' ? uniqid('NEW') : $theUid);
-                                if ($cmd == 'new') {
-                                    $rec['pid'] = ($theUid == 'prev' ? $thePrevUid : $theUid);
+                            try {
+                                // Reset viewId - it should hold data of last entry only
+                                $this->viewId = 0;
+                                $this->viewId_addParams = '';
+
+                                $formDataCompilerInput = [
+                                    'tableName' => $table,
+                                    'vanillaUid' => (int)$theUid,
+                                    'command' => $command,
+                                    'returnUrl' => $this->R_URI,
+                                ];
+                                if (is_array($this->overrideVals) && is_array($this->overrideVals[$table])) {
+                                    $formDataCompilerInput['overrideValues'] = $this->overrideVals[$table];
                                 }
+
+                                $formData = $formDataCompiler->compile($formDataCompilerInput);
+
+                                // Set this->viewId if possible
+                                if ($command === 'new'
+                                    && $table !== 'pages'
+                                    && !empty($formData['parentPageRow']['uid'])
+                                ) {
+                                    $this->viewId = $formData['parentPageRow']['uid'];
+                                } else {
+                                    if ($table == 'pages') {
+                                        $this->viewId = $formData['databaseRow']['uid'];
+                                    } elseif (!empty($formData['parentPageRow']['uid'])) {
+                                        $this->viewId = $formData['parentPageRow']['uid'];
+                                        // Adding "&L=xx" if the record being edited has a languageField with a value larger than zero!
+                                        if (!empty($formData['processedTca']['ctrl']['languageField'])
+                                            && is_array($formData['databaseRow'][$formData['processedTca']['ctrl']['languageField']])
+                                            && $formData['databaseRow'][$formData['processedTca']['ctrl']['languageField']][0] > 0
+                                        ) {
+                                            $this->viewId_addParams = '&L=' . $formData['databaseRow'][$formData['processedTca']['ctrl']['languageField']][0];
+                                        }
+                                    }
+                                }
+
+                                // Determine if delete button can be shown
+                                $deleteAccess = false;
+                                if ($command === 'edit') {
+                                    $permission = $formData['userPermissionOnPage'];
+                                    if ($formData['tableName'] === 'pages') {
+                                        $deleteAccess = $permission & Permission::PAGE_DELETE ? true : false;
+                                    } else {
+                                        $deleteAccess = $permission & Permission::CONTENT_EDIT ? true : false;
+                                    }
+                                }
+
+                                // Display "is-locked" message:
+                                if ($command === 'edit') {
+                                    $lockInfo = BackendUtility::isRecordLocked($table, $formData['databaseRow']['uid']);
+                                    if ($lockInfo) {
+                                        /** @var $flashMessage \TYPO3\CMS\Core\Messaging\FlashMessage */
+                                        $flashMessage = GeneralUtility::makeInstance(
+                                            FlashMessage::class,
+                                            $lockInfo['msg'],
+                                            '',
+                                            FlashMessage::WARNING
+                                        );
+                                        /** @var $flashMessageService \TYPO3\CMS\Core\Messaging\FlashMessageService */
+                                        $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
+                                        /** @var $defaultFlashMessageQueue FlashMessageQueue */
+                                        $defaultFlashMessageQueue = $flashMessageService->getMessageQueueByIdentifier();
+                                        $defaultFlashMessageQueue->enqueue($flashMessage);
+                                    }
+                                }
+
+                                // Record title
+                                if (!$this->storeTitle) {
+                                    $this->storeTitle = $this->recTitle
+                                        ? htmlspecialchars($this->recTitle)
+                                        : BackendUtility::getRecordTitle($table, FormEngineUtility::databaseRowCompatibility($formData['databaseRow']), true);
+                                }
+
                                 $this->elementsData[] = array(
                                     'table' => $table,
-                                    'uid' => $rec['uid'],
-                                    'pid' => $rec['pid'],
-                                    'cmd' => $cmd,
+                                    'uid' => $formData['databaseRow']['uid'],
+                                    'pid' => $formData['databaseRow']['pid'],
+                                    'cmd' => $command,
                                     'deleteAccess' => $deleteAccess
                                 );
 
-                                if ($cmd == 'new') {
-                                    if (is_array($this->inputData)) {
-                                        $table1 = array_keys($this->inputData);
-                                        $uid = array_keys($this->inputData[$table1[0]]);
-                                        $data = $this->inputData[$table1[0]][$uid[0]];
-                                        foreach ($data as $key => $value) {
-                                            $rec[$key] = $value;
-                                        }
-                                    }
+                                if ($command !== 'new') {
+                                    BackendUtility::lockRecords($table, $formData['databaseRow']['uid'], $table === 'tt_content' ? $formData['databaseRow']['pid'] : 0);
                                 }
 
                                 //dkd-kartolo
                                 //put feusers data in the be_users form as new be_users
                                 if (!empty($this->feID) && $table=='be_users') {
-                                    $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('*', 'fe_users', 'uid = '.$this->feID);
-                                    $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
-                                    $rec['username'] = $row['username'];
-                                    $rec['realName'] = $row['name'];
-                                    $rec['email'] = $row['email'];
-                                    $rec['password'] = md5($row['password']);
+                                    $res = $this->getDatabaseConnection()->exec_SELECTquery(
+                                        '*',
+                                        'fe_users',
+                                        'uid = ' . $this->feID
+                                    );
+                                    $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+                                    $formData['databaseRow']['username'] = $row['username'];
+                                    $formData['databaseRow']['realName'] = $row['name'];
+                                    $formData['databaseRow']['email'] = $row['email'];
+                                    $formData['databaseRow']['password'] = $row['password'];
                                 }
 
-                                    // Now, render the form:
-                                if (is_array($rec)) {
-                                    // Setting visual path / title of form:
-                                    $this->generalPathOfForm = $this->tceforms->getRecordPath($table, $rec);
-                                    if (!$this->storeTitle) {
-                                        $this->storeTitle = $this->recTitle ? htmlspecialchars($this->recTitle) : BackendUtility::getRecordTitle($table, $rec, 1);
+
+                                //dkd-kartolo
+                                //put list of users in the 'members' field
+                                //used to render list of member in the be_groups form
+                                if ($table == 'be_groups') {
+                                    $res = $this->getDatabaseConnection()->exec_SELECTquery(
+                                        '*',
+                                        'be_users',
+                                        'usergroup like ' . $this->getDatabaseConnection()->fullQuoteStr(
+                                            '%'.$formData['databaseRow']['uid'].'%',
+                                            'be_users'
+                                        ).
+                                        BackendUtility::deleteClause('be_users')
+                                    );
+
+                                    $users = array();
+                                    if ($this->getDatabaseConnection()->sql_num_rows($res)>0) {
+                                        while ($row = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
+                                            if (GeneralUtility::inList($row['usergroup'], $formData['databaseRow']['uid'])) {
+                                                $users[] = $row['uid'].'|'.$row['username'];
+                                            }
+                                        }
+                                    }
+                                    $users = implode(',', $users);
+                                    $formData['databaseRow']['members'] = $users;
+                                }
+
+                                //dkd-kartolo
+                                //mod3, read TSconfig createWithPrefix
+                                if ($table == 'be_groups') {
+                                    $TSconfig = $this->getBackendUser()->userTS['tx_tcbeuser.'];
+                                    if (is_array($TSconfig)) {
+                                        if (array_key_exists('createWithPrefix', $TSconfig) && $command == 'new') {
+                                            $formData['databaseRow']['title'] = $TSconfig['createWithPrefix'];
+                                        }
                                     }
 
-                                        // Setting variables in TCEforms object:
-                                    $this->tceforms->hiddenFieldList = '';
-                                    $this->tceforms->globalShowHelp = $this->disHelp ? 0 : 1;
-                                    if (is_array($this->overrideVals[$table])) {
-                                        $this->tceforms->hiddenFieldListArr = array_keys($this->overrideVals[$table]);
+                                    if (strstr($formData['databaseRow']['TSconfig'], 'tx_tcbeuser') && $this->getBackendUser()->user['admin'] != 1) {
+                                        $columnsOnly = explode(',', $this->columnsOnly);
+                                        $this->columnsOnly = implode(',', ArrayUtility::removeArrayEntryByValue($columnsOnly, 'TSconfig'));
+                                        $this->error[] = array('info',$GLOBALS['LANG']->getLL('tsconfig-disabled'));
                                     }
+                                }
 
-                                        // Register default language labels, if any:
-                                    $this->tceforms->registerDefaultLanguageData($table, $rec);
+                                // Set list if only specific fields should be rendered. This will trigger
+                                // ListOfFieldsContainer instead of FullRecordContainer in OuterWrapContainer
+                                if ($this->columnsOnly) {
+                                    if (is_array($this->columnsOnly)) {
+                                        $formData['fieldListToRender'] = $this->columnsOnly[$table];
+                                    } else {
+                                        $formData['fieldListToRender'] = $this->columnsOnly;
+                                    }
+                                }
 
-                                    //dkd-kartolo
-                                    //put list of users in the 'members' field
-                                    //used to render list of member in the be_groups form
-                                    if ($table == 'be_groups') {
-                                        $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-                                            '*',
-                                            'be_users',
-                                            'usergroup like '.$GLOBALS['TYPO3_DB']->fullQuoteStr('%'.$rec['uid'].'%', 'be_users').
-                                                BackendUtility::deleteClause('be_users')
+                                $formData['renderType'] = 'outerWrapContainer';
+                                $formResult = $nodeFactory->create($formData)->render();
+
+                                $html = $formResult['html'];
+
+                                $formResult['html'] = '';
+                                $formResult['doSaveFieldName'] = 'doSave';
+
+                                // @todo: Put all the stuff into FormEngine as final "compiler" class
+                                // @todo: This is done here for now to not rewrite JStop()
+                                // @todo: and printNeededJSFunctions() now
+                                $this->formResultCompiler->mergeResult($formResult);
+
+                                // Seems the pid is set as hidden field (again) at end?!
+                                if ($command == 'new') {
+                                    // @todo: looks ugly
+                                    $html .= LF
+                                        . '<input type="hidden"'
+                                        . ' name="data[' . htmlspecialchars($table) . '][' . htmlspecialchars($formData['databaseRow']['uid']) . '][pid]"'
+                                        . ' value="' . (int)$formData['databaseRow']['pid'] . '" />';
+                                    $this->newC++;
+                                }
+
+                                // show error
+                                if (is_array($this->error)) {
+                                    $error = '';
+                                    foreach ($this->error as $errorArray) {
+                                        /** @var $flashMessage \TYPO3\CMS\Core\Messaging\FlashMessage */
+                                        $flashMessage = GeneralUtility::makeInstance(
+                                            FlashMessage::class,
+                                            $errorArray[1],
+                                            '',
+                                            ($errorArray[0]=='error' ? FlashMessage::ERROR : FlashMessage::WARNING)
                                         );
-
-                                        $users = array();
-                                        if ($GLOBALS['TYPO3_DB']->sql_num_rows($res)>0) {
-                                            while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
-                                                if (GeneralUtility::inList($row['usergroup'], $rec['uid'])) {
-                                                    $users[] = $row['uid'].'|'.$row['username'];
-                                                }
-                                            }
-                                        }
-                                        $users = implode(',', $users);
-                                        $rec['members']=$users;
+                                        /** @var $flashMessageService \TYPO3\CMS\Core\Messaging\FlashMessageService */
+                                        $flashMessageService = GeneralUtility::makeInstance(FlashMessageService::class);
+                                        /** @var $defaultFlashMessageQueue FlashMessageQueue */
+                                        $defaultFlashMessageQueue = $flashMessageService->getMessageQueueByIdentifier();
+                                        $defaultFlashMessageQueue->enqueue($flashMessage);
                                     }
-
-                                    //dkd-kartolo
-                                    //mod3, read TSconfig createWithPrefix
-                                    if ($table == 'be_groups') {
-                                        $TSconfig = $GLOBALS['BE_USER']->userTS['tx_tcbeuser.'];
-                                        if (is_array($TSconfig)) {
-                                            if (array_key_exists('createWithPrefix', $TSconfig) && $cmd=='new') {
-                                                $rec['title'] = $TSconfig['createWithPrefix'];
-                                            }
-                                        }
-
-                                        if (strstr($rec['TSconfig'], 'tx_tcbeuser') && $GLOBALS['BE_USER']->user['admin'] != 1) {
-                                            $columnsOnly = explode(',', $this->columnsOnly);
-                                            $this->columnsOnly = implode(',', GeneralUtility::removeArrayEntryByValue($columnsOnly, 'TSconfig'));
-                                            $this->error[] = array('info',$GLOBALS['LANG']->getLL('tsconfig-disabled'));
-                                        }
-                                    }
-
-
-                                        // Create form for the record (either specific list of fields or the whole record):
-                                    $panel = '';
-
-                                    if ($this->columnsOnly) {
-                                        if (is_array($this->columnsOnly)) {
-                                            $panel .= $this->tceforms->getListedFields($table, $rec, $this->columnsOnly[$table]);
-                                        } else {
-                                            $panel .= $this->tceforms->getListedFields($table, $rec, $this->columnsOnly);
-                                        }
-                                    } else {
-                                        $panel .= $this->tceforms->getMainFields($table, $rec);
-                                    }
-
-                                    // wrap the panel =
-                                    $panel = '<div class="typo3-TCEforms typo3-dyntabmenu-divs"><table border="0" cellspacing="0" cellpadding="0" width="100%">'.$panel.'</table></div>';
-                                    $panel = $this->tceforms->wrapTotal($panel, $rec, $table);
-
-                                    //dkd-kartolo
-                                    $panel = str_replace($this->tceforms->backPath.$this->tceforms->backPath, $this->tceforms->backPath, $panel);
-                                        // Setting the pid value for new records:
-                                    if ($cmd=='new') {
-                                        $panel .= '<input type="hidden" name="data['.$table.']['.$rec['uid'].'][pid]" value="'.$rec['pid'].'" />';
-                                        $this->newC++;
-                                    }
-
-                                        // Display "is-locked" message:
-                                    if ($lockInfo = BackendUtility::isRecordLocked($table, $rec['uid']) || $this->error) {
-                                        if (is_array($lockInfo)) {
-                                            $lockIcon = '
-												<tr>
-													<td><img'.IconUtility::skinImg($this->tceforms->backPath, 'gfx/recordlock_warning3.gif', 'width="17" height="12"').' alt="" /></td>
-													<td>'.htmlspecialchars($lockInfo['msg']).'</td>
-												</tr>
-											';
-                                        } else {
-                                            $lockIcon = '';
-                                        }
-                                        if (is_array($this->error)) {
-                                            $error = '';
-                                            foreach ($this->error as $errorArray) {
-                                                $icon = $errorArray[0]=='error' ? 'gfx/icon_fatalerror.gif' : 'gfx/info.gif';
-                                                $error .= '
-													<tr>
-														<td><img'.IconUtility::skinImg($this->tceforms->backPath, $icon, 'width="17" height="12"').' alt="" /></td>
-														<td>'.htmlspecialchars($errorArray[1]).'</td>
-													</tr>
-												';
-                                            }
-                                        } else {
-                                            $error = '';
-                                        }
-                                        $errorMsg = '
-
-											<!--
-											 	Warning box:
-											-->
-											<table border="0" cellpadding="0" cellspacing="0" class="warningbox">' .
-                                                    $lockIcon.$error.'
-											</table>
-										';
-                                    } else {
-                                        $errorMsg = '';
-                                    }
-
-                                        // Combine it all:
-                                    $editForm .= $errorMsg.$panel;
+                                } else {
+                                    $error = '';
                                 }
 
-                                $thePrevUid = $rec['uid'];
-                            } else {
+                                $editForm .= $html;
+                            } catch (AccessDeniedException $e) {
                                 $this->errorC++;
-                                $editForm .= $GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.noEditPermission', 1).'<br /><br />'.
-                                            ($deniedAccessReason ? 'Reason: '.htmlspecialchars($deniedAccessReason).'<br/><br/>' : '');
+                                // Try to fetch error message from "recordInternals" be user object
+                                // @todo: This construct should be logged and localized and de-uglified
+                                $message = $beUser->errorMsg;
+                                if (empty($message)) {
+                                    // Create message from exception.
+                                    $message = $e->getMessage() . ' ' . $e->getCode();
+                                }
+                                $editForm .= $this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:labels.noEditPermission', true)
+                                    . '<br /><br />' . htmlspecialchars($message) . '<br /><br />';
                             }
-                        }
+                        } // End of for each uid
                     }
                 }
             }
         }
-
         return $editForm;
     }
-}
 
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_editform.php']) {
-    include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_editform.php']);
+    /**
+     * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+     */
+    protected function getBackendUser()
+    {
+        return $GLOBALS['BE_USER'];
+    }
+
+    /**
+     * Returns LanguageService
+     *
+     * @return \TYPO3\CMS\Lang\LanguageService
+     */
+    protected function getLanguageService()
+    {
+        return $GLOBALS['LANG'];
+    }
+
+    /**
+     * Returns the database connection
+     *
+     * @return \TYPO3\CMS\Core\Database\DatabaseConnection
+     */
+        protected function getDatabaseConnection()
+    {
+        return $GLOBALS['TYPO3_DB'];
+    }
 }

@@ -27,14 +27,17 @@ namespace dkd\TcBeuser\Controller;
 use dkd\TcBeuser\Utility\TcBeuserUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Form\FormResultCompiler;
 use TYPO3\CMS\Backend\Module\BaseScriptClass;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
+use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\HttpUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
@@ -79,6 +82,72 @@ class UserAdminController extends BaseScriptClass
      * @var iconFactory
      */
     protected $iconFactory;
+
+    /**
+     * @var \dkd\TcBeuser\Utility\EditFormUtility
+     */
+    protected $editForm;
+
+    /**
+     * Return URL script, processed. This contains the script (if any) that we should
+     * RETURN TO from the FormEngine script IF we press the close button. Thus this
+     * variable is normally passed along from the calling script so we can properly return if needed.
+     *
+     * @var string
+     */
+    public $retUrl;
+
+    /**
+     * Contains the parts of the REQUEST_URI (current url). By parts we mean the result of resolving
+     * REQUEST_URI (current url) by the parse_url() function. The result is an array where eg. "path"
+     * is the script path and "query" is the parameters...
+     *
+     * @var array
+     */
+    public $R_URL_parts;
+
+    /**
+     * Contains the current GET vars array; More specifically this array is the foundation for creating
+     * the R_URI internal var (which becomes the "url of this script" to which we submit the forms etc.)
+     *
+     * @var array
+     */
+    public $R_URL_getvars;
+
+    /**
+     * Set to the URL of this script including variables which is needed to re-display the form. See main()
+     *
+     * @var string
+     */
+    public $R_URI;
+
+    /**
+     * working only with be_users table
+     *
+     * @var string
+     */
+    public $table = 'be_users';
+
+    /**
+     * Data value from GP
+     *
+     * @var string
+     */
+    public $data;
+
+    /**
+     * Command from GP
+     *
+     * @var string
+     */
+    public $cmd;
+
+    /**
+     * Disable RTE from GP
+     *
+     * @var string
+     */
+    public $disableRT;
 
     /**
      * Constructor
@@ -140,26 +209,24 @@ class UserAdminController extends BaseScriptClass
         $this->init();
 
         //TODO more access check!?
-        $access = $GLOBALS['BE_USER']->modAccess($this->MCONF, true);
+        $access = $this->getBackendUser()->modAccess($this->MCONF, true);
 
-        if ($access || $GLOBALS['BE_USER']->isAdmin()) {
+        if ($access || $this->getBackendUser()->isAdmin()) {
             // We need some uid in rootLine for the access check, so use first webmount
-            $webmounts = $GLOBALS['BE_USER']->returnWebmounts();
+            $webmounts = $this->getBackendUser()->returnWebmounts();
             $this->pageinfo['uid'] = $webmounts[0];
             $this->pageinfo['_thePath'] = '/';
 
-            $title = $GLOBALS['LANG']->getLL('title');
+            $title = $this->getLanguageService()->getLL('title');
             $this->moduleTemplate->setTitle($title);
 
             $this->content = $this->moduleTemplate->header($title);
             $this->content .= $this->moduleContent();
 
-
-            $this->getButtons();
             $this->generateMenu();
         }
 
-        $GLOBALS['BE_USER']->user['admin'] = 0;
+        $this->getBackendUser()->user['admin'] = 0;
     }
 
     /**
@@ -194,7 +261,16 @@ class UserAdminController extends BaseScriptClass
         // Make R_URL (request url) based on input GETvars:
         $this->R_URL_parts = parse_url(GeneralUtility::getIndpEnv('REQUEST_URI'));
         $this->R_URL_getvars = GeneralUtility::_GET();
-        $this->R_URL_getvars['edit'] = $this->editconf;
+        $this->R_URL_getvars['edit'] = $this->editconf ?: array($this->table => array('new'));
+
+        // Set other internal variables:
+        $this->R_URL_getvars['returnUrl'] = $this->retUrl;
+        $this->R_URI = $this->R_URL_parts['path'] . '?' . ltrim(GeneralUtility::implodeArrayForUrl(
+            '',
+            $this->R_URL_getvars
+        ), '&');
+
+
 
         if ($this->closeDoc > 0) {
             $this->closeDocument();
@@ -209,10 +285,8 @@ class UserAdminController extends BaseScriptClass
     public function doProcessData()
     {
         $out = $this->doSave ||
-            isset($_POST['_savedok_x']) ||
-            isset($_POST['_saveandclosedok_x']) ||
-            isset($_POST['_savedokview_x']) ||
-            isset($_POST['_savedoknew_x']);
+            isset($_POST['_savedok']) ||
+            isset($_POST['_saveandclosedok']);
         return $out;
     }
 
@@ -223,14 +297,14 @@ class UserAdminController extends BaseScriptClass
      */
     public function processData()
     {
-        if ($GLOBALS['BE_USER']->user['admin'] != 1) {
+        if ($this->getBackendUser()->user['admin'] != 1) {
             //make fake Admin
             TcBeuserUtility::fakeAdmin();
             $fakeAdmin = 1;
         }
         // GPvars specifically for processing:
         $this->data = GeneralUtility::_GP('data');
-        $this->cmd = GeneralUtility::_GP('cmd')?GeneralUtility::_GP('cmd'):array();
+        $this->cmd = GeneralUtility::_GP('cmd') ? GeneralUtility::_GP('cmd') : array();
         $this->disableRTE = GeneralUtility::_GP('_disableRTE');
 
         //check data with fe user
@@ -239,20 +313,20 @@ class UserAdminController extends BaseScriptClass
             $uid = array_keys($this->data[$table[0]]);
             $data = $this->data[$table[0]][$uid[0]];
             $fePID = intval($this->extConf['pidFE']);
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 '*',
                 'fe_users',
                 'pid = ' . $fePID .
                 BackendUtility::deleteClause('fe_users') .
                 ' AND username = ' .
-                $GLOBALS['TYPO3_DB']->fullQuoteStr($data['username'], 'fe_users')
+                $this->getDatabaseConnection()->fullQuoteStr($data['username'], 'fe_users')
             );
 
-            while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+            while ($row = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
                 if ((trim($data['realName']) == trim($row['name'])) && (trim($data['email']) == trim($row['email']))) {
                     $notSync = 0;
                 } else {
-                    if (strpos($uid[0], 'NEW') !== false) {
+                    if (strpos($uid[0], 'new') !== false) {
                         $feExist = 1;
                     } else {
                         $notSync = 1;
@@ -262,8 +336,8 @@ class UserAdminController extends BaseScriptClass
         }
 
         if ($notSync || $feExist) {
-            $notSync ? $this->error[] = array('error',$GLOBALS['LANG']->getLL('data-sync')) : '';
-            $feExist ? $this->error[] = array('error',$GLOBALS['LANG']->getLL('fe-exist')) : '';
+            $notSync ? $this->error[] = array('error',$this->getLanguageService()->getLL('data-sync')) : '';
+            $feExist ? $this->error[] = array('error',$this->getLanguageService()->getLL('fe-exist')) : '';
         } else {
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
@@ -272,13 +346,13 @@ class UserAdminController extends BaseScriptClass
             $tce->stripslashes_values = 0;
 
             // Setting default values specific for the user:
-            $TCAdefaultOverride = $GLOBALS['BE_USER']->getTSConfigProp('TCAdefaults');
+            $TCAdefaultOverride = $this->getBackendUser()->getTSConfigProp('TCAdefaults');
             if (is_array($TCAdefaultOverride)) {
                 $tce->setDefaultsFromUserTS($TCAdefaultOverride);
             }
 
             // Setting internal vars:
-            if ($GLOBALS['BE_USER']->uc['neverHideAtCopy']) {
+            if ($this->getBackendUser()->uc['neverHideAtCopy']) {
                 $tce->neverHideAtCopy = 1;
             }
             $tce->debug = 0;
@@ -300,7 +374,7 @@ class UserAdminController extends BaseScriptClass
             $refInfo = parse_url(GeneralUtility::getIndpEnv('HTTP_REFERER'));
             $httpHost = GeneralUtility::getIndpEnv('TYPO3_HOST_ONLY');
             if ($httpHost!=$refInfo['host'] &&
-                $this->vC!=$GLOBALS['BE_USER']->veriCode() &&
+                $this->vC!=$this->getBackendUser()->veriCode() &&
                 !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
                 $tce->log(
                     '',
@@ -328,7 +402,7 @@ class UserAdminController extends BaseScriptClass
                     foreach ($tce->substNEWwithIDs_table as $nKey => $nTable) {
                         $editId = $tce->substNEWwithIDs[$nKey];
                         // translate new id to the workspace version:
-                        if ($versionRec = BackendUtility::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace, $nTable, $editId, 'uid')) {
+                        if ($versionRec = BackendUtility::getWorkspaceVersionOfRecord($this->getBackendUser()->workspace, $nTable, $editId, 'uid')) {
                             $editId = $versionRec['uid'];
                         }
 
@@ -366,13 +440,14 @@ class UserAdminController extends BaseScriptClass
                 }
 
                 $tce->printLogErrorMessages(
-                    isset($_POST['_saveandclosedok_x']) ?
+                    isset($_POST['_saveandclosedok']) ?
                         $this->retUrl :
                         $this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('', $this->R_URL_getvars)    // popView will not be invoked here, because the information from the submit button for save/view will be lost .... But does it matter if there is an error anyways?
                 );
             }
         }
-        if (isset($_POST['_saveandclosedok_x']) || $this->closeDoc<0) {    //  || count($tce->substNEWwithIDs)... If any new items has been save, the document is CLOSED because if not, we just get that element re-listed as new. And we don't want that!
+        if (isset($_POST['_saveandclosedok']) || $this->closeDoc<0) {
+            //If any new items has been save, the document is CLOSED because if not, we just get that element re-listed as new. And we don't want that!
             $this->closeDocument(abs($this->closeDoc));
         }
 
@@ -386,13 +461,7 @@ class UserAdminController extends BaseScriptClass
      */
     public function closeDocument()
     {
-        if ($this->retUrl == 'dummy.php') {
-            $this->retUrl = BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
-        }
-        $retUrl = explode('/', $this->retUrl);
-        $this->retUrl = $retUrl[count($retUrl)-1];
-        Header('Location: '.$this->retUrl);
-        exit;
+        HttpUtility::redirect($this->retUrl);
     }
 
     public function init()
@@ -415,7 +484,7 @@ class UserAdminController extends BaseScriptClass
         $SET = GeneralUtility::_GET('SET');
         if (isset($SET['function']) && $SET['function'] == 'edit') {
             $this->MOD_SETTINGS['function'] = $SET['function'];
-            $this->MOD_MENU['function']['edit'] = $GLOBALS['LANG']->getLL('edit-user');
+            $this->MOD_MENU['function']['edit'] = $this->getLanguageService()->getLL('edit-user');
             $this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';
             $this->editconf = GeneralUtility::_GET('edit');
         }
@@ -433,15 +502,15 @@ class UserAdminController extends BaseScriptClass
     /**
      * Adds items to the ->MOD_MENU array. Used for the function menu selector.
      *
-     * @return	void
+     * @return void
      */
     public function menuConfig()
     {
         $this->MOD_MENU = array(
             'function' => array(
-                '1' => $GLOBALS['LANG']->getLL('list-users'),
-                '2'    => $GLOBALS['LANG']->getLL('create-user'),
-                '3' => $GLOBALS['LANG']->getLL('create-user-wizard'),
+                '1' => $this->getLanguageService()->getLL('list-users'),
+                '2'    => $this->getLanguageService()->getLL('create-user'),
+                '3' => $this->getLanguageService()->getLL('create-user-wizard'),
             ),
             'hideDeactivatedUsers' => '0'
         );
@@ -464,6 +533,11 @@ class UserAdminController extends BaseScriptClass
             case '1':
                 // list users
                 BackendUtility::lockRecords();
+
+                // get buttons for the header
+                $this->getButtons();
+
+                // the content
                 $content .=  $this->getUserList();
                 break;
 
@@ -476,18 +550,30 @@ class UserAdminController extends BaseScriptClass
                     // create new user
                     $this->editconf = array($this->table => array(0 => 'new'));
                 }
+
                 $content .= $this->getUserEdit();
+
+                // get Save, close, etc button
+                $this->getSaveButton();
                 break;
 
             case '3':
                 //show list of fe users
                 $this->table = 'fe_users';
+
+                // get buttons for the header
+                $this->getButtons();
+
+                // the content
                 $content .= $this->getUserList();
                 break;
 
             case 'edit':
                 // edit user
                 $content .= $this->getUserEdit();
+
+                // get Save, close, etc button
+                $this->getSaveButton();
                 break;
 
             case 'import':
@@ -498,20 +584,28 @@ class UserAdminController extends BaseScriptClass
                 if (is_numeric($dataKey[0])) {
                     $this->editconf = array($this->table => array($dataKey[0] => 'edit'));
                 } else { // create new user
-                    $this->editconf = array($this->table => array(0=>'new'));
+                    $this->editconf = array($this->table => array(0 =>'new'));
                 }
                 $content .= $this->getUserEdit();
+
+                // get Save, close, etc button
+                $this->getSaveButton();
                 break;
 
             case 'action':
                 $this->processData();
-                Header('Location: '.GeneralUtility::locationHeaderUrl(GeneralUtility::_GP('redirect')));
+                HttpUtility::redirect(GeneralUtility::_GP('redirect'));
                 break;
         }
 
         return $content;
     }
 
+    /**
+     * Get user list in a table
+     *
+     * @return string
+     */
     public function getUserList()
     {
         $content = '';
@@ -523,12 +617,12 @@ class UserAdminController extends BaseScriptClass
         $dblist->alternateBgColors = true;
         $dblist->userMainGroupOnly = true;
 
-        $dblist->calcPerms = $GLOBALS['BE_USER']->calcPerms($this->pageinfo);
+        $dblist->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
         $dblist->showFields = array('realName', 'username', 'usergroup');
         $dblist->disableControls = array_merge($dblist->disableControls, array('import'=>true));
 
-//Setup for analyze Icon
-        $dblist->analyzeLabel = $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:analyze', 1);
+        //Setup for analyze Icon
+        $dblist->analyzeLabel = $this->getLanguageService()->getLL('analyze', 1);
         $dblist->analyzeParam = 'beUser';
 
         if ($this->MOD_SETTINGS['hideDeactivatedUsers']) {
@@ -552,12 +646,12 @@ class UserAdminController extends BaseScriptClass
                 'delete' => true,
                 'hide' => true
             );
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'username',
                 'be_users',
                 '1 '.BackendUtility::deleteClause('be_users')
             );
-            while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+            while ($row = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
                 $exclude[] = "'".$row['username']."'";
             }
             $dblist->excludeBE = '('.implode(',', $exclude).')';
@@ -670,7 +764,7 @@ class UserAdminController extends BaseScriptClass
 <a href="' . BackendUtility::getModuleUrl($this->moduleName, array('SET[function]' => 2)) . '">' .
             $this->iconFactory->getIcon('actions-document-new', Icon::SIZE_SMALL)->render() .
             ' ' .
-            $GLOBALS['LANG']->getLL('create-user') .
+            $this->getLanguageService()->getLL('create-user') .
             '</a>' : '';
 
         $content = '<form action="' . htmlspecialchars($dblist->listURL()) . '" method="post" name="dblistForm">' .
@@ -680,6 +774,11 @@ class UserAdminController extends BaseScriptClass
         return $searchBox . $content;
     }
 
+    /**
+     * Show edit form
+     *
+     * @return string
+     */
     public function getUserEdit()
     {
         $content = '';
@@ -688,34 +787,29 @@ class UserAdminController extends BaseScriptClass
         $showColumn = 'disable,username,password,usergroup,realName,email,lang';
 
         // get hideColumnGroup from TS and remove it from the showColumn
-        if ($GLOBALS['BE_USER']->userTS['tc_beuser.']['hideColumnGroup']) {
-            $removeColumnArray = explode(',', $GLOBALS['BE_USER']->userTS['tc_beuser.']['hideColumnUser']);
+        if ($this->getBackendUser()->userTS['tc_beuser.']['hideColumnGroup']) {
+            $removeColumnArray = explode(',', $this->getBackendUser()->userTS['tc_beuser.']['hideColumnUser']);
             $defaultColumnArray = explode(',', $showColumn);
 
             foreach ($removeColumnArray as $col) {
-                $defaultColumnArray = GeneralUtility::removeArrayEntryByValue($defaultColumnArray, $col);
+                $defaultColumnArray = ArrayUtility::removeArrayEntryByValue($defaultColumnArray, $col);
             }
 
             $showColumn = implode(',', $defaultColumnArray);
         }
 
-        /** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
-        $this->tceforms = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Form\\FormEngine');
-        $this->tceforms->backPath = $this->doc->backPath;
-        $this->tceforms->initDefaultBEMode();
-        $this->tceforms->doSaveFieldName = 'doSave';
-        $this->tceforms->localizationMode = GeneralUtility::inList('text,media', $this->localizationMode) ? $this->localizationMode : '';    // text,media is keywords defined in TYPO3 Core API..., see "l10n_cat"
-        $this->tceforms->returnUrl = $this->R_URI;
-        $this->tceforms->disableRTE = true; // not needed anyway, might speed things up
-
         // Setting external variables:
-        #if ($GLOBALS['BE_USER']->uc['edit_showFieldHelp']!='text')	$this->tceforms->edit_showFieldHelp='text';
+        #if ($this->getBackendUser()->uc['edit_showFieldHelp']!='text')	$this->tceforms->edit_showFieldHelp='text';
 
         // Creating the editing form, wrap it with buttons, document selector etc.
         //show only these columns
 
+        /** @var FormResultCompiler formResultCompiler */
+        $formResultCompiler = GeneralUtility::makeInstance(FormResultCompiler::class);
+
+        /** @var \dkd\TcBeuser\Utility\EditFormUtility editForm */
         $this->editForm = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\EditFormUtility');
-        $this->editForm->tceforms = &$this->tceforms;
+        $this->editForm->formResultCompiler = $formResultCompiler;
         $this->editForm->columnsOnly = $showColumn;
         $this->editForm->editconf = $this->editconf;
         $this->editForm->feID = $this->feID;
@@ -723,6 +817,7 @@ class UserAdminController extends BaseScriptClass
         $this->editForm->inputData = $this->data;
 
         $editForm = $this->editForm->makeEditForm();
+
         $this->viewId = $this->editForm->viewId;
 
         if ($editForm) {
@@ -737,136 +832,101 @@ class UserAdminController extends BaseScriptClass
                 $this->modTSconfig=array();
             }
 
-            $panel  = $this->makeButtonPanel();
-            $formContent = $this->compileForm($panel, '', '', $editForm);
-
-            $content .= $this->tceforms->printNeededJSFunctions_top().
-                $formContent.
-                $this->tceforms->printNeededJSFunctions();
+            $content = $formResultCompiler->JStop();
+            $content .= $this->compileForm($editForm);
+            $content .= $formResultCompiler->printNeededJSFunctions();
+            $content .= '</form>';
         }
 
         return $content;
     }
 
     /**
-     * ingo.renner@dkd.de: from alt_doc.php, modified
-     *
-     * Create the panel of buttons for submitting the form or otherwise perform operations.
-     *
-     * @return	string		HTML code, comprised of images linked to various actions.
-     */
-    public function makeButtonPanel()
-    {
-        $panel='';
-
-        // Render SAVE type buttons:
-        // The action of each button is decided by its name attribute. (See doProcessData())
-        if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']) {
-
-            // SAVE button:
-            $panel.= '<input type="image" class="c-inputButton" name="_savedok"'.IconUtility::skinImg($this->doc->backPath, 'gfx/savedok.gif', '').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveDoc', 1).'" />';
-
-            // SAVE / CLOSE
-            $panel.= '<input type="image" class="c-inputButton" name="_saveandclosedok"'.IconUtility::skinImg($this->doc->backPath, 'gfx/saveandclosedok.gif', '').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveCloseDoc', 1).'" />';
-        }
-
-        // CLOSE button:
-        $panel.= '<a href="#" onclick="document.editform.closeDoc.value=1; document.editform.submit(); return false;">'.
-            '<img'.IconUtility::skinImg($this->doc->backPath, 'gfx/closedok.gif', 'width="21" height="16"').' class="c-inputButton" title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.closeDoc', 1).'" alt="" />'.
-            '</a>';
-
-        // UNDO buttons:
-        if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly'] && count($this->elementsData)==1) {
-            if ($this->firstEl['cmd']!='new' && GeneralUtility::testInt($this->firstEl['uid'])) {
-
-                // Undo:
-                $undoButton = 0;
-                $undoRes = $GLOBALS['TYPO3_DB']->exec_SELECTquery('tstamp', 'sys_history', 'tablename='.$GLOBALS['TYPO3_DB']->fullQuoteStr($this->firstEl['table'], 'sys_history').' AND recuid='.intval($this->firstEl['uid']), '', 'tstamp DESC', '1');
-                if ($undoButtonR = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($undoRes)) {
-                    $undoButton = 1;
-                }
-                if ($undoButton) {
-                    $aOnClick = 'window.location.href=\'show_rechis.php?element='.rawurlencode($this->firstEl['table'].':'.$this->firstEl['uid']).'&revert=ALL_FIELDS&sumUp=-1&returnUrl='.rawurlencode($this->R_URI).'\'; return false;';
-                    $panel .= '<a href="#" onclick="'.htmlspecialchars($aOnClick).'">'.
-                        '<img'.IconUtility::skinImg($this->doc->backPath, 'gfx/undo.gif', 'width="21" height="16"').' class="c-inputButton" title="'.htmlspecialchars(sprintf($GLOBALS['LANG']->getLL('undoLastChange'), BackendUtility::calcAge(time()-$undoButtonR['tstamp'], $GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')))).'" alt="" />'.
-                        '</a>';
-                }
-
-                // If only SOME fields are shown in the form, this will link the user to the FULL form:
-                if ($this->columnsOnly) {
-                    $panel .= '<a href="'.htmlspecialchars($this->R_URI.'&columnsOnly=').'">'.
-                        '<img'.IconUtility::skinImg($this->doc->backPath, 'gfx/edit2.gif', 'width="11" height="12"').' class="c-inputButton" title="'.$GLOBALS['LANG']->getLL('editWholeRecord', 1).'" alt="" />'.
-                        '</a>';
-                }
-            }
-        }
-        return $panel;
-    }
-
-    /**
      * Put together the various elements (buttons, selectors, form) into a table
      *
-     * @param	string		The button panel HTML
-     * @param	string		Document selector HTML
-     * @param	string		Clear-cache menu HTML
-     * @param	string		HTML form.
-     * @param	string		Language selector HTML for localization
-     * @return	string		Composite HTML
+     * @param string $editForm HTML form.
+     * @return string Composite HTML
      */
-    public function compileForm($panel, $docSel, $cMenu, $editForm, $langSelector='')
+    public function compileForm($editForm)
     {
-        $formContent='';
-        $formContent.='
+        $formContent = '
+			<!-- EDITING FORM -->
+			<form
+            action="' . htmlspecialchars($this->R_URI) . '"
+            method="post"
+            enctype="multipart/form-data"
+            name="editform"
+            id="EditDocumentController"
+            onsubmit="TBE_EDITOR.checkAndDoSubmit(1); return false;">
+			' . $editForm . '
 
-			<!--
-			 	Header of the editing page.
-				Contains the buttons for saving/closing, the document selector and menu selector.
-				Shows the path of the editing operation as well.
-			-->
-			<table border="0" cellpadding="0" cellspacing="1" width="470" id="typo3-altdoc-header">
-				<tr>
-					<td nowrap="nowrap" valign="top">'.$panel.'</td>
-					<td nowrap="nowrap" valign="top" align="right">'.$docSel.$cMenu.'</td>
-				</tr>';
-
-        if ($langSelector) {
-            $langSelector ='<div id="typo3-altdoc-lang-selector">'.$langSelector.'</div>';
-        }
-        $pagePath = '<div id="typo3-altdoc-page-path">'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.path', 1).': '.htmlspecialchars($this->generalPathOfForm).'</div>';
-
-        $formContent.='
-				<tr>
-					<td colspan="2"><div id="typo3-altdoc-header-info-options">'.$pagePath.$langSelector.'<div></td>
-				</tr>
-			</table>
-
-			<!--
-			 	EDITING FORM:
-			-->
-
-			'.$editForm.'
-
-			<!--
-			 	Saving buttons (same as in top)
-			-->
-
-			'.$panel.
-            '<input type="hidden" name="returnUrl" value="'.htmlspecialchars($this->retUrl).'" />
-			<input type="hidden" name="viewUrl" value="'.htmlspecialchars($this->viewUrl).'" />';
-
+			<input type="hidden" name="returnUrl" value="' . htmlspecialchars($this->retUrl) . '" />
+			<input type="hidden" name="viewUrl" value="' . htmlspecialchars($this->viewUrl) . '" />';
         if ($this->returnNewPageId) {
             $formContent .= '<input type="hidden" name="returnNewPageId" value="1" />';
         }
-        $formContent .= '<input type="hidden" name="popViewId" value="'.htmlspecialchars($this->viewId).'" />';
+        $formContent .= '<input type="hidden" name="popViewId" value="' . htmlspecialchars($this->viewId) . '" />';
         if ($this->viewId_addParams) {
-            $formContent .= '<input type="hidden" name="popViewId_addParams" value="'.htmlspecialchars($this->viewId_addParams).'" />';
+            $formContent .= '<input type="hidden" name="popViewId_addParams" value="' . htmlspecialchars($this->viewId_addParams) . '" />';
         }
-        $formContent .= '<input type="hidden" name="closeDoc" value="0" />';
-        $formContent .= '<input type="hidden" name="doSave" value="0" />';
-        $formContent .= '<input type="hidden" name="_serialNumber" value="'.md5(microtime()).'" />';
-        $formContent .= '<input type="hidden" name="_disableRTE" value="'.$this->tceforms->disableRTE.'" />';
-
+        $formContent .= '
+			<input type="hidden" name="closeDoc" value="0" />
+			<input type="hidden" name="doSave" value="0" />
+			<input type="hidden" name="_serialNumber" value="' . md5(microtime()) . '" />
+			<input type="hidden" name="_scrollPosition" value="" />';
         return $formContent;
+    }
+
+
+    /**
+     * Create the panel of buttons for submitting the form or otherwise perform operations.
+     *
+     * @return array All available buttons as an assoc. array
+     */
+    protected function getSaveButton()
+    {
+        $lang = $this->getLanguageService();
+        // Render SAVE type buttons:
+        // The action of each button is decided by its name attribute. (See doProcessData())
+        $buttonBar = $this->moduleTemplate->getDocHeaderComponent()->getButtonBar();
+        if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']) {
+            $saveSplitButton = $buttonBar->makeSplitButton();
+            // SAVE button:
+            $saveButton = $buttonBar->makeInputButton()
+                ->setTitle($lang->sL('LLL:EXT:lang/locallang_core.xlf:rm.saveDoc'))
+                ->setName('_savedok')
+                ->setValue('1')
+                ->setForm('EditDocumentController')
+                ->setIcon($this->moduleTemplate->getIconFactory()->getIcon('actions-document-save', Icon::SIZE_SMALL));
+            $saveSplitButton->addItem($saveButton, true);
+
+            // SAVE / CLOSE
+            $saveAndCloseButton = $buttonBar->makeInputButton()
+                ->setName('_saveandclosedok')
+                ->setClasses('t3js-editform-submitButton')
+                ->setValue('1')
+                ->setForm('EditDocumentController')
+                ->setTitle($lang->sL('LLL:EXT:lang/locallang_core.xlf:rm.saveCloseDoc'))
+                ->setIcon($this->moduleTemplate->getIconFactory()->getIcon(
+                    'actions-document-save-close',
+                    Icon::SIZE_SMALL
+                ));
+            $saveSplitButton->addItem($saveAndCloseButton);
+            $buttonBar->addButton($saveSplitButton, ButtonBar::BUTTON_POSITION_LEFT, 2);
+        }
+        // CLOSE button:
+        $closeButton = $buttonBar->makeLinkButton()
+            ->setHref('#')
+            ->setClasses('t3js-editform-close')
+            ->setTitle($lang->sL('LLL:EXT:lang/locallang_core.xlf:rm.closeDoc'))
+            ->setIcon($this->moduleTemplate->getIconFactory()->getIcon(
+                'actions-document-close',
+                Icon::SIZE_SMALL
+            ));
+        $buttonBar->addButton($closeButton);
+
+        $cshButton = $buttonBar->makeHelpButton()->setModuleName('xMOD_csh_corebe')->setFieldName('TCEforms');
+        $buttonBar->addButton($cshButton);
     }
 
     /**
