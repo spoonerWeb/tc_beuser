@@ -24,11 +24,9 @@ namespace dkd\TcBeuser\Controller;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+use dkd\TcBeuser\Module\AbstractModuleController;
 use dkd\TcBeuser\Utility\TcBeuserUtility;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
-use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
@@ -44,7 +42,7 @@ use TYPO3\CMS\Core\Utility\MathUtility;
  * @package TYPO3
  * @subpackage tx_tcbeuser
  */
-class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
+class FilemountsViewController extends AbstractModuleController
 {
 
     /**
@@ -61,62 +59,12 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     public $editform;
 
     /**
-     * IconFactory
-     *
-     * @var IconFactory
+     * Load needed locallang files
      */
-    protected $iconFactory;
-
-    /**
-     * Constructor
-     */
-    public function __construct()
-    {
-        $this->MCONF = array(
-            'name' => $this->moduleName
-        );
-
-        $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
-
-        $this->moduleTemplate->getPageRenderer()->loadJquery();
-        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/FieldSelectBox');
-        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/Recordlist');
-        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/AjaxDataHandler');
-        $this->moduleTemplate->addJavaScriptCode(
-            'jumpToUrl',
-            '
-                function jumpToUrl(URL) {
-                    window.location.href = URL;
-                    return false;
-                }
-                '
-        );
-    }
-
-    /**
-     * Entrance from the backend module. This replace the _dispatch
-     *
-     * @param ServerRequestInterface $request The request object from the backend
-     * @param ResponseInterface $response The reponse object sent to the backend
-     *
-     * @return ResponseInterface Return the response object
-     */
-    public function mainAction(ServerRequestInterface $request, ResponseInterface $response)
+    public function loadLocallang()
     {
         $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangFilemountsView.xml');
         $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
-
-
-        $this->preInit();
-        if ($this->doProcessData()) {
-            // Checks, if a save button has been clicked (or the doSave variable is sent)
-            $this->processData();
-        }
-
-        $this->main();
-        $this->moduleTemplate->setContent($this->content);
-        $response->getBody()->write($this->moduleTemplate->renderContent());
-        return $response;
     }
 
     public function main()
@@ -139,54 +87,8 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 
 
             $this->getButtons();
-            $this->generateMenu();
+            $this->generateMenu('FilemountViewMenu');
         }
-    }
-
-    /**
-     * First initialization.
-     *
-     * @return	void
-     */
-    public function preInit()
-    {
-        // Setting GPvars:
-        $this->editconf = GeneralUtility::_GP('edit');
-        $this->defVals = GeneralUtility::_GP('defVals');
-        $this->overrideVals = GeneralUtility::_GP('overrideVals');
-        $this->columnsOnly = GeneralUtility::_GP('columnsOnly');
-        $this->returnUrl = GeneralUtility::_GP('returnUrl');
-        $this->closeDoc = GeneralUtility::_GP('closeDoc');
-        $this->doSave = GeneralUtility::_GP('doSave');
-        $this->returnEditConf = GeneralUtility::_GP('returnEditConf');
-
-        // Setting override values as default if defVals does not exist.
-        if (!is_array($this->defVals) && is_array($this->overrideVals)) {
-            $this->defVals = $this->overrideVals;
-        }
-
-        // Setting return URL
-        $this->retUrl = $this->returnUrl ? $this->returnUrl : BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
-
-        // Make R_URL (request url) based on input GETvars:
-        $this->R_URL_parts = parse_url(GeneralUtility::getIndpEnv('REQUEST_URI'));
-        $this->R_URL_getvars = GeneralUtility::_GET();
-        $this->R_URL_getvars['edit'] = $this->editconf;
-
-        if ($this->closeDoc > 0) {
-            $this->closeDocument();
-        }
-    }
-
-    /**
-     * Detects, if a save command has been triggered.
-     *
-     * @return	boolean		True, then save the document (data submitted)
-     */
-    public function doProcessData()
-    {
-        $out = $this->doSave || isset($_POST['_savedok_x']) || isset($_POST['_saveandclosedok_x']) || isset($_POST['_savedokview_x']) || isset($_POST['_savedoknew_x']);
-        return $out;
     }
 
     /**
@@ -341,25 +243,9 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         }
     }
 
-
-    /**
-     * close the document and send to the previous page
-     */
-    public function closeDocument()
-    {
-        if ($this->retUrl == 'dummy.php') {
-            $this->retUrl = BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
-        }
-        $retUrl = explode('/', $this->retUrl);
-        $this->retUrl = $retUrl[count($retUrl)-1];
-        Header('Location: '.$this->retUrl);
-        exit;
-    }
-
     public function init()
     {
         parent::init();
-        $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
 
         $this->id = 0;
         $this->search_field = GeneralUtility::_GP('search_field');
@@ -725,59 +611,5 @@ class FilemountsViewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         $formContent .= '<input type="hidden" name="_disableRTE" value="'.$this->tceforms->disableRTE.'" />';
 
         return $formContent;
-    }
-
-    /**
-     * Create the panel of buttons for submitting the form or otherwise perform operations.
-     */
-    protected function getButtons()
-    {
-        $buttonBar = $this->moduleTemplate->getDocHeaderComponent()->getButtonBar();
-        // Shortcut
-        $shortCutButton = $buttonBar->makeShortcutButton()
-            ->setModuleName($this->moduleName)
-            ->setDisplayName($this->MOD_MENU['function'][$this->MOD_SETTINGS['function']])
-            ->setGetVariables([
-                'M',
-                'id',
-                'edit_record',
-                'pointer',
-                'new_unique_uid',
-                'search_field',
-                'search_levels',
-                'showLimit'
-            ])
-            ->setSetVariables(array_keys($this->MOD_MENU));
-        $buttonBar->addButton($shortCutButton, ButtonBar::BUTTON_POSITION_RIGHT);
-    }
-
-    /**
-     * Generate the ModuleMenu
-     */
-    protected function generateMenu()
-    {
-        $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
-        $menu->setIdentifier('FilemountAdminMenu');
-        foreach ($this->MOD_MENU['function'] as $controller => $title) {
-            $item = $menu
-                ->makeMenuItem()
-                ->setHref(
-                    BackendUtility::getModuleUrl(
-                        $this->moduleName,
-                        [
-                            'id' => $this->id,
-                            'SET' => [
-                                'function' => $controller
-                            ]
-                        ]
-                    )
-                )
-                ->setTitle($title);
-            if ($controller == $this->MOD_SETTINGS['function']) {
-                $item->setActive(true);
-            }
-            $menu->addMenuItem($item);
-        }
-        $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($menu);
     }
 }
