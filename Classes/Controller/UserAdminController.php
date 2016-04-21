@@ -92,7 +92,14 @@ class UserAdminController extends AbstractModuleController
      *
      * @var string
      */
-    public $disableRT;
+    public $disableRTE;
+
+    /**
+     * Error string
+     *
+     * @var array
+     */
+    public $error;
 
     /**
      * Load needed locallang files
@@ -181,7 +188,6 @@ class UserAdminController extends AbstractModuleController
             // Only options related to $this->data submission are included here.
             /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $tce */
             $tce = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\DataHandling\\DataHandler');
-            $tce->stripslashes_values = 0;
 
             // Setting default values specific for the user:
             $TCAdefaultOverride = $this->getBackendUser()->getTSConfigProp('TCAdefaults');
@@ -486,56 +492,10 @@ class UserAdminController extends AbstractModuleController
         // Add JavaScript functions to the page:
 
         $this->moduleTemplate->addJavaScriptCode(
-            'RecordListInlineJS',
+            'UserListInlineJS',
             '
-				function jumpExt(URL,anchor) {	//
-					var anc = anchor?anchor:"";
-					window.location.href = URL+(T3_THIS_LOCATION?"&returnUrl="+T3_THIS_LOCATION:"")+anc;
-					return false;
-				}
-				function jumpSelf(URL) {	//
-					window.location.href = URL+(T3_RETURN_URL?"&returnUrl="+T3_RETURN_URL:"");
-					return false;
-				}
-				function jumpToUrl(URL) {
-					window.location.href = URL;
-					return false;
-				}
-
-				function setHighlight(id) {	//
-					top.fsMod.recentIds["tcTools"]=id;
-					top.fsMod.navFrameHighlightedID["web"]="pages"+id+"_"+top.fsMod.currentBank;	// For highlighting
-
-					if (top.content && top.content.nav_frame && top.content.nav_frame.refresh_nav) {
-						top.content.nav_frame.refresh_nav();
-					}
-				}
 				' . $this->moduleTemplate->redirectUrls($dblist->listURL()) . '
 				' . $dblist->CBfunctions() . '
-				function editRecords(table,idList,addParams,CBflag) {	//
-					window.location.href="' . BackendUtility::getModuleUrl('record_edit', array('returnUrl' => GeneralUtility::getIndpEnv('REQUEST_URI'))) . '&edit["+table+"]["+idList+"]=edit"+addParams;
-				}
-				function editList(table,idList) {	//
-					var list="";
-
-						// Checking how many is checked, how many is not
-					var pointer=0;
-					var pos = idList.indexOf(",");
-					while (pos!=-1) {
-						if (cbValue(table+"|"+idList.substr(pointer,pos-pointer))) {
-							list+=idList.substr(pointer,pos-pointer)+",";
-						}
-						pointer=pos+1;
-						pos = idList.indexOf(",",pointer);
-					}
-					if (cbValue(table+"|"+idList.substr(pointer))) {
-						list+=idList.substr(pointer)+",";
-					}
-
-					return list ? list : idList;
-				}
-
-				if (top.fsMod) top.fsMod.recentIds["tcTools"] = ' . (int)$this->id . ';
 			'
         );
 

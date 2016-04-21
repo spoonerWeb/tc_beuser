@@ -18,6 +18,7 @@ use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
+use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
  * Class AbstractModuleController
@@ -217,6 +218,7 @@ abstract class AbstractModuleController extends BaseScriptClass
                 }
                 '
         );
+        $this->getInlineJS();
     }
 
     /**
@@ -416,6 +418,46 @@ abstract class AbstractModuleController extends BaseScriptClass
             ));
         $buttonBar->addButton($closeButton);
 
+        // DELETE button:
+        if (!$this->errorC
+            && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']
+        ) {
+            if ($this->firstEl['cmd'] !== 'new' && MathUtility::canBeInterpretedAsInteger($this->firstEl['uid'])) {
+                // Delete:
+                if ($this->firstEl['deleteAccess']
+                    && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']
+                    && !$this->getNewIconMode($this->firstEl['table'], 'disableDelete')
+                ) {
+                    $returnUrl = $this->retUrl;
+                    if ($this->firstEl['table'] === 'pages') {
+                        parse_str((string)parse_url($returnUrl, PHP_URL_QUERY), $queryParams);
+                        if (isset($queryParams['M'])
+                            && isset($queryParams['id'])
+                            && (string)$this->firstEl['uid'] === (string)$queryParams['id']
+                        ) {
+                            // TODO: Use the page's pid instead of 0, this requires a clean API to manipulate the page
+                            // tree from the outside to be able to mark the pid as active
+                            $returnUrl = BackendUtility::getModuleUrl($queryParams['M'], ['id' => 0]);
+                        }
+                    }
+                    $deleteButton = $buttonBar->makeLinkButton()
+                        ->setHref('#')
+                        ->setClasses('t3js-editform-delete-record')
+                        ->setTitle($lang->getLL('deleteItem'))
+                        ->setIcon($this->moduleTemplate->getIconFactory()->getIcon(
+                            'actions-edit-delete',
+                            Icon::SIZE_SMALL
+                        ))
+                        ->setDataAttributes([
+                            'return-url' => $returnUrl,
+                            'uid' => $this->firstEl['uid'],
+                            'table' => $this->firstEl['table']
+                        ]);
+                    $buttonBar->addButton($deleteButton, ButtonBar::BUTTON_POSITION_LEFT, 3);
+                }
+            }
+        }
+
         $cshButton = $buttonBar->makeHelpButton()->setModuleName('xMOD_csh_corebe')->setFieldName('TCEforms');
         $buttonBar->addButton($cshButton);
     }
@@ -463,5 +505,82 @@ abstract class AbstractModuleController extends BaseScriptClass
     public function closeDocument()
     {
         HttpUtility::redirect($this->retUrl);
+    }
+
+    /**
+     * Function used to look for configuration of buttons in the form: Fx. disabling buttons or showing them at various
+     * positions.
+     *
+     * @param string $table The table for which the configuration may be specific
+     * @param string $key The option for look for. Default is checking if the saveDocNew button should be displayed.
+     * @return string Return value fetched from USER TSconfig
+     */
+    public function getNewIconMode($table, $key = 'saveDocNew')
+    {
+        $TSconfig = $this->getBackendUser()->getTSConfig('options.' . $key);
+        $output = trim(isset($TSconfig['properties'][$table]) ? $TSconfig['properties'][$table] : $TSconfig['value']);
+        return $output;
+    }
+
+
+    public function getInlineJS()
+    {
+        // Add JavaScript functions to the page:
+
+        $this->moduleTemplate->addJavaScriptCode(
+            'TcToolsInlineJS',
+            '
+				function jumpExt(URL,anchor) {	//
+					var anc = anchor?anchor:"";
+					window.location.href = URL+(T3_THIS_LOCATION?"&returnUrl="+T3_THIS_LOCATION:"")+anc;
+					return false;
+				}
+				function jumpSelf(URL) {	//
+					window.location.href = URL+(T3_RETURN_URL?"&returnUrl="+T3_RETURN_URL:"");
+					return false;
+				}
+				function jumpToUrl(URL) {
+					window.location.href = URL;
+					return false;
+				}
+
+				function setHighlight(id) {	//
+					top.fsMod.recentIds["tcTools"]=id;
+					top.fsMod.navFrameHighlightedID["web"]="pages"+id+"_"+top.fsMod.currentBank;	// For highlighting
+
+					if (top.content && top.content.nav_frame && top.content.nav_frame.refresh_nav) {
+						top.content.nav_frame.refresh_nav();
+					}
+				}
+				
+				function editRecords(table,idList,addParams,CBflag) {	//
+					window.location.href="' . BackendUtility::getModuleUrl('record_edit', array('returnUrl' => GeneralUtility::getIndpEnv('REQUEST_URI'))) . '&edit["+table+"]["+idList+"]=edit"+addParams;
+				}
+				function editList(table,idList) {	//
+					var list="";
+
+						// Checking how many is checked, how many is not
+					var pointer=0;
+					var pos = idList.indexOf(",");
+					while (pos!=-1) {
+						if (cbValue(table+"|"+idList.substr(pointer,pos-pointer))) {
+							list+=idList.substr(pointer,pos-pointer)+",";
+						}
+						pointer=pos+1;
+						pos = idList.indexOf(",",pointer);
+					}
+					if (cbValue(table+"|"+idList.substr(pointer))) {
+						list+=idList.substr(pointer)+",";
+					}
+
+					return list ? list : idList;
+				}
+				function deleteRecord(table,id,url) {	//
+                    window.location.href = ' . GeneralUtility::quoteJSvalue(BackendUtility::getModuleUrl($this->moduleName) . '&cmd[') . '+table+"]["+id+"][delete]=1&redirect="+escape(url)+"&vC=' . $this->getBackendUser()->veriCode() . '&prErr=1&uPT=1&SET[function]=action";
+                }
+
+				if (top.fsMod) top.fsMod.recentIds["tcTools"] = ' . (int)$this->id . ';
+			'
+        );
     }
 }
