@@ -26,11 +26,12 @@ namespace dkd\TcBeuser\Controller;
 
 use dkd\TcBeuser\Module\AbstractModuleController;
 use dkd\TcBeuser\Utility\TcBeuserUtility;
+use TYPO3\CMS\Backend\Form\FormResultCompiler;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\HttpUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
@@ -55,6 +56,39 @@ class GroupAdminController extends AbstractModuleController
     public $pageinfo;
 
     /**
+     * @var \dkd\TcBeuser\Utility\EditFormUtility
+     */
+    protected $editForm;
+
+    /**
+     * Data value from GP
+     *
+     * @var string
+     */
+    public $data;
+
+    /**
+     * Command from GP
+     *
+     * @var string
+     */
+    public $cmd;
+
+    /**
+     * Disable RTE from GP
+     *
+     * @var string
+     */
+    public $disableRTE;
+
+    /**
+     * Error string
+     *
+     * @var array
+     */
+    public $error;
+
+    /**
      * Load needed locallang files
      */
     public function loadLocallang()
@@ -68,27 +102,19 @@ class GroupAdminController extends AbstractModuleController
         $this->init();
 
         //TODO more access check!?
-        $access = $GLOBALS['BE_USER']->modAccess($this->MCONF, true);
+        $access = $this->getBackendUser()->modAccess($this->MCONF, true);
 
-        if ($access || $GLOBALS['BE_USER']->isAdmin()) {
+        if ($access || $this->getBackendUser()->isAdmin()) {
             // We need some uid in rootLine for the access check, so use first webmount
-            $webmounts = $GLOBALS['BE_USER']->returnWebmounts();
+            $webmounts = $this->getBackendUser()->returnWebmounts();
             $this->pageinfo['uid'] = $webmounts[0];
 
-            $title = $GLOBALS['LANG']->getLL('title');
+            $title = $this->getLanguageService()->getLL('title');
             $this->moduleTemplate->setTitle($title);
-
-            $menu  = BackendUtility::getFuncMenu(
-                $this->id,
-                'SET[function]',
-                $this->MOD_SETTINGS['function'],
-                $this->MOD_MENU['function']
-            );
 
             $this->content = $this->moduleTemplate->header($title);
             $this->content .= $this->moduleContent();
 
-            $this->getButtons();
             $this->generateMenu('GroupAdminMenu');
         }
     }
@@ -100,7 +126,7 @@ class GroupAdminController extends AbstractModuleController
      */
     public function processData()
     {
-        if ($GLOBALS['BE_USER']->user['admin'] != 1) {
+        if ($this->getBackendUser()->user['admin'] != 1) {
             //make fake Admin
             TcBeuserUtility::fakeAdmin();
             $fakeAdmin = 1;
@@ -117,25 +143,28 @@ class GroupAdminController extends AbstractModuleController
         $data = $incoming[$table[0]][$uid[0]];
 
         //check if title has prefix. if not add it.
-        if (isset($GLOBALS['BE_USER']->userTS['tx_tcbeuser.']['createWithPrefix']) && !empty($GLOBALS['BE_USER']->userTS['tx_tcbeuser.']['createWithPrefix'])) {
-            $prefix = $GLOBALS['BE_USER']->userTS['tx_tcbeuser.']['createWithPrefix'];
+        if (isset($this->getBackendUser()->userTS['tx_tcbeuser.']['createWithPrefix']) &&
+            !empty($this->getBackendUser()->userTS['tx_tcbeuser.']['createWithPrefix'])) {
+            $prefix = $this->getBackendUser()->userTS['tx_tcbeuser.']['createWithPrefix'];
 
-            if (strpos($data['title'], $prefix) !== 0 && ! ($this->MOD_SETTINGS['function'] == 'action' && isset($data['hidden']))) {
+            if (strpos($data['title'], $prefix) !== 0 &&
+                !($this->MOD_SETTINGS['function'] == 'action' && isset($data['hidden']))
+            ) {
                 $this->data[$table[0]][$uid[0]]['title'] = $prefix.' '.$this->data[$table[0]][$uid[0]]['title'];
             }
         }
 
         //check if the same usergroup name is existed.
-        $row = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+        $row = $this->getDatabaseConnection()->exec_SELECTquery(
             '*',
             'be_groups',
-            'title = '.$GLOBALS['TYPO3_DB']->fullQuoteStr($data['title'], 'be_groups')
+            'title = ' . $this->getDatabaseConnection()->fullQuoteStr($data['title'], 'be_groups')
             .BackendUtility::deleteClause('be_groups')
         );
 
 
-        if (($GLOBALS['TYPO3_DB']->sql_num_rows($row) > 0) && (strpos($uid[0], 'NEW') !== false)) {
-            $this->error[] = array('error',$GLOBALS['LANG']->getLL('group-exists'));
+        if (($this->getDatabaseConnection()->sql_num_rows($row) > 0) && (strpos($uid[0], 'NEW') !== false)) {
+            $this->error[] = array('error', $this->getLanguageService()->getLL('group-exists'));
         } else {
             // See tce_db.php for relevate options here:
             // Only options related to $this->data submission are included here.
@@ -144,13 +173,13 @@ class GroupAdminController extends AbstractModuleController
             $tce->stripslashes_values=0;
 
             // Setting default values specific for the user:
-            $TCAdefaultOverride = $GLOBALS['BE_USER']->getTSConfigProp('TCAdefaults');
+            $TCAdefaultOverride = $this->getBackendUser()->getTSConfigProp('TCAdefaults');
             if (is_array($TCAdefaultOverride)) {
                 $tce->setDefaultsFromUserTS($TCAdefaultOverride);
             }
 
             // Setting internal vars:
-            if ($GLOBALS['BE_USER']->uc['neverHideAtCopy']) {
+            if ($this->getBackendUser()->uc['neverHideAtCopy']) {
                 $tce->neverHideAtCopy = 1;
             }
             $tce->debug = 0;
@@ -171,11 +200,12 @@ class GroupAdminController extends AbstractModuleController
             // Checking referer / executing
             $refInfo=parse_url(GeneralUtility::getIndpEnv('HTTP_REFERER'));
             $httpHost = GeneralUtility::getIndpEnv('TYPO3_HOST_ONLY');
-            if ($httpHost!=$refInfo['host'] && $this->vC!=$GLOBALS['BE_USER']->veriCode() && !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']) {
+            if (($httpHost != $refInfo['host']) &&
+                ($this->vC != $this->getBackendUser()->veriCode()) &&
+                !$GLOBALS['TYPO3_CONF_VARS']['SYS']['doNotCheckReferer']
+            ) {
                 $tce->log('', 0, 0, 0, 1, "Referer host '%s' and server host '%s' did not match and veriCode was not valid either!", 1, array($refInfo['host'], $httpHost));
-                debug('Error: Referer host did not match with server host.');
             } else {
-
                 // Perform the saving operation with TCEmain:
                 $tce->process_uploads($_FILES);
                 $tce->process_datamap();
@@ -183,15 +213,15 @@ class GroupAdminController extends AbstractModuleController
 
                 // If there was saved any new items, load them:
                 if (count($tce->substNEWwithIDs_table)) {
-
                     // Resetting editconf:
                     $this->editconf = array();
 
-                    // Traverse all new records and forge the content of ->editconf so we can continue to EDIT these records!
+                    // Traverse all new records and forge the content of ->editconf
+                    // so we can continue to EDIT these records!
                     foreach ($tce->substNEWwithIDs_table as $nKey => $nTable) {
                         $editId = $tce->substNEWwithIDs[$nKey];
                         // translate new id to the workspace version:
-                        if ($versionRec = BackendUtility::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace, $nTable, $editId, 'uid')) {
+                        if ($versionRec = BackendUtility::getWorkspaceVersionOfRecord($this->getBackendUser()->workspace, $nTable, $editId, 'uid')) {
                             $editId = $versionRec['uid'];
                         }
 
@@ -202,63 +232,26 @@ class GroupAdminController extends AbstractModuleController
                     }
                 }
 
-                // See if any records was auto-created as new versions?
-                if (count($tce->autoVersionIdMap)) {
-                    $this->fixWSversioningInEditConf($tce->autoVersionIdMap);
-                }
-
-                // If a document is saved and a new one is created right after.
-                if (isset($_POST['_savedoknew_x']) && is_array($this->editconf)) {
-
-                    // Finding the current table:
-                    reset($this->editconf);
-                    $nTable = key($this->editconf);
-
-                    // Finding the first id, getting the records pid+uid
-                    reset($this->editconf[$nTable]);
-                    $nUid = key($this->editconf[$nTable]);
-                    $nRec = BackendUtility::getRecord($nTable, $nUid, 'pid,uid');
-
-                    // Setting a blank editconf array for a new record:
-                    $this->editconf = array();
-                    if ($this->getNewIconMode($nTable) == 'top') {
-                        $this->editconf[$nTable][$nRec['pid']] = 'new';
-                    } else {
-                        $this->editconf[$nTable][-$nRec['uid']] = 'new';
-                    }
-                }
-
-                // popView will not be invoked here, because the information from the submit button for save/view will be lost .... But does it matter if there is an error anyways?
+                // popView will not be invoked here,
+                // because the information from the submit button for save/view will be lost ....
+                // But does it matter if there is an error anyways?
                 $tce->printLogErrorMessages(
-                    isset($_POST['_saveandclosedok_x']) ?
-                        $this->retUrl :
-                        $this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('', $this->R_URL_getvars)
+                    isset($_POST['_saveandclosedok']) ?
+                    $this->retUrl :
+                    $this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('', $this->R_URL_getvars)
                 );
             }
-        }
-
-        //  || count($tce->substNEWwithIDs)... If any new items has been save, the document is CLOSED because if not, we just get that element re-listed as new. And we don't want that!
-        if (isset($_POST['_saveandclosedok_x']) || $this->closeDoc<0) {
-            $this->closeDocument(abs($this->closeDoc));
         }
 
         if ($fakeAdmin) {
             TcBeuserUtility::removeFakeAdmin();
         }
-    }
 
-    /**
-     * close the document and send to the previous page
-     */
-    public function closeDocument()
-    {
-        if ($this->retUrl == 'dummy.php') {
-            $this->retUrl = BackendUtility::getModuleUrl($GLOBALS['MCONF']['name'], array('SET[function]' => 1));
+        if (isset($_POST['_saveandclosedok']) || $this->closeDoc < 0) {
+            //If any new items has been save, the document is CLOSED because
+            // if not, we just get that element re-listed as new. And we don't want that!
+            $this->closeDocument();
         }
-        $retUrl = explode('/', $this->retUrl);
-        $this->retUrl = $retUrl[count($retUrl)-1];
-        Header('Location: '.$this->retUrl);
-        exit;
     }
 
     public function init()
@@ -279,8 +272,7 @@ class GroupAdminController extends AbstractModuleController
         $SET = GeneralUtility::_GET('SET');
         if (isset($SET['function']) && $SET['function'] == 'edit') {
             $this->MOD_SETTINGS['function'] = $SET['function'];
-            $this->MOD_MENU['function']['edit'] = $GLOBALS['LANG']->getLL('edit-group');
-            $this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';
+            $this->MOD_MENU['function']['edit'] = $this->getLanguageService()->getLL('edit-group');
             $this->editconf = GeneralUtility::_GET('edit');
         }
 
@@ -292,16 +284,15 @@ class GroupAdminController extends AbstractModuleController
     /**
      * Adds items to the ->MOD_MENU array. Used for the function menu selector.
      *
-     * @return	void
+     * @return void
      */
     public function menuConfig()
     {
         $this->MOD_MENU = array(
             'function' => array(
-                '1' => $GLOBALS['LANG']->getLL('list-groups'),
-                '2' => $GLOBALS['LANG']->getLL('create-group'),
+                '1' => $this->getLanguageService()->getLL('list-groups'),
+                '2' => $this->getLanguageService()->getLL('create-group'),
             ),
-//			'hideDeactivatedUsers' => '0'
         );
         parent::menuConfig();
     }
@@ -323,7 +314,11 @@ class GroupAdminController extends AbstractModuleController
                 // list groups
                 BackendUtility::lockRecords();
                 $content .= $this->getGroupList();
+
+                // get buttons for the header
+                $this->getButtons();
                 break;
+
             case '2':
                 // create new group
                 $data = GeneralUtility::_GP('data');
@@ -334,17 +329,20 @@ class GroupAdminController extends AbstractModuleController
                     $this->editconf = array($this->table => array(0=>'new'));
                 }
                 $content .= $this->getGroupEdit();
+                // get Save, close, etc button
+                $this->getSaveButton();
                 break;
+
             case 'edit':
                 // edit group
-                #$param = GeneralUtility::_GET('edit');
-                #$beuserUid = array_search('edit', $param['be_users']);
-
                 $content .= $this->getGroupEdit();
+                // get Save, close, etc button
+                $this->getSaveButton();
                 break;
+
             case 'action':
                 $this->processData();
-                Header('Location: '.GeneralUtility::locationHeaderUrl(GeneralUtility::_GP('redirect')));
+                HttpUtility::redirect(GeneralUtility::_GP('redirect'));
                 break;
         }
 
@@ -356,15 +354,14 @@ class GroupAdminController extends AbstractModuleController
         $content = '';
         /** @var \dkd\TcBeuser\Utility\RecordListUtility $dblist */
         $dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
-        $dblist->backPath = $this->doc->backPath;
         $dblist->script = GeneralUtility::getIndpEnv('SCRIPT_NAME');
         $dblist->alternateBgColors = true;
 
-        $dblist->calcPerms = $GLOBALS['BE_USER']->calcPerms($this->pageinfo);
+        $dblist->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
         $dblist->showFields = array('title', 'description');
         $dblist->disableControls = array('import' => true);
 
-//Setup for analyze Icon
+        //Setup for analyze Icon
         $dblist->analyzeLabel = $this->getLanguageService()->getLL('analyze', 1);
         $dblist->analyzeParam = 'beGroup';
 
@@ -459,12 +456,17 @@ class GroupAdminController extends AbstractModuleController
 		<div id="typo3-newRecordLink">
 		<a href="' . BackendUtility::getModuleUrl($this->moduleName, array('SET[function]' => 2)) . '">' .
             $this->iconFactory->getIcon('actions-document-new', Icon::SIZE_SMALL)->render() . ' ' .
-            $GLOBALS['LANG']->getLL('create-group') .
+            $this->getLanguageService()->getLL('create-group') .
             '</a>';
 
         return $searchBox . $content;
     }
 
+    /**
+     * Create edit form
+     *
+     * @return string
+     */
     public function getGroupEdit()
     {
         $content = '';
@@ -473,8 +475,8 @@ class GroupAdminController extends AbstractModuleController
         $showColumn = 'hidden,title,db_mountpoints,file_mountpoints,subgroup,members,description,TSconfig';
 
         // get hideColumnGroup from TS and remove it from the showColumn
-        if ($GLOBALS['BE_USER']->userTS['tc_beuser.']['hideColumnGroup']) {
-            $removeColumnArray = explode(',', $GLOBALS['BE_USER']->userTS['tc_beuser.']['hideColumnGroup']);
+        if ($this->getBackendUser()->userTS['tc_beuser.']['hideColumnGroup']) {
+            $removeColumnArray = explode(',', $this->getBackendUser()->userTS['tc_beuser.']['hideColumnGroup']);
             $defaultColumnArray = explode(',', $showColumn);
 
             foreach ($removeColumnArray as $col) {
@@ -484,30 +486,26 @@ class GroupAdminController extends AbstractModuleController
             $showColumn = implode(',', $defaultColumnArray);
         }
 
-        /** @var \TYPO3\CMS\Backend\Form\FormEngine tceforms */
-        $this->tceforms = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Form\\FormEngine');
-        $this->tceforms->backPath = $this->doc->backPath;
-        $this->tceforms->initDefaultBEMode();
-        $this->tceforms->doSaveFieldName = 'doSave';
-        $this->tceforms->localizationMode = GeneralUtility::inList('text,media', $this->localizationMode) ? $this->localizationMode : '';    // text,media is keywords defined in TYPO3 Core API..., see "l10n_cat"
-        $this->tceforms->returnUrl = $this->R_URI;
-        $this->tceforms->disableRTE = true; // not needed anyway, might speed things up
-
-        // Setting external variables:
-        #if ($GLOBALS['BE_USER']->uc['edit_showFieldHelp']!='text')	$this->tceforms->edit_showFieldHelp='text';
-
         // Creating the editing form, wrap it with buttons, document selector etc.
-        // Show only these columns
+        //show only these columns
+
+        /** @var FormResultCompiler formResultCompiler */
+        $formResultCompiler = GeneralUtility::makeInstance(FormResultCompiler::class);
+
+        /** @var \dkd\TcBeuser\Utility\EditFormUtility editForm */
         $this->editForm = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\EditFormUtility');
-        $this->editForm->tceforms = &$this->tceforms;
+        $this->editForm->formResultCompiler = $formResultCompiler;
         $this->editForm->columnsOnly = $showColumn;
         $this->editForm->editconf = $this->editconf;
         $this->editForm->error = $this->error;
+        $this->editForm->inputData = $this->data;
+        $this->editForm->R_URI = $this->R_URI;
 
         $editForm = $this->editForm->makeEditForm();
         $this->viewId = $this->editForm->viewId;
 
-        if ($editForm) { // ingo.renner@dkd.de
+        if ($editForm) {
+            // ingo.renner@dkd.de
             reset($this->editForm->elementsData);
             $this->firstEl = current($this->editForm->elementsData);
 
@@ -515,138 +513,15 @@ class GroupAdminController extends AbstractModuleController
                 // Module configuration:
                 $this->modTSconfig = BackendUtility::getModTSconfig($this->viewId, 'mod.xMOD_alt_doc');
             } else {
-                $this->modTSconfig = array();
+                $this->modTSconfig=array();
             }
 
-            $panel = $this->makeButtonPanel();
-            $formContent = $this->compileForm($panel, '', '', $editForm);
-
-            $content .= $this->tceforms->printNeededJSFunctions_top().
-                $formContent.
-                $this->tceforms->printNeededJSFunctions();
+            $content = $formResultCompiler->JStop();
+            $content .= $this->compileForm($editForm);
+            $content .= $formResultCompiler->printNeededJSFunctions();
+            $content .= '</form>';
         }
 
         return $content;
-    }
-
-    /**
-     * ingo.renner@dkd.de: from alt_doc.php, modified
-     *
-     * Create the panel of buttons for submitting the form or otherwise perform operations.
-     *
-     * @return	string		HTML code, comprised of images linked to various actions.
-     */
-    public function makeButtonPanel()
-    {
-        $panel = '';
-
-        // Render SAVE type buttons:
-        // The action of each button is decided by its name attribute. (See doProcessData())
-        if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly']) {
-
-            // SAVE button:
-            $panel .= '<input type="image" class="c-inputButton" name="_savedok"'.IconUtility::skinImg($this->doc->backPath, 'gfx/savedok.gif', '').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveDoc', 1).'" />';
-
-            // SAVE / CLOSE
-            $panel .= '<input type="image" class="c-inputButton" name="_saveandclosedok"'.IconUtility::skinImg($this->doc->backPath, 'gfx/saveandclosedok.gif', '').' title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.saveCloseDoc', 1).'" />';
-        }
-
-        // CLOSE button:
-        $panel .= '<a href="#" onclick="document.editform.closeDoc.value=1; document.editform.submit(); return false;">'.
-            '<img'.IconUtility::skinImg($this->doc->backPath, 'gfx/closedok.gif', 'width="21" height="16"').' class="c-inputButton" title="'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:rm.closeDoc', 1).'" alt="" />'.
-            '</a>';
-
-        // UNDO buttons:
-        if (!$this->errorC && !$GLOBALS['TCA'][$this->firstEl['table']]['ctrl']['readOnly'] && count($this->elementsData)==1) {
-            if ($this->firstEl['cmd']!='new' && GeneralUtility::testInt($this->firstEl['uid'])) {
-
-                // Undo:
-                $undoButton = 0;
-                $undoRes = $GLOBALS['TYPO3_DB']->exec_SELECTquery('tstamp', 'sys_history', 'tablename='.$GLOBALS['TYPO3_DB']->fullQuoteStr($this->firstEl['table'], 'sys_history').' AND recuid='.intval($this->firstEl['uid']), '', 'tstamp DESC', '1');
-                if ($undoButtonR = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($undoRes)) {
-                    $undoButton = 1;
-                }
-                if ($undoButton) {
-                    $aOnClick = 'window.location.href=\'show_rechis.php?element='.rawurlencode($this->firstEl['table'].':'.$this->firstEl['uid']).'&revert=ALL_FIELDS&sumUp=-1&returnUrl='.rawurlencode($this->R_URI).'\'; return false;';
-                    $panel.= '<a href="#" onclick="'.htmlspecialchars($aOnClick).'">'.
-                        '<img'.IconUtility::skinImg($this->doc->backPath, 'gfx/undo.gif', 'width="21" height="16"').' class="c-inputButton" title="'.htmlspecialchars(sprintf($GLOBALS['LANG']->getLL('undoLastChange'), BackendUtility::calcAge(time()-$undoButtonR['tstamp'], $GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')))).'" alt="" />'.
-                        '</a>';
-                }
-
-                // If only SOME fields are shown in the form, this will link the user to the FULL form:
-                if ($this->columnsOnly) {
-                    $panel.= '<a href="'.htmlspecialchars($this->R_URI.'&columnsOnly=').'">'.
-                        '<img'.IconUtility::skinImg($this->doc->backPath, 'gfx/edit2.gif', 'width="11" height="12"').' class="c-inputButton" title="'.$GLOBALS['LANG']->getLL('editWholeRecord', 1).'" alt="" />'.
-                        '</a>';
-                }
-            }
-        }
-        return $panel;
-    }
-
-    /**
-     * Put together the various elements (buttons, selectors, form) into a table
-     *
-     * @param	string		The button panel HTML
-     * @param	string		Document selector HTML
-     * @param	string		Clear-cache menu HTML
-     * @param	string		HTML form.
-     * @param	string		Language selector HTML for localization
-     * @return	string		Composite HTML
-     */
-    public function compileForm($panel, $docSel, $cMenu, $editForm, $langSelector='')
-    {
-        $formContent='';
-        $formContent.='
-
-			<!--
-			 	Header of the editing page.
-				Contains the buttons for saving/closing, the document selector and menu selector.
-				Shows the path of the editing operation as well.
-			-->
-			<table border="0" cellpadding="0" cellspacing="1" width="470" id="typo3-altdoc-header">
-				<tr>
-					<td nowrap="nowrap" valign="top">'.$panel.'</td>
-					<td nowrap="nowrap" valign="top" align="right">'.$docSel.$cMenu.'</td>
-				</tr>';
-
-        if ($langSelector) {
-            $langSelector = '<div id="typo3-altdoc-lang-selector">'.$langSelector.'</div>';
-        }
-        $pagePath = '<div id="typo3-altdoc-page-path">'.$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.path', 1).': '.htmlspecialchars($this->generalPathOfForm).'</div>';
-
-        $formContent .= '
-				<tr>
-					<td colspan="2"><div id="typo3-altdoc-header-info-options">'.$pagePath.$langSelector.'<div></td>
-				</tr>
-			</table>
-
-			<!--
-			 	EDITING FORM:
-			-->
-
-			'.$editForm.'
-
-			<!--
-			 	Saving buttons (same as in top)
-			-->
-
-			'.$panel.
-            '<input type="hidden" name="returnUrl" value="'.htmlspecialchars($this->retUrl).'" />
-			<input type="hidden" name="viewUrl" value="'.htmlspecialchars($this->viewUrl).'" />';
-
-        if ($this->returnNewPageId) {
-            $formContent .= '<input type="hidden" name="returnNewPageId" value="1" />';
-        }
-        $formContent .= '<input type="hidden" name="popViewId" value="'.htmlspecialchars($this->viewId).'" />';
-        if ($this->viewId_addParams) {
-            $formContent .= '<input type="hidden" name="popViewId_addParams" value="'.htmlspecialchars($this->viewId_addParams).'" />';
-        }
-        $formContent .= '<input type="hidden" name="closeDoc" value="0" />';
-        $formContent .= '<input type="hidden" name="doSave" value="0" />';
-        $formContent .= '<input type="hidden" name="_serialNumber" value="'.md5(microtime()).'" />';
-        $formContent .= '<input type="hidden" name="_disableRTE" value="'.$this->tceforms->disableRTE.'" />';
-
-        return $formContent;
     }
 }

@@ -24,7 +24,6 @@ namespace dkd\TcBeuser\Utility;
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-use dkd\TcBeuser\Utility\TcBeuserUtility;
 use TYPO3\CMS\Backend\RecordList\RecordListGetTableHookInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
@@ -132,7 +131,8 @@ class RecordListUtility extends DatabaseRecordList
      *
      * @param string $table : Table name
      * @param integer $id : Page id
-     * @param string $rowlist: List of fields to show in the listing. Pseudo fields will be added including the record header.
+     * @param string $rowList: List of fields to show in the listing.
+     * Pseudo fields will be added including the record header.
      * @return string $out: HTML table with the listing for the record.
      */
     public function getTable($table, $id, $rowList)
@@ -970,8 +970,7 @@ class RecordListUtility extends DatabaseRecordList
 
         // "Hide/Unhide" links:
         $hiddenField = $GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled'];
-        if (
-            $permsEdit && $hiddenField && $GLOBALS['TCA'][$table]['columns'][$hiddenField]
+        if ($permsEdit && $hiddenField && $GLOBALS['TCA'][$table]['columns'][$hiddenField]
             && (!$GLOBALS['TCA'][$table]['columns'][$hiddenField]['exclude']
                 || $this->getBackendUserAuthentication()->check('non_exclude_fields', $table . ':' . $hiddenField))
         ) {

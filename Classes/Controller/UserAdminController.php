@@ -138,10 +138,12 @@ class UserAdminController extends AbstractModuleController
      */
     public function processData()
     {
+        $fakeAdmin = false;
+
         if ($this->getBackendUser()->user['admin'] != 1) {
             //make fake Admin
             TcBeuserUtility::fakeAdmin();
-            $fakeAdmin = 1;
+            $fakeAdmin = true;
         }
         // GPvars specifically for processing:
         $this->data = GeneralUtility::_GP('data');
@@ -249,35 +251,13 @@ class UserAdminController extends AbstractModuleController
                     }
                 }
 
-                // See if any records was auto-created as new versions?
-                if (count($tce->autoVersionIdMap)) {
-                    $this->fixWSversioningInEditConf($tce->autoVersionIdMap);
-                }
-
-                // If a document is saved and a new one is created right after.
-                if (isset($_POST['_savedoknew_x']) && is_array($this->editconf)) {
-                    // Finding the current table:
-                    reset($this->editconf);
-                    $nTable = key($this->editconf);
-
-                    // Finding the first id, getting the records pid+uid
-                    reset($this->editconf[$nTable]);
-                    $nUid = key($this->editconf[$nTable]);
-                    $nRec = BackendUtility::getRecord($nTable, $nUid, 'pid,uid');
-
-                    // Setting a blank editconf array for a new record:
-                    $this->editconf = array();
-                    if ($this->getNewIconMode($nTable)=='top') {
-                        $this->editconf[$nTable][$nRec['pid']] = 'new';
-                    } else {
-                        $this->editconf[$nTable][-$nRec['uid']] = 'new';
-                    }
-                }
-
                 $tce->printLogErrorMessages(
                     isset($_POST['_saveandclosedok']) ?
-                        $this->retUrl :
-                        $this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('', $this->R_URL_getvars)    // popView will not be invoked here, because the information from the submit button for save/view will be lost .... But does it matter if there is an error anyways?
+                    $this->retUrl :
+                    // popView will not be invoked here,
+                    // because the information from the submit button for save/view will be lost ....
+                    // But does it matter if there is an error anyways?
+                    $this->R_URL_parts['path'].'?'.GeneralUtility::implodeArrayForUrl('', $this->R_URL_getvars)
                 );
             }
         }
@@ -287,8 +267,9 @@ class UserAdminController extends AbstractModuleController
         }
 
         if (isset($_POST['_saveandclosedok']) || $this->closeDoc < 0) {
-            //If any new items has been save, the document is CLOSED because if not, we just get that element re-listed as new. And we don't want that!
-            $this->closeDocument(abs($this->closeDoc));
+            //If any new items has been save, the document is CLOSED because
+            // if not, we just get that element re-listed as new. And we don't want that!
+            $this->closeDocument();
         }
     }
 
@@ -297,9 +278,6 @@ class UserAdminController extends AbstractModuleController
         parent::init();
 
         TcBeuserUtility::switchUser(GeneralUtility::_GP('SwitchUser'));
-
-        // Set up menus:
-        $this->menuConfig();
 
         $this->id = 0;
         $this->search_field = GeneralUtility::_GP('search_field');
@@ -438,7 +416,6 @@ class UserAdminController extends AbstractModuleController
         /** @var \dkd\TcBeuser\Utility\RecordListUtility $dblist */
         $dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
         $dblist->permChecker = &$this->permChecker;
-        $dblist->backPath = $this->doc->backPath;
         $dblist->script = BackendUtility::getModuleUrl($this->moduleName);
         $dblist->alternateBgColors = true;
         $dblist->userMainGroupOnly = true;
@@ -641,7 +618,6 @@ class UserAdminController extends AbstractModuleController
         $this->editForm->R_URI = $this->R_URI;
 
         $editForm = $this->editForm->makeEditForm();
-
         $this->viewId = $this->editForm->viewId;
 
         if ($editForm) {
@@ -664,5 +640,4 @@ class UserAdminController extends AbstractModuleController
 
         return $content;
     }
-
 }

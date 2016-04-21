@@ -4,6 +4,7 @@ namespace dkd\TcBeuser\Utility;
 use TYPO3\CMS\Backend\Form\Exception\AccessDeniedException;
 use TYPO3\CMS\Backend\Form\FormDataCompiler;
 use TYPO3\CMS\Backend\Form\FormDataGroup\TcaDatabaseRecord;
+use TYPO3\CMS\Backend\Form\FormResultCompiler;
 use TYPO3\CMS\Backend\Form\NodeFactory;
 use TYPO3\CMS\Backend\Form\Utility\FormEngineUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -12,7 +13,6 @@ use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
-use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /***************************************************************
@@ -45,9 +45,83 @@ class EditFormUtility
     public $errorC;
     public $newC;
     public $editconf;
-    public $columnsOnly;
     public $tceforms;
     public $inputData;
+
+    /**
+     * Set to the URL of this script including variables which is needed to re-display the form. See main()
+     *
+     * @var string
+     */
+    public $R_URI;
+
+    /**
+     * Array of values to force being set (as hidden fields). Will be set as $this->defVals
+     * IF defVals does not exist.
+     *
+     * @var array
+     */
+    public $overrideVals;
+
+    /**
+     * Is set to the pid value of the last shown record - thus indicating which page to
+     * show when clicking the SAVE/VIEW button
+     *
+     * @var int
+     */
+    public $viewId;
+
+    /**
+     * Is set to additional parameters (like "&L=xxx") if the record supports it.
+     *
+     * @var string
+     */
+    public $viewId_addParams;
+
+    /**
+     * Is loaded with the "title" of the currently "open document" - this is used in the
+     * Document Selector box. (see makeDocSel())
+     *
+     * @var string
+     */
+    public $storeTitle = '';
+
+    /**
+     * Alternative title for the document handler.
+     *
+     * @var string
+     */
+    public $recTitle;
+
+    /**
+     * Used internally to disable the storage of the document reference (eg. new records)
+     *
+     * @var bool
+     */
+    public $dontStoreDocumentRef = 0;
+
+    /**
+     * @var FormResultCompiler
+     */
+    public $formResultCompiler;
+
+    /**
+     * Commalist of fieldnames to edit. The point is IF you specify this list, only those
+     * fields will be rendered in the form. Otherwise all (available) fields in the record
+     * is shown according to the types configuration in $GLOBALS['TCA']
+     *
+     * @var bool
+     */
+    public $columnsOnly;
+
+    /**
+     * Array contains the error string from main module class
+     *
+     * @var array
+     */
+    public $error;
+
+
 
     public function makeEditForm()
     {
@@ -109,7 +183,8 @@ class EditFormUtility
                                         $this->viewId = $formData['databaseRow']['uid'];
                                     } elseif (!empty($formData['parentPageRow']['uid'])) {
                                         $this->viewId = $formData['parentPageRow']['uid'];
-                                        // Adding "&L=xx" if the record being edited has a languageField with a value larger than zero!
+                                        // Adding "&L=xx" if the record being edited has a languageField
+                                        // with a value larger than zero!
                                         if (!empty($formData['processedTca']['ctrl']['languageField'])
                                             && is_array($formData['databaseRow'][$formData['processedTca']['ctrl']['languageField']])
                                             && $formData['databaseRow'][$formData['processedTca']['ctrl']['languageField']][0] > 0
@@ -153,7 +228,11 @@ class EditFormUtility
                                 if (!$this->storeTitle) {
                                     $this->storeTitle = $this->recTitle
                                         ? htmlspecialchars($this->recTitle)
-                                        : BackendUtility::getRecordTitle($table, FormEngineUtility::databaseRowCompatibility($formData['databaseRow']), true);
+                                        : BackendUtility::getRecordTitle(
+                                            $table,
+                                            FormEngineUtility::databaseRowCompatibility($formData['databaseRow']),
+                                            true
+                                        );
                                 }
 
                                 $this->elementsData[] = array(
@@ -165,7 +244,11 @@ class EditFormUtility
                                 );
 
                                 if ($command !== 'new') {
-                                    BackendUtility::lockRecords($table, $formData['databaseRow']['uid'], $table === 'tt_content' ? $formData['databaseRow']['pid'] : 0);
+                                    BackendUtility::lockRecords(
+                                        $table,
+                                        $formData['databaseRow']['uid'],
+                                        $table === 'tt_content' ? $formData['databaseRow']['pid'] : 0
+                                    );
                                 }
 
                                 //dkd-kartolo
@@ -178,7 +261,8 @@ class EditFormUtility
                                     );
                                     $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
                                     $formData['databaseRow']['username'] = $row['username'];
-                                    $formData['databaseRow']['realName'] = $row['name'];
+                                    $formData['databaseRow']['realName'] = $row['name'] ?:
+                                        $row['first_name'] . ' ' . $row['last_name'];
                                     $formData['databaseRow']['email'] = $row['email'];
                                     $formData['databaseRow']['password'] = $row['password'];
                                 }
@@ -220,7 +304,9 @@ class EditFormUtility
                                         }
                                     }
 
-                                    if (strstr($formData['databaseRow']['TSconfig'], 'tx_tcbeuser') && $this->getBackendUser()->user['admin'] != 1) {
+                                    if (strstr($formData['databaseRow']['TSconfig'], 'tx_tcbeuser') &&
+                                        $this->getBackendUser()->user['admin'] != 1
+                                    ) {
                                         $columnsOnly = explode(',', $this->columnsOnly);
                                         $this->columnsOnly = implode(',', ArrayUtility::removeArrayEntryByValue($columnsOnly, 'TSconfig'));
                                         $this->error[] = array('info',$GLOBALS['LANG']->getLL('tsconfig-disabled'));
@@ -262,7 +348,6 @@ class EditFormUtility
 
                                 // show error
                                 if (is_array($this->error)) {
-                                    $error = '';
                                     foreach ($this->error as $errorArray) {
                                         /** @var $flashMessage \TYPO3\CMS\Core\Messaging\FlashMessage */
                                         $flashMessage = GeneralUtility::makeInstance(
@@ -277,8 +362,6 @@ class EditFormUtility
                                         $defaultFlashMessageQueue = $flashMessageService->getMessageQueueByIdentifier();
                                         $defaultFlashMessageQueue->enqueue($flashMessage);
                                     }
-                                } else {
-                                    $error = '';
                                 }
 
                                 $editForm .= $html;
@@ -325,7 +408,7 @@ class EditFormUtility
      *
      * @return \TYPO3\CMS\Core\Database\DatabaseConnection
      */
-        protected function getDatabaseConnection()
+    protected function getDatabaseConnection()
     {
         return $GLOBALS['TYPO3_DB'];
     }
