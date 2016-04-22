@@ -26,10 +26,14 @@ namespace dkd\TcBeuser\Utility;
 
 use TYPO3\CMS\Backend\Form\FormEngine;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Backend\Utility\IconUtility;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Database\DatabaseConnection;
+use TYPO3\CMS\Core\Imaging\Icon;
+use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Lang\LanguageService;
 
-$GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
 /**
  * OverviewUtility.php
  *
@@ -37,13 +41,14 @@ $GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
  * $Id$
  *
  * @author Ingo Renner <ingo.renner@dkd.de>
+ * @author Ivan Kartolo <ivan.kartolo@dkd.de>
  */
 class OverviewUtility
 {
 
     public $row;
     /**
-     * @var array	$availableMethods a list of methods, that are directly available ( ~ the interface)
+     * @var array $availableMethods a list of methods, that are directly available ( ~ the interface)
      */
     public $availableMethods = array(
         'renderColFilemounts',
@@ -65,28 +70,61 @@ class OverviewUtility
 
     public $backPath;
 
+    /**
+     * The table which is used
+     *
+     * @var string
+     */
     public $table;
+
+    /**
+     * IconFactory
+     *
+     * @var IconFactory
+     */
+    protected $iconFactory;
+
+    /**
+     * Space icon used for alignment
+     *
+     * @var string
+     */
+    protected $spaceIcon;
+
+    /**
+     * OverviewUtility constructor.
+     */
+    public function __construct()
+    {
+        $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
+        $this->spaceIcon = '<span class="btn btn-default disabled">' .
+            $this->iconFactory->getIcon('empty-empty', Icon::SIZE_SMALL)->render() .
+            '</span>';
+    }
 
 
     /**
      * method dispatcher
      * checks input vars and returns result of desired method if available
      *
-     * @param	string	$method: defines what to return
-     * @param	int	$groupId
-     * @param	bool	$open
-     * @param	string	$backPath
-     * @return	string
+     * @param string $method defines what to return
+     * @param int $groupId
+     * @param bool $open
+     * @param string $backPath
+     * @return string
      */
-    public function handleMethod($method, $groupId, $open=false, $backPath='')
+    public function handleMethod($method, $groupId, $open = false, $backPath = '')
     {
+
+        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
+
         $content = '';
         $method = trim(strval($method));
         $groupId = intval($groupId);
         $open = (bool) $open;
 
         // We need some uid in rootLine for the access check, so use first webmount
-        $webmounts = $GLOBALS['BE_USER']->returnWebmounts();
+        $webmounts = $this->getBackendUser()->returnWebmounts();
         $this->pageinfo['uid'] = $webmounts[0];
 
         if (in_array($method, $this->availableMethods)) {
@@ -120,7 +158,9 @@ class OverviewUtility
                     $cc++;
                 }
             } else {
-                return '<br /><br />'.$GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:not-found').'<br />';
+                return '<br /><br />' .
+                $this->getLanguageService()->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:not-found') .
+                '<br />';
             }
         }
 
@@ -173,8 +213,8 @@ class OverviewUtility
         $content .= '<tr>'."\n";
 
             // always show groups and Id
-        #$label = $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod4/locallang.xml:showCol-groups', 1);
-        $label = $GLOBALS['LANG']->getLL('showCol-groups');
+        #$label = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/mod4/locallang.xml:showCol-groups', 1);
+        $label = $this->getLanguageService()->getLL('showCol-groups');
         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
         $content .= $this->wrapTd('ID:', 'class="c-headLine"');
 
@@ -182,63 +222,63 @@ class OverviewUtility
             foreach ($setCols as $col => $set) {
                 switch ($col) {
                     case 'members':
-                        $label = $GLOBALS['LANG']->getLL('showCol-members');
+                        $label = $this->getLanguageService()->getLL('showCol-members');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'filemounts':
-                        $label = $GLOBALS['LANG']->getLL('showCol-filemounts');
+                        $label = $this->getLanguageService()->getLL('showCol-filemounts');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'webmounts':
-                        $label = $GLOBALS['LANG']->getLL('showCol-webmounts');
+                        $label = $this->getLanguageService()->getLL('showCol-webmounts');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'pagetypes':
-                        $label = $GLOBALS['LANG']->getLL('showCol-pagetypes');
+                        $label = $this->getLanguageService()->getLL('showCol-pagetypes');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'selecttables':
-                        $label = $GLOBALS['LANG']->getLL('showCol-selecttables');
+                        $label = $this->getLanguageService()->getLL('showCol-selecttables');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'modifytables':
-                        $label = $GLOBALS['LANG']->getLL('showCol-modifytables');
+                        $label = $this->getLanguageService()->getLL('showCol-modifytables');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'nonexcludefields':
-                        $label = $GLOBALS['LANG']->getLL('showCol-nonexcludefields');
+                        $label = $this->getLanguageService()->getLL('showCol-nonexcludefields');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'explicitallowdeny':
-                        $label = $GLOBALS['LANG']->getLL('showCol-explicitallowdeny');
+                        $label = $this->getLanguageService()->getLL('showCol-explicitallowdeny');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'limittolanguages':
-                        $label = $GLOBALS['LANG']->getLL('showCol-limittolanguages');
+                        $label = $this->getLanguageService()->getLL('showCol-limittolanguages');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'workspaceperms':
-                        $label = $GLOBALS['LANG']->getLL('showCol-workspaceperms');
+                        $label = $this->getLanguageService()->getLL('showCol-workspaceperms');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'workspacememship':
-                        $label = $GLOBALS['LANG']->getLL('showCol-workspacememship');
+                        $label = $this->getLanguageService()->getLL('showCol-workspacememship');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'description':
-                        $label = $GLOBALS['LANG']->getLL('showCol-description');
+                        $label = $this->getLanguageService()->getLL('showCol-description');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'modules':
-                        $label = $GLOBALS['LANG']->getLL('showCol-modules');
+                        $label = $this->getLanguageService()->getLL('showCol-modules');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'tsconfig':
-                        $label = $GLOBALS['LANG']->getLL('showCol-tsconfig');
+                        $label = $this->getLanguageService()->getLL('showCol-tsconfig');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                     case 'tsconfighl':
-                        $label = $GLOBALS['LANG']->getLL('showCol-tsconfighl');
+                        $label = $this->getLanguageService()->getLL('showCol-tsconfighl');
                         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
                         break;
                 }
@@ -281,37 +321,42 @@ class OverviewUtility
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-filemounts');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-filemounts');
+        $icon = $this->getTreeControlIcon($open);
 
         $this->table = 'sys_filemounts';
         $this->backPath = $backPath;
         if ($open) {
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'file_mountpoints',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
 
             $fileMounts = GeneralUtility::intExplode(',', $row['file_mountpoints']);
             $items = array();
             if (is_array($fileMounts) && $fileMounts[0] != 0) {
                 $content .= '<br />';
                 foreach ($fileMounts as $fm) {
-                    $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+                    $res = $this->getDatabaseConnection()->exec_SELECTquery(
                         '*',
                         $this->table,
                         'uid = '.$fm
                     );
-                    $filemount = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+                    $filemount = $this->getDatabaseConnection()->sql_fetch_assoc($res);
 
-                    $fmIcon = IconUtility::getSpriteIconForRecord(
+                    $fmIcon = $this->iconFactory->getIconForRecord(
                         $this->table,
-                        $filemount
-                    );
+                        $filemount,
+                        Icon::SIZE_SMALL
+                    )->render();
 
-                    $items[] = '<tr><td>'.$fmIcon.$filemount['title'].'</td><td>'.$this->makeUserControl($filemount).'</td></tr>'."\n";
+                    $items[] = '<tr><td>' .
+                        $fmIcon . $filemount['title'] .
+                        '</td><td>' .
+                        $this->makeUserControl($filemount) .
+                        '</td></tr>'."\n";
                 }
             }
             $content .= '<table>'.implode('', $items).'</table>';
@@ -330,33 +375,33 @@ class OverviewUtility
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-webmounts');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-webmounts');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'db_mountpoints',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
 
             $webMounts = GeneralUtility::intExplode(',', $row['db_mountpoints']);
             if (is_array($webMounts) && $webMounts[0] != 0) {
                 $content .= '<br />';
                 foreach ($webMounts as $wm) {
-                    $webmount = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+                    $webmount = $this->getDatabaseConnection()->exec_SELECTgetRows(
                         'uid, title, nav_hide, doktype, module',
                         'pages',
                         'uid = '.$wm
                     );
                     $webmount = $webmount[0];
 
-                    $wmIcon = IconUtility::getSpriteIconForRecord(
+                    $wmIcon = $this->iconFactory->getIconForRecord(
                         'pages',
                         $webmount,
-                        array(' title'=> 'id='.$webmount['uid'])
-                    );
+                        Icon::SIZE_SMALL
+                    )->render();
 
                     $content .= $wmIcon.$webmount['title'].'<br />'."\n";
                 }
@@ -377,30 +422,30 @@ class OverviewUtility
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-pagetypes');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-pagetypes');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
             $content .= '<br />';
 
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'pagetypes_select',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
 
             $pageTypes = explode(',', $row['pagetypes_select']);
             reset($pageTypes);
             while (list($kk, $vv) = each($pageTypes)) {
                 if (!empty($vv)) {
-                    $ptIcon = IconUtility::getSpriteIconForRecord(
+                    $ptIcon = $this->iconFactory->getIconForRecord(
                         'pages',
                         array('doktype' => $vv),
-                        array('title' => 'doktype='.$vv)
-                    );
+                        Icon::SIZE_SMALL
+                    )->render();
 
-                    $content .= $ptIcon . $GLOBALS['LANG']->sL(BackendUtility::getLabelFromItemlist('pages', 'doktype', $vv));
+                    $content .= $ptIcon . $this->getLanguageService()->sL(BackendUtility::getLabelFromItemlist('pages', 'doktype', $vv));
                     $content .= '<br />'."\n";
                 }
             }
@@ -419,30 +464,30 @@ class OverviewUtility
     public function renderColSelecttables($groupId, $open = false, $backPath = '')
     {
         $content  = '';
-        $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-selecttables');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-selecttables');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
             $content .= '<br />';
 
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'tables_select',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
             $tablesSelect = explode(',', $row['tables_select']);
             reset($tablesSelect);
             while (list($kk, $vv) = each($tablesSelect)) {
                 if (!empty($vv)) {
-                    $ptIcon = IconUtility::getSpriteIconForRecord(
-                        $vv,
+                    $ptIcon= $this->iconFactory->getIconForRecord(
+                        'pages',
                         array(),
-                        array('title' => 'table='.$vv)
-                    );
+                        Icon::SIZE_SMALL
+                    )->render();
+
                     $tableTitle = $GLOBALS['TCA'][$vv]['ctrl']['title'];
-                    $content .= $ptIcon . $GLOBALS['LANG']->sL($tableTitle);
+                    $content .= $ptIcon . $this->getLanguageService()->sL($tableTitle);
                     $content .= '<br />'."\n";
                 }
             }
@@ -461,30 +506,30 @@ class OverviewUtility
     public function renderColModifytables($groupId, $open = false, $backPath = '')
     {
         $content  = '';
-        $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-modifytables');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-modifytables');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
             $content .= '<br />';
 
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'tables_modify',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
             $tablesModify = explode(',', $row['tables_modify']);
             reset($tablesModify);
             while (list($kk, $vv) = each($tablesModify)) {
                 if (!empty($vv)) {
-                    $ptIcon = IconUtility::getSpriteIconForRecord(
+                    $ptIcon = $this->iconFactory->getIconForRecord(
                         $vv,
                         array(),
-                        array('title' => 'table='.$vv)
-                    );
+                        Icon::SIZE_SMALL
+                    )->render();
+
                     $tableTitle = $GLOBALS['TCA'][$vv]['ctrl']['title'];
-                    $content .= $ptIcon . $GLOBALS['LANG']->sL($tableTitle);
+                    $content .= $ptIcon . $this->getLanguageService()->sL($tableTitle);
                     $content .= '<br />'."\n";
                 }
             }
@@ -503,19 +548,18 @@ class OverviewUtility
     public function renderColNonexcludefields($groupId, $open = false, $backPath = '')
     {
         $content  = '';
-        $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-nonexcludefields');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-nonexcludefields');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
             $content .= '<br />';
 
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'non_exclude_fields',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
             $non_exclude_fields = explode(',', $row['non_exclude_fields']);
             reset($non_exclude_fields);
             while (list($kk, $vv) = each($non_exclude_fields)) {
@@ -523,7 +567,7 @@ class OverviewUtility
                     $data = explode(':', $vv);
                     $tableTitle = $GLOBALS['TCA'][$data[0]]['ctrl']['title'];
                     $fieldTitle = $GLOBALS['TCA'][$data[0]]['columns'][$data[1]]['label'];
-                    $content .= $GLOBALS['LANG']->sL($tableTitle).': '.rtrim($GLOBALS['LANG']->sL($fieldTitle), ':');
+                    $content .= $this->getLanguageService()->sL($tableTitle).': '.rtrim($this->getLanguageService()->sL($fieldTitle), ':');
                     $content .= '<br />'."\n";
                 }
             }
@@ -543,29 +587,29 @@ class OverviewUtility
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-explicitallowdeny');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-explicitallowdeny');
+        $icon = $this->getTreeControlIcon($open);
 
         $adLabel = array(
-            'ALLOW' => $GLOBALS['LANG']->sl('LLL:EXT:lang/locallang_core.xml:labels.allow'),
-            'DENY' => $GLOBALS['LANG']->sl('LLL:EXT:lang/locallang_core.xml:labels.deny'),
+            'ALLOW' => $this->getLanguageService()->sl('LLL:EXT:lang/locallang_core.xml:labels.allow'),
+            'DENY' => $this->getLanguageService()->sl('LLL:EXT:lang/locallang_core.xml:labels.deny'),
         );
 
         $iconsPath = array(
-            'ALLOW' => '../'.TYPO3_mainDir.IconUtility::skinImg($this->backPath, 'gfx/icon_ok2.gif', '', 1),
-            'DENY' => '../'.TYPO3_mainDir.IconUtility::skinImg($this->backPath, 'gfx/icon_fatalerror.gif', '', 1),
+            'ALLOW' => $this->iconFactory->getIcon('status-status-permission-granted', Icon::SIZE_SMALL)->render(),
+            'DENY' => $this->iconFactory->getIcon('status-status-permission-denied', Icon::SIZE_SMALL)->render(),
         );
 
         if ($open) {
             $content .= '<br />';
             $data = '';
 
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'explicit_allowdeny',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
             if (!empty($row['explicit_allowdeny'])) {
                 $explicit_allowdeny = explode(',', $row['explicit_allowdeny']);
                 reset($explicit_allowdeny);
@@ -574,11 +618,9 @@ class OverviewUtility
                     $items = $GLOBALS['TCA'][$dataParts[0]]['columns'][$dataParts[1]]['config']['items'];
                     foreach ($items as $val) {
                         if ($val[1] == $dataParts[2]) {
-                            $imageInfo = FormEngine::getIcon($iconsPath[$dataParts['3']]);
-                            $imageInfo[0] = str_replace('../typo3', $backPath, $imageInfo[0]);
-                            $data .= '<img src ="'.$imageInfo[0].'" '.$imageInfo[1][3].'/>'.
+                            $data .= $iconsPath[$dataParts['3']] .
                                 ' ['.$adLabel[$dataParts['3']].'] '.
-                                $GLOBALS['LANG']->sl($val[0]).'<br />';
+                                $this->getLanguageService()->sl($val[0]).'<br />';
                         }
                     }
                 }
@@ -600,17 +642,17 @@ class OverviewUtility
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-limittolanguages');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-limittolanguages');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
             $content .= '<br />';
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'allowed_languages',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
             $allowed_languages = explode(',', $row['allowed_languages']);
             reset($allowed_languages);
             $availLang = BackendUtility::getSystemLanguages();
@@ -647,24 +689,23 @@ class OverviewUtility
     public function renderColWorkspaceperms($groupId, $open = false, $backPath = '')
     {
         $content  = '';
-        $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-workspaceperms');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-workspaceperms');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
             $content .= '<br />';
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'workspace_perms',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
             $permissions = floatval($row['workspace_perms']);
             $items = $GLOBALS['TCA']['be_groups']['columns']['workspace_perms']['config']['items'];
             $check = array();
             foreach ($items as $key => $val) {
                 if ($permissions & pow(2, $key)) {
-                    $check[] = $GLOBALS['LANG']->sL($val[0]);
+                    $check[] = $this->getLanguageService()->sL($val[0]);
                 }
             }
             $content .= implode('<br />', $check);
@@ -682,20 +723,19 @@ class OverviewUtility
     public function renderColWorkspacememship($groupId, $open = false, $backPath = '')
     {
         $content  = '';
-        $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-workspacememship');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-workspacememship');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
             $content .= '<br />';
             $userAuthGroup = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Core\\Authentication\\BackendUserAuthentication');
                 //get workspace perms
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-                            'workspace_perms',
-                            'be_groups',
-                            'uid = '.$groupId
-                        );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
+                'workspace_perms',
+                'be_groups',
+                'uid = '.$groupId
+            );
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
             $userAuthGroup->groupData['workspace_perms'] = $row['workspace_perms'];
 
                 // Create accessible workspace arrays:
@@ -707,7 +747,13 @@ class OverviewUtility
                 $options[-1] = '-1: [Default Draft]';
             }
                 // Add custom workspaces (selecting all, filtering by BE_USER check):
-            $workspaces = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('uid,title,adminusers,members,reviewers,db_mountpoints', 'sys_workspace', 'pid=0'.BackendUtility::deleteClause('sys_workspace'), '', 'title');
+            $workspaces = $this->getDatabaseConnection()->exec_SELECTgetRows(
+                'uid,title,adminusers,members,reviewers,db_mountpoints',
+                'sys_workspace',
+                'pid=0' . BackendUtility::deleteClause('sys_workspace'),
+                '',
+                'title'
+            );
             if (count($workspaces)) {
                 foreach ($workspaces as $rec) {
                     if ($userAuthGroup->checkWorkspace($rec)) {
@@ -741,17 +787,16 @@ class OverviewUtility
     public function renderColDescription($groupId, $open = false, $backPath = '')
     {
         $content  = '';
-        $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-description');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-description');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'description',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
             $content .= '<br />';
 
             $content .= '<pre>'.$row['description'].'</pre><br />'."\n";
@@ -771,8 +816,8 @@ class OverviewUtility
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-modules');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-modules');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
             $content .='<br />';
@@ -780,13 +825,18 @@ class OverviewUtility
             $tceForms->backPath = $backPath;
             $TCAconf = $GLOBALS['TCA']['be_groups']['columns']['groupMods'];
             $table = 'be_groups';
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 '*',
                 $table,
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
-            $allMods = $tceForms->addSelectOptionsToItemArray($tceForms->initItemArray($TCAconf), $TCAconf, $tceForms->setTSconfig($table, $row), 'groupMods');
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
+            $allMods = $tceForms->addSelectOptionsToItemArray(
+                $tceForms->initItemArray($TCAconf),
+                $TCAconf,
+                $tceForms->setTSconfig($table, $row),
+                'groupMods'
+            );
 
             $items = array();
             foreach ($allMods as $id => $modsInfo) {
@@ -811,17 +861,16 @@ class OverviewUtility
     public function renderColTsconfig($groupId, $open = false, $backPath = '')
     {
         $content  = '';
-        $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-tsconfig');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-tsconfig');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'TSconfig',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
 
             $TSconfig = GeneralUtility::intExplode(',', $row['TSconfig']);
             $content .= '<pre>'.$row['TSconfig'].'</pre><br />'."\n";
@@ -840,18 +889,17 @@ class OverviewUtility
     public function renderColTsconfighl($groupId, $open = false, $backPath = '')
     {
         $content  = '';
-        $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-tsconfighl');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-tsconfighl');
+        $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
             $tsparser = GeneralUtility::makeInstance('\TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser');
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'TSconfig',
                 'be_groups',
                 'uid = '.$groupId
             );
-            $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+            $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
             $content = $tsparser->doSyntaxHighlight($row['TSconfig'], '', 1);
         }
 
@@ -869,26 +917,33 @@ class OverviewUtility
     {
         $content  = '';
         $backPath = $backPath ? $backPath : $GLOBALS['SOBE']->doc->backPath;
-        $title    = $GLOBALS['LANG']->getLL('showCol-members');
-        $icon     = '<img'.IconUtility::skinImg($backPath, 'gfx/ol/'.($open?'minus':'plus').'bullet.gif', 'width="18" height="16"').' alt="" />';
+        $title    = $this->getLanguageService()->getLL('showCol-members');
+        $icon = $this->getTreeControlIcon($open);
 
         $this->backPath = $backPath;
         $this->table = 'be_users';
         if ($open) {
             $content .= '<br />';
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 '*',
                 'be_users',
-                'usergroup like '.$GLOBALS['TYPO3_DB']->fullQuoteStr('%'.$groupId.'%', 'be_users').BackendUtility::deleteClause('be_users')
+                'usergroup like ' .
+                $this->getDatabaseConnection()->fullQuoteStr(
+                    '%' . $groupId . '%',
+                    'be_users'
+                ) .
+                BackendUtility::deleteClause('be_users')
             );
             $members = array();
-            while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+            while ($row = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
                 if (GeneralUtility::inList($row['usergroup'], $groupId)) {
                     //$members[] = $row;
-                    $fmIcon = IconUtility::getSpriteIconForRecord(
+                    $fmIcon = $this->iconFactory->getIconForRecord(
                         'be_users',
-                        $row
-                    );
+                        $row,
+                        Icon::SIZE_SMALL
+                    )->render();
+
                     $members[] = '<tr><td>'.$fmIcon.' '.$row['realName'].' ('.$row['username'].')</td><td>'.$this->makeUserControl($row).'</td></tr>';
                 }
             }
@@ -919,46 +974,45 @@ class OverviewUtility
         $doc = GeneralUtility::makeInstance('template');
         $doc->backPath = $this->backPath;
 
-        $this->calcPerms = $GLOBALS['BE_USER']->calcPerms($this->pageinfo);
+        $this->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
         $permsEdit = $this->calcPerms&16;
 
         $control = '';
 
         if ($this->table == 'be_users' && $permsEdit) {
             // edit
-            $control = '<a href="#" onclick="' . htmlspecialchars(
+            $control = '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars(
                 $this->editOnClick('&edit[' . $this->table . '][' . $userRecord['uid'] . ']=edit&SET[function]=edit', -1)
-            ) . '"><img' . IconUtility::skinImg(
-                $this->backPath,
-                'gfx/edit2.gif',
-                'width="11" height="12"'
-            ) . ' title="edit" alt="" /></a>' . chr(10);
+            ) . '">' .
+                $this->iconFactory->getIcon('actions-open', Icon::SIZE_SMALL)->render() .
+                '</a>' . chr(10);
         }
 
             //info
-        if ($GLOBALS['BE_USER']->check('tables_select', $this->table)
-            && is_array(BackendUtility::readPageAccess($userRecord['pid'], $GLOBALS['BE_USER']->getPagePermsClause(1)))
+        if ($this->getBackendUser()->check('tables_select', $this->table)
+            && is_array(BackendUtility::readPageAccess($userRecord['pid'], $this->getBackendUser()->getPagePermsClause(1)))
         ) {
-            $control .= '<a href="#" onclick="' . htmlspecialchars('top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;') . '">' .
-                '<img' . IconUtility::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="" alt="" />' .
+            $onClick = 'top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;';
+            $control .= '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars($onClick) . '">' .
+                $this->iconFactory->getIcon('actions-document-info', Icon::SIZE_SMALL)->render() .
                 '</a>' . chr(10);
         }
 
             // hide/unhide
         $hiddenField = $GLOBALS['TCA'][$this->table]['ctrl']['enablecolumns']['disabled'];
         if ($permsEdit) {
-            $redirect = '&redirect=\'+T3_THIS_LOCATION+\'&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
+            $redirect = '&redirect=\'+T3_THIS_LOCATION+\'&vC=' . rawurlencode($this->getBackendUser()->veriCode()) . '&prErr=1&uPT=1';
             if ($userRecord[$hiddenField]) {
                 $params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
-                $control .= '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
-                    BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');') . '">' .
-                    '<img' . IconUtility::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="unhide" alt="" />' .
+                $control .= '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
+                    BackendUtility::getModuleUrl('tcTools_UserAdmin') . $params . $redirect . '\');') . '">' .
+                    $this->iconFactory->getIcon('actions-edit-unhide', Icon::SIZE_SMALL)->render() .
                     '</a>' . chr(10);
             } else {
                 $params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
-                $control .= '<a href="#" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
-                    BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');') . '">' .
-                    '<img' . IconUtility::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="hide" alt="" />' .
+                $control .= '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars('return jumpToUrl(\'' .
+                    BackendUtility::getModuleUrl('tcTools_UserAdmin') . $params . $redirect . '\');') . '">' .
+                    $this->iconFactory->getIcon('actions-edit-hide', Icon::SIZE_SMALL)->render() .
                     '</a>' . chr(10);
             }
         }
@@ -966,31 +1020,36 @@ class OverviewUtility
             // delete
         if ($permsEdit) {
             $params = '&cmd[' . $this->table . '][' . $userRecord['uid'] . '][delete]=1&SET[function]=action';
-            $redirect = '&redirect=\'+T3_THIS_LOCATION+\'&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
-            $control .= '<a href="#" onclick="' . htmlspecialchars('if (confirm(' .
+            $redirect = '&redirect=\'+T3_THIS_LOCATION+\'&vC=' . rawurlencode($this->getBackendUser()->veriCode()) . '&prErr=1&uPT=1';
+            $control .= '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars('if (confirm(' .
                 GeneralUtility::quoteJSvalue(
-                    $GLOBALS['LANG']->getLL('deleteWarning') .
+                    $this->getLanguageService()->getLL('deleteWarning') .
                     BackendUtility::referenceCount(
                         $this->table,
                         $userRecord['uid'],
                         ' (There are %s reference(s) to this record!)'
                     )
-                ) . ')) {jumpToUrl(\'' . BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect . '\');} return false;'
+                ) . ')) {jumpToUrl(\'' . BackendUtility::getModuleUrl('tcTools_UserAdmin') . $params . $redirect . '\');} return false;'
             ) . '">' .
-            '<img' . IconUtility::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
+                $this->iconFactory->getIcon('actions-edit-delete', Icon::SIZE_SMALL)->render() .
             '</a>' . chr(10);
         }
 
-            // swith user / switch user back
-        if ($this->table == 'be_users' && $permsEdit && $GLOBALS['BE_USER']->isAdmin()) {
-            if ($userRecord[$hiddenField]) {
-                $control .= '<img '.IconUtility::skinImg($this->backPath, 'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" />'.
-                        '<img '.IconUtility::skinImg($this->backPath, 'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" />'
-                        .chr(10).chr(10);
+            // switch user / switch user back
+        if ($this->table == 'be_users' && $permsEdit && $this->getBackendUser()->isAdmin()) {
+            if (!$userRecord[$GLOBALS['TCA'][$this->table]['ctrl']['enablecolumns']['disabled']] &&
+                ($GLOBALS['BE_USER']->user['tc_beuser_switch_to'] || $GLOBALS['BE_USER']->isAdmin())) {
+                if ($this->isRecordCurrentBackendUser($this->table, $userRecord)) {
+                    $control .= $this->spaceIcon;
+                } else {
+                    $control .= '<a class="btn btn-default" href="' . GeneralUtility::linkThisScript(array('SwitchUser' => $userRecord['uid'])) . '" '.
+                    'target="_top" title="' . htmlspecialchars('Switch user to: ' . $userRecord['username']) . '" >' .
+                        $this->iconFactory->getIcon('actions-system-backend-user-switch', Icon::SIZE_SMALL)->render() .
+                        '</a>' .
+                        chr(10) . chr(10);
+                }
             } else {
-                $control .= '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'])).'" target="_top"><img '.IconUtility::skinImg($this->backPath, 'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" /></a>'.
-                        '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.IconUtility::skinImg($this->backPath, 'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" /></a>'
-                        .chr(10).chr(10);
+                $control .= $this->spaceIcon;
             }
         }
 
@@ -1004,13 +1063,13 @@ class OverviewUtility
         $depth = 10;
 
             // Initialize tree object:
-        /** @var dkd\TcBeuser\Utility\GroupTreeUtility $tree */
+        /** @var \dkd\TcBeuser\Utility\GroupTreeUtility $tree */
         $tree = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\GroupTreeUtility');
         $tree->init('');
         $tree->expandAll = true;
 
             // Creating top icon; the main group
-        $HTML = IconUtility::getSpriteIconForRecord('be_groups', $treeStartingRecord, array('align' => 'top'));
+        $HTML = $this->iconFactory->getIconForRecord('be_groups', $treeStartingRecord, Icon::SIZE_SMALL)->render();
         $tree->tree[] = array(
             'row' => $treeStartingRecord,
             'HTML' => $HTML
@@ -1036,8 +1095,59 @@ class OverviewUtility
             .($class ? ' class="'.$class.'"' : '')
             .' style="vertical-align: top;'.($style ? ' '.$style : '').'">'.$str.'</td>'."\n";
     }
-}
 
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_overview.php']) {
-    include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_overview.php']);
+    /**
+     * Get icon fot the tree
+     *
+     * @param string $status status of the tree
+     * @return string
+     */
+    protected function getTreeControlIcon($status)
+    {
+        if ($status) {
+            $treeIconStatus = 'expand';
+        } else {
+            $treeIconStatus = 'collapse';
+        }
+
+        return $this->iconFactory->getIcon('apps-pagetree-' . $treeIconStatus, Icon::SIZE_SMALL)->render();
+    }
+
+    /**
+     * Returns the Language Service
+     * @return LanguageService
+     */
+    protected function getLanguageService()
+    {
+        return $GLOBALS['LANG'];
+    }
+
+    /**
+     * Returns the Backend User
+     * @return BackendUserAuthentication
+     */
+    protected function getBackendUser()
+    {
+        return $GLOBALS['BE_USER'];
+    }
+
+    /**
+     * @return DatabaseConnection
+     */
+    protected function getDatabaseConnection()
+    {
+        return $GLOBALS['TYPO3_DB'];
+    }
+
+    /**
+     * Check if the record represents the current backend user
+     *
+     * @param string $table
+     * @param array $row
+     * @return bool
+     */
+    protected function isRecordCurrentBackendUser($table, $row)
+    {
+        return $table === 'be_users' && (int)$row['uid'] === $this->getBackendUser()->user['uid'];
+    }
 }

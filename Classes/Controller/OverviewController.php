@@ -32,6 +32,7 @@ use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
@@ -94,7 +95,15 @@ class OverviewController extends AbstractModuleController
             $this->init();
 
             $this->main();
-            $this->moduleTemplate->setContent($this->content);
+
+            // wrap content with form tag
+            $content= '<form action="' . htmlspecialchars($this->R_URI) . '" method="post" ' .
+                'enctype="' . $GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'] . '" ' .
+                'name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">' .
+                $this->content .
+                '</form>';
+
+            $this->moduleTemplate->setContent($content);
             $response->getBody()->write($this->moduleTemplate->renderContent());
             return $response;
         }
@@ -136,6 +145,15 @@ class OverviewController extends AbstractModuleController
             }
 
             $this->moduleTemplate->setTitle($title);
+
+            // set JS for the AJAX call on overview
+            // TODO: rewrite JS?
+            $this->moduleTemplate->getPageRenderer()->addJsFile(
+                ExtensionManagementUtility::extRelPath('tc_beuser') . 'Resources/Public/Javascript/prototype.js'
+            );
+            $this->moduleTemplate->getPageRenderer()->addJsFile(
+                ExtensionManagementUtility::extRelPath('tc_beuser') . 'Resources/Public/Javascript/ajax.js'
+            );
 
             $this->content = $this->moduleTemplate->header($title);
             $this->content .= $this->moduleContent();
@@ -418,6 +436,7 @@ class OverviewController extends AbstractModuleController
 
             /** @var \dkd\TcBeuser\Utility\OverviewUtility $userView */
             $userView = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\OverviewUtility');
+
             $content .= $userView->getTableGroup($groupRecord, $this->compareFlags);
         }
 
