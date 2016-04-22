@@ -354,12 +354,17 @@ class FilemountsViewController extends AbstractModuleController
 
         /** @var \dkd\TcBeuser\Utility\RecordListUtility $dblist */
         $dblist = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\RecordListUtility');
-        $dblist->permChecker = &$this->permChecker;
         $dblist->script = GeneralUtility::linkThisScript();
         $dblist->alternateBgColors = true;
         $dblist->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
         $dblist->showFields = array('title', 'path');
-        $dblist->disableControls = array('edit' => true, 'detail' => true, 'import' => true);
+        $dblist->disableControls = array(
+            'edit' => true,
+            'detail' => true,
+            'import' => true,
+            'delete' => false,
+            'hide' => false
+        );
 
         $dblist->start(0, $this->table, $this->pointer, $this->search_field);
 

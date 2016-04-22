@@ -124,7 +124,7 @@ class OverviewUtility
             }
         }
 
-        $content .= '<table border="0" cellpadding="0" cellspacing="0" class="typo3-dblist">
+        $content .= '<table border="0" cellpadding="0" cellspacing="0" class="table table-striped table-hover">
 					'.$out.'
 				</table>'."\n";
 
@@ -155,7 +155,7 @@ class OverviewUtility
             }
         }
 
-        $content .= '<table border="0" cellpadding="0" cellspacing="0" class="typo3-dblist">
+        $content .= '<table border="0" cellpadding="0" cellspacing="0" class="table table-striped table-hover">
 					'.$out.'
 				</table>'."\n";
 
@@ -166,9 +166,9 @@ class OverviewUtility
     {
         $content = '';
         $content .= '
-			<tr>
-				<td class="t3-row-header" colspan="'.(count($setCols) + 2).'">&nbsp;</td>
-			</tr>'."\n";
+			<thead>
+				<th class="t3-row-header" colspan="'.(count($setCols) + 2).'">&nbsp;</th>
+			</thead>'."\n";
 
         $content .= '<tr>'."\n";
 

@@ -24,27 +24,26 @@ namespace dkd\TcBeuser\Controller;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 
+use dkd\TcBeuser\Module\AbstractModuleController;
 use dkd\TcBeuser\Utility\TcBeuserUtility;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
-use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Backend\Utility\IconUtility;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
-use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 /**
  * Module 'User / Group Overview' for the 'tc_beuser' extension.
  *
- * @author	Ingo Renner <ingo.renner@dkd.de>
- * @package	TYPO3
- * @subpackage	tx_tcbeuser
+ * @author Ingo Renner <ingo.renner@dkd.de>
+ * @author Ivan Kartolo <ivan.kartolo@dkd.de>
+ * @package TYPO3
+ * @subpackage tx_tcbeuser
  */
-class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
+class OverviewController extends AbstractModuleController
 {
 
     /**
@@ -59,46 +58,14 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     public $compareFlags;
     public $be_user;
     public $be_group;
-    public $table;
 
     /**
-     * IconFactory
-     *
-     * @var IconFactory
+     * Load needed locallang files
      */
-    protected $iconFactory;
-
-    /**
-     * ModuleTemplate
-     *
-     * @var ModuleTemplate
-     */
-    protected $moduleTemplate;
-
-    /**
-     * Constructor
-     */
-    public function __construct()
+    public function loadLocallang()
     {
-        $this->MCONF = array(
-            'name' => $this->moduleName
-        );
-
-        $this->moduleTemplate = GeneralUtility::makeInstance(ModuleTemplate::class);
-
-        $this->moduleTemplate->getPageRenderer()->loadJquery();
-        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/FieldSelectBox');
-        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Recordlist/Recordlist');
-        $this->moduleTemplate->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/AjaxDataHandler');
-        $this->moduleTemplate->addJavaScriptCode(
-            'jumpToUrl',
-            '
-                function jumpToUrl(URL) {
-                    window.location.href = URL;
-                    return false;
-                }
-                '
-        );
+        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangOverview.xml');
+        $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
     }
 
     /**
@@ -111,9 +78,7 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
      */
     public function mainAction(ServerRequestInterface $request, ResponseInterface $response)
     {
-        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangOverview.xml');
-        $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
-
+        $this->loadLocallang();
 
         if (GeneralUtility::_POST('ajaxCall')) {
             $method   = GeneralUtility::_POST('method');
@@ -135,16 +100,24 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         }
     }
 
+    /**
+     * empty function, not needed
+     */
+    public function processData()
+    {
+        // TODO: Implement processData() method.
+    }
+
     public function main()
     {
         $this->init();
 
         //TODO more access check!?
-        $access = $GLOBALS['BE_USER']->modAccess($this->MCONF, true);
+        $access = $this->getBackendUser()->modAccess($this->MCONF, true);
 
-        if ($access || $GLOBALS['BE_USER']->isAdmin()) {
+        if ($access || $this->getBackendUser()->isAdmin()) {
             // We need some uid in rootLine for the access check, so use first webmount
-            $webmounts = $GLOBALS['BE_USER']->returnWebmounts();
+            $webmounts = $this->getBackendUser()->returnWebmounts();
             $this->pageinfo['uid'] = $webmounts[0];
             $this->pageinfo['_thePath'] = '/';
 
@@ -157,9 +130,9 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             }
 
             if ($this->MOD_SETTINGS['function'] == 1) {
-                $title = $GLOBALS['LANG']->getLL('overview-groups');
+                $title = $this->getLanguageService()->getLL('overview-groups');
             } elseif ($this->MOD_SETTINGS['function'] == 2) {
-                $title = $GLOBALS['LANG']->getLL('overview-users');
+                $title = $this->getLanguageService()->getLL('overview-users');
             }
 
             $this->moduleTemplate->setTitle($title);
@@ -167,49 +140,10 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             $this->content = $this->moduleTemplate->header($title);
             $this->content .= $this->moduleContent();
 
-
-            $this->getButtons();
-            $this->generateMenu();
-
-//            $menu  = BackendUtility::getFuncMenu(
-//                $this->id,
-//                'SET[function]',
-//                $this->MOD_SETTINGS['function'],
-//                $this->MOD_MENU['function']
-//            );
-//
-//            $moduleContent = $this->moduleContent();
-//
-//            // all necessary JS code needs to be set before this line!
-//            $this->doc->JScode = $this->doc->wrapScriptTags($this->jsCode);
-//            $this->doc->JScode .= '
-//					<script src="' . ExtensionManagementUtility::extRelPath('tc_beuser') . 'mod4/prototype.js" type="text/javascript"></script>
-//					<script src="' . ExtensionManagementUtility::extRelPath('tc_beuser') . 'mod4/ajax.js" type="text/javascript"></script>';
-//
-//            $this->content  = '';
-//            $this->content .= $this->doc->spacer(5);
-//            $this->content .= $this->doc->section(
-//                '',
-//                $this->doc->funcMenu(
-//                    $this->doc->header($title),
-//                    $menu
-//                )
-//            );
-//            $this->content .= $this->doc->divider(5);
-//            $this->content .= $moduleContent;
-//
-//            $docHeaderButtons = $this->getButtons();
-//            $markers['CSH'] = $this->docHeaderButtons['csh'];
-//            $markers['FUNC_MENU'] = BackendUtility::getFuncMenu($this->id, 'SET[mode]', $this->MOD_SETTINGS['mode'], $this->MOD_MENU['mode']);
-//            $markers['CONTENT'] = $this->content;
-//
-//            // Build the <body> for the module
-//            $this->content = $this->doc->moduleBody($this->pageinfo, $docHeaderButtons, $markers);
-//
-//            $this->content = $this->doc->render($GLOBALS['LANG']->getLL('permissions'), $this->content);
+            $this->generateMenu('OverviewMenu');
         }
 
-        $GLOBALS['BE_USER']->user['admin'] = 0;
+        $this->getBackendUser()->user['admin'] = 0;
     }
 
     public function init()
@@ -219,37 +153,28 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 
         TcBeuserUtility::switchUser(GeneralUtility::_GP('SwitchUser'));
 
-        $this->backPath = $GLOBALS['BACK_PATH'];
-
-        // Initializing document template object:
-        $this->doc = GeneralUtility::makeInstance('TYPO3\\CMS\\Backend\\Template\\DocumentTemplate');
-        $this->doc->backPath = $GLOBALS['BACK_PATH'];
-        $this->doc->setModuleTemplate('EXT:tc_beuser/Resources/Private/Templates/module.html');
-        $this->doc->form = '<form action="'.htmlspecialchars($this->R_URI).'" method="post" enctype="'.$GLOBALS['TYPO3_CONF_VARS']['SYS']['form_enctype'].'" name="editform" onsubmit="return TBE_EDITOR_checkSubmit(1);">';        // JavaScript
-        $this->doc->postCode .= $this->doc->wrapScriptTags('
-				script_ended = 1;
-				if (top.fsMod) top.fsMod.recentIds["web"] = 0;
-		');
-
-        $this->doc->postCode .= $this->doc->wrapScriptTags('
-			script_ended = 0;
+        $this->moduleTemplate->addJavaScriptCode(
+            'OverviewModule',
+            '
+            script_ended = 0;
 			function jumpToUrl(URL) {
 				document.location = URL;
 			}
 
 			var T3_BACKPATH = \''.$this->doc->backPath.'\';
 			var ajaxUrl = \'' . BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']) . '\';
-		');
-        $this->jsCode .= $this->doc->redirectUrls(GeneralUtility::linkThisScript());
+            ' .
+            $this->moduleTemplate->redirectUrls(GeneralUtility::linkThisScript())
+        );
 
         $this->id = 0;
 
         // update compareFlags
         if (GeneralUtility::_GP('ads')) {
             $this->compareFlags = GeneralUtility::_GP('compareFlags');
-            $GLOBALS['BE_USER']->pushModuleData('txtcbeuserM1_txtcbeuserM4/index.php/compare', $this->compareFlags);
+            $this->getBackendUser()->pushModuleData('tcTools_Overview/index.php/compare', $this->compareFlags);
         } else {
-            $this->compareFlags = $GLOBALS['BE_USER']->getModuleData('txtcbeuserM1_txtcbeuserM4/index.php/compare', 'ses');
+            $this->compareFlags = $this->getBackendUser()->getModuleData('tcTools_Overview/index.php/compare', 'ses');
         }
 
         // Setting return URL
@@ -270,37 +195,37 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     /**
      * Adds items to the ->MOD_MENU array. Used for the function menu selector.
      *
-     * @return	void
+     * @return void
      */
     public function menuConfig()
     {
         $this->MOD_MENU = array(
             'function' => array(
-                '1' => $GLOBALS['LANG']->getLL('overview-groups'),
-                '2' => $GLOBALS['LANG']->getLL('overview-users'),
+                '1' => $this->getLanguageService()->getLL('overview-groups'),
+                '2' => $this->getLanguageService()->getLL('overview-users'),
             )
         );
 
         $groupOnly = array();
         if ($this->MOD_SETTINGS['function'] == 1) { // groups
-            $groupOnly['members'] = $GLOBALS['LANG']->getLL('showCol-members');
+            $groupOnly['members'] = $this->getLanguageService()->getLL('showCol-members');
         }
 
         $groupAndUser = array(
-            'filemounts'        => $GLOBALS['LANG']->getLL('showCol-filemounts'),
-            'webmounts'         => $GLOBALS['LANG']->getLL('showCol-webmounts'),
-            'pagetypes'         => $GLOBALS['LANG']->getLL('showCol-pagetypes'),
-            'selecttables'      => $GLOBALS['LANG']->getLL('showCol-selecttables'),
-            'modifytables'      => $GLOBALS['LANG']->getLL('showCol-modifytables'),
-            'nonexcludefields'  => $GLOBALS['LANG']->getLL('showCol-nonexcludefields'),
-            'explicitallowdeny' => $GLOBALS['LANG']->getLL('showCol-explicitallowdeny'),
-            'limittolanguages'  => $GLOBALS['LANG']->getLL('showCol-limittolanguages'),
-            'workspaceperms'    => $GLOBALS['LANG']->getLL('showCol-workspaceperms'),
-            'workspacememship'  => $GLOBALS['LANG']->getLL('showCol-workspacememship'),
-            'description'       => $GLOBALS['LANG']->getLL('showCol-description'),
-            'modules'           => $GLOBALS['LANG']->getLL('showCol-modules'),
-            'tsconfig'          => $GLOBALS['LANG']->getLL('showCol-tsconfig'),
-            'tsconfighl'        => $GLOBALS['LANG']->getLL('showCol-tsconfighl'),
+            'filemounts'        => $this->getLanguageService()->getLL('showCol-filemounts'),
+            'webmounts'         => $this->getLanguageService()->getLL('showCol-webmounts'),
+            'pagetypes'         => $this->getLanguageService()->getLL('showCol-pagetypes'),
+            'selecttables'      => $this->getLanguageService()->getLL('showCol-selecttables'),
+            'modifytables'      => $this->getLanguageService()->getLL('showCol-modifytables'),
+            'nonexcludefields'  => $this->getLanguageService()->getLL('showCol-nonexcludefields'),
+            'explicitallowdeny' => $this->getLanguageService()->getLL('showCol-explicitallowdeny'),
+            'limittolanguages'  => $this->getLanguageService()->getLL('showCol-limittolanguages'),
+            'workspaceperms'    => $this->getLanguageService()->getLL('showCol-workspaceperms'),
+            'workspacememship'  => $this->getLanguageService()->getLL('showCol-workspacememship'),
+            'description'       => $this->getLanguageService()->getLL('showCol-description'),
+            'modules'           => $this->getLanguageService()->getLL('showCol-modules'),
+            'tsconfig'          => $this->getLanguageService()->getLL('showCol-tsconfig'),
+            'tsconfighl'        => $this->getLanguageService()->getLL('showCol-tsconfighl'),
         );
         $this->MOD_MENU['showCols'] = array_merge($groupOnly, $groupAndUser);
 
@@ -310,7 +235,7 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     /**
      * Generates the module content
      *
-     * @return	void
+     * @return string
      */
     public function moduleContent()
     {
@@ -320,10 +245,12 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             case '1':
                 // group view
                 $content .= $this->getGroupView($this->be_group);
+                $this->getButtons();
                 break;
             case '2':
                 // user view
                 $content .= $this->getUserView($this->be_user);
+                $this->getButtons();
                 break;
         }
 
@@ -336,7 +263,7 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 
         if ($this->be_user == 0) {
             //warning - no user selected
-            $content .= $GLOBALS['LANG']->getLL('select-user');
+            $content .= $this->getLanguageService()->getLL('select-user');
 
             $this->id = 0;
             $this->search_field = GeneralUtility::_GP('search_field');
@@ -353,12 +280,12 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             $dblist->script = $this->MCONF['script'];
             $dblist->alternateBgColors = true;
             $dblist->userMainGroupOnly = true;
-            $dblist->calcPerms = $GLOBALS['BE_USER']->calcPerms($this->pageinfo);
+            $dblist->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
             $dblist->showFields = array('username', 'realName', 'usergroup');
             $dblist->disableControls = array('edit' => true, 'hide' => true, 'delete' => true, 'import' => true);
 
             //Setup for analyze Icon
-            $dblist->analyzeLabel = $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:analyze', 1);
+            $dblist->analyzeLabel = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:analyze', 1);
             $dblist->analyzeParam = 'beUser';
 
             $dblist->start(0, $this->table, $this->pointer, $this->search_field);
@@ -367,7 +294,15 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             $content .= $dblist->HTMLcode ? $dblist->HTMLcode : '<br />' .
                 $this->getLanguageService()->getLL('not-found').'<br />';
 
-            $this->getInlineJavaScript($dblist);
+            // Add JavaScript functions to the page:
+
+            $this->moduleTemplate->addJavaScriptCode(
+                'UserListInlineJS',
+                '
+				' . $this->moduleTemplate->redirectUrls($dblist->listURL()) . '
+				' . $dblist->CBfunctions() . '
+			'
+            );
 
             // searchbox toolbar
             if (!$this->modTSconfig['properties']['disableSearchBox'] && ($dblist->HTMLcode || !empty($dblist->searchString))) {
@@ -415,7 +350,7 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 
         if ($this->be_group == 0) {
             //warning - no user selected
-            $content .= $GLOBALS['LANG']->getLL('select-group');
+            $content .= $this->getLanguageService()->getLL('select-group');
 
             $this->id = 0;
             $this->search_field = GeneralUtility::_GP('search_field');
@@ -432,20 +367,25 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
             $dblist->script = $this->MCONF['script'];
             $dblist->alternateBgColors = true;
             $dblist->userMainGroupOnly = true;
-            $dblist->calcPerms = $GLOBALS['BE_USER']->calcPerms($this->pageinfo);
+            $dblist->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
             $dblist->showFields = array('title');
-            $dblist->disableControls = array('edit' => true, 'hide' => true, 'delete' => true, 'history' => true, 'new' => true, 'import' => true);
+            $dblist->disableControls = array(
+                'edit' => true,
+                'hide' => true,
+                'delete' => true,
+                'history' => true,
+                'new' => true,
+                'import' => true
+            );
 
             //Setup for analyze Icon
-            $dblist->analyzeLabel = $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:analyze', 1);
+            $dblist->analyzeLabel = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:analyze', 1);
             $dblist->analyzeParam = 'beGroup';
 
             $dblist->start(0, $this->table, $this->pointer, $this->search_field);
             $dblist->generateList();
 
-            $content .= $dblist->HTMLcode ? $dblist->HTMLcode : '<br />'.$GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:not-found').'<br />';
-
-            $this->getInlineJavaScript($dblist);
+            $content .= $dblist->HTMLcode ? $dblist->HTMLcode : '<br />'.$this->getLanguageService()->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:not-found').'<br />';
 
             // searchbox toolbar
             if (!$this->modTSconfig['properties']['disableSearchBox'] && ($dblist->HTMLcode || !empty($dblist->searchString))) {
@@ -491,14 +431,12 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
 
         foreach ($this->MOD_MENU['showCols'] as $key => $label) {
             $content .= '<span style="display: block; float: left; width: 180px;">'
-                .'<input type="checkbox" value="1" name="compareFlags['.$key.']"'.($this->compareFlags[$key]?' checked="checked"':'').' />'
-                .'&nbsp;'.$label.'</span> '.chr(10);
+                .'<input type="checkbox" value="1" name="compareFlags['.$key.']" id="compareFlags['.$key.']"'.($this->compareFlags[$key]?' checked="checked"':'').' />'
+                .'&nbsp;'
+                . '<label for="compareFlags['.$key.']">' . $label . '</label>'
+                .'</span> '.chr(10);
 
             $i++;
-            if ($i == 4) {
-                $content .= chr(10).'<br />'.chr(10);
-                $i = 0;
-            }
         }
 
         $content .= '<br style="clear: left;" /><br />';
@@ -516,11 +454,12 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
         $recTitle = htmlspecialchars(BackendUtility::getRecordTitle($this->table, $userRecord));
 
         // icon
-        $iconImg = IconUtility::getSpriteIconForRecord(
+        $iconImg = $this->iconFactory->getIconForRecord(
             $this->table,
             $userRecord,
-            array('title' => htmlspecialchars($alttext))
-        );
+            Icon::SIZE_SMALL
+        )->render();
+
         // controls
         $control = $this->makeUserControl($userRecord);
 
@@ -533,42 +472,47 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
     {
 
         // edit
-        $control = '<a href="#" onclick="'.htmlspecialchars(
-                $this->editOnClick(
-                    '&edit['.$this->table.']['.$userRecord['uid'].']=edit&SET[function]=edit',
-                    GeneralUtility::getIndpEnv('REQUEST_URI').'SET[function]=2'
-                )
-            ).'"><img'.IconUtility::skinImg(
-                $this->backPath,
-                'gfx/edit2.gif',
-                'width="11" height="12"'
-            ).' title="edit" alt="" /></a>'.chr(10);
+        $icon = $this->iconFactory->getIcon('actions-open', Icon::SIZE_SMALL)->render();
+        $control = '<a href="#" class="btn btn-default" onclick="'.htmlspecialchars(
+            $this->editOnClick(
+                '&edit['.$this->table.']['.$userRecord['uid'].']=edit&SET[function]=edit',
+                GeneralUtility::getIndpEnv('REQUEST_URI').'SET[function]=2'
+            )
+        ).'">' . $icon . '</a>';
 
         //info
         // always show info
-        $control .= '<a href="#" onclick="' . htmlspecialchars('top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;') . '">' .
-            '<img' . IconUtility::skinImg($this->backPath, 'gfx/zoom2.gif', 'width="12" height="12"') . ' title="" alt="" />' .
-            '</a>' . chr(10);
+        $icon = $this->iconFactory->getIcon('actions-document-info', Icon::SIZE_SMALL)->render();
+        $control .= '<a href="#" class="btn btn-default" ' .
+            'onclick="' . htmlspecialchars('top.launchView(\'' . $this->table . '\', \'' . $userRecord['uid'] . '\'); return false;') . '">' .
+            $icon .
+            '</a>';
 
         // hide/unhide
         $hiddenField = $GLOBALS['TCA'][$this->table]['ctrl']['enablecolumns']['disabled'];
         if ($userRecord[$hiddenField]) {
+            $icon = $this->iconFactory->getIcon('actions-edit-unhide', Icon::SIZE_SMALL)->render();
             $params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
-            $control .= '<a href="#" onclick="return jumpToUrl(\'' . htmlspecialchars($this->actionOnClick($params, -1)) . '\');">' .
-                '<img' . IconUtility::skinImg($this->backPath, 'gfx/button_unhide.gif', 'width="11" height="10"') . ' title="unhide" alt="" />' .
-                '</a>' . chr(10);
+            $control .= '<a href="#" class="btn btn-default" ' .
+                'onclick="return jumpToUrl(\'' . htmlspecialchars($this->actionOnClick($params, -1)) . '\');">' .
+                $icon .
+                '</a>';
         } else {
+            $icon = $this->iconFactory->getIcon('actions-edit-hide', Icon::SIZE_SMALL)->render();
             $params = '&data[' . $this->table . '][' . $userRecord['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
-            $control .= '<a href="#" onclick="return jumpToUrl(\'' . htmlspecialchars($this->actionOnClick($params, -1)) . '\');">' .
-                '<img' . IconUtility::skinImg($this->backPath, 'gfx/button_hide.gif', 'width="11" height="10"') . ' title="hide" alt="" />' .
-                '</a>' . chr(10);
+            $control .= '<a href="#" class="btn btn-default" ' .
+                'onclick="return jumpToUrl(\'' . htmlspecialchars($this->actionOnClick($params, -1)) . '\');">' .
+                $icon .
+                '</a>';
         }
 
         // delete
-        $params = '&cmd['.$this->table.']['.$userRecord['uid'].'][delete]=1&SET[function]=action&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
-        $control .= '<a href="#" onclick="' . htmlspecialchars('if (confirm(' .
+        $icon = $this->iconFactory->getIcon('actions-edit-delete', Icon::SIZE_SMALL)->render();
+        $params = '&cmd['.$this->table.']['.$userRecord['uid'].'][delete]=1&SET[function]=action&vC=' . rawurlencode($this->getBackendUser()->veriCode()) . '&prErr=1&uPT=1';
+        $control .= '<a href="#" class="btn btn-default" ' .
+            'onclick="' . htmlspecialchars('if (confirm(' .
                 GeneralUtility::quoteJSvalue(
-                    $GLOBALS['LANG']->getLL('deleteWarning') .
+                    $this->getLanguageService()->getLL('deleteWarning') .
                     BackendUtility::referenceCount(
                         $this->table,
                         $userRecord['uid'],
@@ -576,15 +520,23 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
                     )
                 ) . ')) { return jumpToUrl(\'' . $this->actionOnClick($params, BackendUtility::getModuleUrl($GLOBALS['MCONF']['name']), $this->MOD_SETTINGS) . '\'); } return false;'
             ) . '">' .
-            '<img' . IconUtility::skinImg($this->backPath, 'gfx/garbage.gif', 'width="11" height="12"') . ' title="' . $GLOBALS['LANG']->getLL('delete', 1) . '" alt="" />' .
-            '</a>' . chr(10);
+            $icon .
+            '</a>';
 
         //TODO: only for admins or authorized user
         // swith user / switch user back
-        if (!$userRecord[$hiddenField] && ($GLOBALS['BE_USER']->user['tc_beuser_switch_to'] || $GLOBALS['BE_USER']->isAdmin())) {
-            $control .= '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'])).'" target="_top"><img '.IconUtility::skinImg($this->backPath, 'gfx/su.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [change-to mode]" alt="" /></a>'.
-                '<a href="'.GeneralUtility::linkThisScript(array('SwitchUser'=>$userRecord['uid'], 'switchBackUser' => 1)).'" target="_top"><img '.IconUtility::skinImg($this->backPath, 'gfx/su_back.gif').' border="0" align="top" title="'.htmlspecialchars('Switch user to: '.$userRecord['username']).' [switch-back mode]" alt="" /></a>'
-                .chr(10).chr(10);
+        if (!$userRecord[$hiddenField] &&
+            ($this->getBackendUser()->user['tc_beuser_switch_to'] || $this->getBackendUser()->isAdmin())
+        ) {
+            if ($this->getBackendUser()->user['uid'] !== (int)$userRecord['uid']) {
+                // show switch button if user is not current user
+                $control .= '<a class="btn btn-default" ' .
+                    'href="' . GeneralUtility::linkThisScript(array('SwitchUser' => $userRecord['uid'])) . '" '.
+                    'target="_top" title="' . htmlspecialchars('Switch user to: ' . $userRecord['username']) . '" >' .
+                    $this->iconFactory->getIcon('actions-system-backend-user-switch', Icon::SIZE_SMALL)->render() .
+                    '</a>' .
+                    chr(10) . chr(10);
+            }
         }
 
         return $control;
@@ -597,148 +549,29 @@ class OverviewController extends \TYPO3\CMS\Backend\Module\BaseScriptClass
      * REMEMBER to always htmlspecialchar() content in href-properties to ampersands get converted to entities (XHTML requirement and XSS precaution)
      * Usage: 35
      *
-     * @param	string		$params is parameters sent along to alt_doc.php. This requires a much more details description which you must seek in Inside TYPO3s documentation of the alt_doc.php API. And example could be '&edit[pages][123]=edit' which will show edit form for page record 123.
-     * @param	string		$requestUri is an optional returnUrl you can set - automatically set to REQUEST_URI.
-     * @return	string
+     * @param string $params is parameters sent along to alt_doc.php. This requires a much more details description which you must seek in Inside TYPO3s documentation of the alt_doc.php API. And example could be '&edit[pages][123]=edit' which will show edit form for page record 123.
+     * @param string $requestUri is an optional returnUrl you can set - automatically set to REQUEST_URI.
+     * @return string
      * @see template::issueCommand()
      */
     public function editOnClick($params, $requestUri = '')
     {
         $retUrl = '&returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
-        return "window.location.href='" . BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $retUrl . $params . "'; return false;";
+        return "window.location.href='" . BackendUtility::getModuleUrl('tcTools_UserAdmin') . $retUrl . $params . "'; return false;";
     }
 
     /**
      * create link for the hide/unhide and delete icon.
      * not using tce_db.php, because we need to manipulate user's permission
      *
-     * @param	string		param with command (hide/unhide, delete) and records id
-     * @param	string		redirect link, after process the command
-     * @return	string		jumpTo URL link with redirect
+     * @param string $params param with command (hide/unhide, delete) and records id
+     * @param string $requestURI redirect link, after process the command
+     * @return string jumpTo URL link with redirect
      */
     public function actionOnClick($params, $requestURI = '')
     {
         $redirect = '&redirect=' . ($requestURI == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestURI ? $requestURI : GeneralUtility::getIndpEnv('REQUEST_URI'))) .
-            '&vC=' . rawurlencode($GLOBALS['BE_USER']->veriCode()) . '&prErr=1&uPT=1';
-        return BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $params . $redirect;
-    }
-
-    /**
-     * get inline javascript
-     *
-     * @param $dblist \dkd\TcBeuser\Utility\RecordListUtility
-     *
-     * @return void
-     */
-    protected function getInlineJavaScript($dblist){
-        // Add JavaScript functions to the page:
-
-        $this->moduleTemplate->addJavaScriptCode(
-            'RecordListInlineJS',
-            '
-				function jumpExt(URL,anchor) {	//
-					var anc = anchor?anchor:"";
-					window.location.href = URL+(T3_THIS_LOCATION?"&returnUrl="+T3_THIS_LOCATION:"")+anc;
-					return false;
-				}
-				function jumpSelf(URL) {	//
-					window.location.href = URL+(T3_RETURN_URL?"&returnUrl="+T3_RETURN_URL:"");
-					return false;
-				}
-				function jumpToUrl(URL) {
-					window.location.href = URL;
-					return false;
-				}
-
-				function setHighlight(id) {	//
-					top.fsMod.recentIds["tcTools"]=id;
-					top.fsMod.navFrameHighlightedID["web"]="pages"+id+"_"+top.fsMod.currentBank;	// For highlighting
-
-					if (top.content && top.content.nav_frame && top.content.nav_frame.refresh_nav) {
-						top.content.nav_frame.refresh_nav();
-					}
-				}
-				' . $this->moduleTemplate->redirectUrls($dblist->listURL()) . '
-				' . $dblist->CBfunctions() . '
-				function editRecords(table,idList,addParams,CBflag) {	//
-					window.location.href="' . BackendUtility::getModuleUrl('record_edit', array('returnUrl' => GeneralUtility::getIndpEnv('REQUEST_URI'))) . '&edit["+table+"]["+idList+"]=edit"+addParams;
-				}
-				function editList(table,idList) {	//
-					var list="";
-
-						// Checking how many is checked, how many is not
-					var pointer=0;
-					var pos = idList.indexOf(",");
-					while (pos!=-1) {
-						if (cbValue(table+"|"+idList.substr(pointer,pos-pointer))) {
-							list+=idList.substr(pointer,pos-pointer)+",";
-						}
-						pointer=pos+1;
-						pos = idList.indexOf(",",pointer);
-					}
-					if (cbValue(table+"|"+idList.substr(pointer))) {
-						list+=idList.substr(pointer)+",";
-					}
-
-					return list ? list : idList;
-				}
-
-				if (top.fsMod) top.fsMod.recentIds["tcTools"] = ' . (int)$this->id . ';
-			'
-        );
-    }
-
-    /**
-     * Create the panel of buttons for submitting the form or otherwise perform operations.
-     */
-    protected function getButtons()
-    {
-        $buttonBar = $this->moduleTemplate->getDocHeaderComponent()->getButtonBar();
-        // Shortcut
-        $shortCutButton = $buttonBar->makeShortcutButton()
-            ->setModuleName($this->moduleName)
-            ->setDisplayName($this->MOD_MENU['function'][$this->MOD_SETTINGS['function']])
-            ->setGetVariables([
-                'M',
-                'id',
-                'edit_record',
-                'pointer',
-                'new_unique_uid',
-                'search_field',
-                'search_levels',
-                'showLimit'
-            ])
-            ->setSetVariables(array_keys($this->MOD_MENU));
-        $buttonBar->addButton($shortCutButton, ButtonBar::BUTTON_POSITION_RIGHT);
-    }
-
-    /**
-     * Generate the ModuleMenu
-     */
-    protected function generateMenu()
-    {
-        $menu = $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->makeMenu();
-        $menu->setIdentifier('OverviewMenu');
-        foreach ($this->MOD_MENU['function'] as $controller => $title) {
-            $item = $menu
-                ->makeMenuItem()
-                ->setHref(
-                    BackendUtility::getModuleUrl(
-                        $this->moduleName,
-                        [
-                            'id' => $this->id,
-                            'SET' => [
-                                'function' => $controller
-                            ]
-                        ]
-                    )
-                )
-                ->setTitle($title);
-            if ($controller == $this->MOD_SETTINGS['function']) {
-                $item->setActive(true);
-            }
-            $menu->addMenuItem($item);
-        }
-        $this->moduleTemplate->getDocHeaderComponent()->getMenuRegistry()->addMenu($menu);
+            '&vC=' . rawurlencode($this->getBackendUser()->veriCode()) . '&prErr=1&uPT=1';
+        return BackendUtility::getModuleUrl('tcTools_UserAdmin') . $params . $redirect;
     }
 }

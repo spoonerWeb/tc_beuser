@@ -918,25 +918,28 @@ class RecordListUtility extends DatabaseRecordList
             'secondary' => array()
         );
 
-            // If the listed table is 'pages' we have to request the permission settings for each page:
+        // If the listed table is 'pages' we have to request the permission settings for each page:
         if ($table == 'pages') {
             $localCalcPerms = $GLOBALS['BE_USER']->calcPerms(BackendUtility::getRecord('pages', $row['uid']));
         }
 
-            // This expresses the edit permissions for this particular element:
-        $permsEdit = ($table=='pages' && ($localCalcPerms&2)) || ($table!='pages' && ($this->calcPerms&16));
+        // This expresses the edit permissions for this particular element:
+        $permsEdit = ($table == 'pages' && ($localCalcPerms & 2)) || ($table != 'pages' && ($this->calcPerms & 16));
 
-        // "Edit" link: ( Only if permissions to edit the page-record of the content of the parent page ($this->id)
-        if ($permsEdit) {
-            $params = '&edit[' . $table . '][' . $row['uid'] . ']=edit';
-            $iconIdentifier = 'actions-open';
-            $overlayIdentifier = !$this->isEditable($table) ? 'overlay-readonly' : null;
-            $editAction = '<a class="btn btn-default" href="#" onclick="' . htmlspecialchars(self::editOnClick($params, '', -1))
-                . '" title="' . $this->getLanguageService()->getLL('edit', true) . '">' . $this->iconFactory->getIcon($iconIdentifier, Icon::SIZE_SMALL, $overlayIdentifier)->render() . '</a>';
-        } else {
-            $editAction = $this->spaceIcon;
+        # EDIT button
+        if (!$this->disableControls['edit']) {
+            // "Edit" link: ( Only if permissions to edit the page-record of the content of the parent page ($this->id)
+            if ($permsEdit) {
+                $params = '&edit[' . $table . '][' . $row['uid'] . ']=edit';
+                $iconIdentifier = 'actions-open';
+                $overlayIdentifier = !$this->isEditable($table) ? 'overlay-readonly' : null;
+                $editAction = '<a class="btn btn-default" href="#" onclick="' . htmlspecialchars(self::editOnClick($params, '', -1))
+                    . '" title="' . $this->getLanguageService()->getLL('edit', true) . '">' . $this->iconFactory->getIcon($iconIdentifier, Icon::SIZE_SMALL, $overlayIdentifier)->render() . '</a>';
+            } else {
+                $editAction = $this->spaceIcon;
+            }
+            $this->addActionToCellGroup($cells, $editAction, 'edit');
         }
-        $this->addActionToCellGroup($cells, $editAction, 'edit');
 
             //dkd-kartolo
             //show magnifier (mod4)
@@ -969,79 +972,85 @@ class RecordListUtility extends DatabaseRecordList
         $this->addActionToCellGroup($cells, $viewBigAction, 'viewBig');
 
         // "Hide/Unhide" links:
-        $hiddenField = $GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled'];
-        if ($permsEdit && $hiddenField && $GLOBALS['TCA'][$table]['columns'][$hiddenField]
-            && (!$GLOBALS['TCA'][$table]['columns'][$hiddenField]['exclude']
-                || $this->getBackendUserAuthentication()->check('non_exclude_fields', $table . ':' . $hiddenField))
-        ) {
-            if ($this->isRecordCurrentBackendUser($table, $row)) {
-                $hideAction = $this->spaceIcon;
-            } else {
-                $hideTitle = $this->getLanguageService()->getLL('hide' . ($table == 'pages' ? 'Page' : ''), true);
-                $unhideTitle = $this->getLanguageService()->getLL('unHide' . ($table == 'pages' ? 'Page' : ''), true);
-
-                if ($row[$hiddenField]) {
-                    $params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
-                    $hideAction = '<a href="#" class="btn btn-default" ' .
-                        ' title="' . $unhideTitle . '" ' .
-                        'onclick="' . htmlspecialchars('return jumpToUrl(\'' . self::actionOnClick($params) . '\');') . '">' .
-                        $this->iconFactory->getIcon('actions-edit-unhide', Icon::SIZE_SMALL)->render() .
-                        '</a>';
+        if (!$this->disableControls['hide']) {
+            $hiddenField = $GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled'];
+            if ($permsEdit && $hiddenField && $GLOBALS['TCA'][$table]['columns'][$hiddenField]
+                && (!$GLOBALS['TCA'][$table]['columns'][$hiddenField]['exclude']
+                    || $this->getBackendUserAuthentication()->check('non_exclude_fields', $table . ':' . $hiddenField))
+            ) {
+                if ($this->isRecordCurrentBackendUser($table, $row)) {
+                    $hideAction = $this->spaceIcon;
                 } else {
-                    $params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
-                    $hideAction = '<a href="#" class="btn btn-default" ' .
-                        'title="' . $hideTitle . '" ' .
-                        'onclick=" ' . htmlspecialchars('return jumpToUrl(\'' . self::actionOnClick($params) . '\');') . '">' .
-                        $this->iconFactory->getIcon('actions-edit-hide', Icon::SIZE_SMALL)->render() .
-                        '</a>';
+                    $hideTitle = $this->getLanguageService()->getLL('hide' . ($table == 'pages' ? 'Page' : ''), true);
+                    $unhideTitle = $this->getLanguageService()->getLL('unHide' . ($table == 'pages' ? 'Page' : ''), true);
+
+                    if ($row[$hiddenField]) {
+                        $params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=0&SET[function]=action';
+                        $hideAction = '<a href="#" class="btn btn-default" ' .
+                            ' title="' . $unhideTitle . '" ' .
+                            'onclick="' . htmlspecialchars('return jumpToUrl(\'' . self::actionOnClick($params) . '\');') . '">' .
+                            $this->iconFactory->getIcon('actions-edit-unhide', Icon::SIZE_SMALL)->render() .
+                            '</a>';
+                    } else {
+                        $params = '&data[' . $table . '][' . $row['uid'] . '][' . $hiddenField . ']=1&SET[function]=action';
+                        $hideAction = '<a href="#" class="btn btn-default" ' .
+                            'title="' . $hideTitle . '" ' .
+                            'onclick=" ' . htmlspecialchars('return jumpToUrl(\'' . self::actionOnClick($params) . '\');') . '">' .
+                            $this->iconFactory->getIcon('actions-edit-hide', Icon::SIZE_SMALL)->render() .
+                            '</a>';
+                    }
                 }
+                $this->addActionToCellGroup($cells, $hideAction, 'hide');
             }
-            $this->addActionToCellGroup($cells, $hideAction, 'hide');
         }
 
         // "Delete" link:
-        if ($permsEdit && ($table === 'pages' && $localCalcPerms & Permission::PAGE_DELETE || $table !== 'pages' && $this->calcPerms & Permission::CONTENT_EDIT)) {
-            // Check if the record version is in "deleted" state, because that will switch the action to "restore"
-            if ($this->getBackendUserAuthentication()->workspace > 0 && isset($row['t3ver_state']) && (int)$row['t3ver_state'] === 2) {
-                $actionName = 'restore';
-                $refCountMsg = '';
-            } else {
-                $actionName = 'delete';
-                $refCountMsg = BackendUtility::referenceCount(
-                    $table,
-                    $row['uid'],
-                    ' ' . $this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:labels.referencesToRecord'),
-                    $this->getReferenceCount(
+        if (!$this->disableControls['delete']) {
+            if ($permsEdit && ($table === 'pages' && $localCalcPerms & Permission::PAGE_DELETE || $table !== 'pages' && $this->calcPerms & Permission::CONTENT_EDIT)) {
+                // Check if the record version is in "deleted" state, because that will switch the action to "restore"
+                if ($this->getBackendUserAuthentication()->workspace > 0 && isset($row['t3ver_state']) && (int)$row['t3ver_state'] === 2) {
+                    $actionName = 'restore';
+                    $refCountMsg = '';
+                } else {
+                    $actionName = 'delete';
+                    $refCountMsg = BackendUtility::referenceCount(
                         $table,
-                        $row['uid']
-                    )
-                ) .
-                BackendUtility::translationCount(
-                    $table,
-                    $row['uid'],
-                    ' ' . $this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:labels.translationsOfRecord')
-                );
-            }
+                        $row['uid'],
+                        ' ' .
+                        $this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:labels.referencesToRecord'),
+                        $this->getReferenceCount(
+                            $table,
+                            $row['uid']
+                        )
+                    ) .
+                    BackendUtility::translationCount(
+                        $table,
+                        $row['uid'],
+                        ' ' .
+                        $this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xlf:labels.translationsOfRecord')
+                    );
+                }
 
-            if ($this->isRecordCurrentBackendUser($table, $row)) {
-                $deleteAction = $this->spaceIcon;
+                if ($this->isRecordCurrentBackendUser($table, $row)) {
+                    $deleteAction = $this->spaceIcon;
+                } else {
+                    $titleOrig = BackendUtility::getRecordTitle($table, $row, false, true);
+                    $title = GeneralUtility::slashJS(GeneralUtility::fixed_lgd_cs($titleOrig, $this->fixedL), true);
+                    $warningText = $this->getLanguageService()->getLL($actionName . 'Warning') . ' "' . $title . '" ' . '[' . $table . ':' . $row['uid'] . ']' . $refCountMsg;
+                    $linkTitle = $this->getLanguageService()->getLL($actionName, true);
+
+                    $params = '&cmd[' . $table . '][' . $row['uid'] . '][delete]=1&SET[function]=action';
+                    $deleteAction = '<a href="#" class="btn btn-default"' .
+                        ' title="' . $linkTitle . '"' .
+                        ' onclick="' . htmlspecialchars('if (confirm(' . GeneralUtility::quoteJSvalue($warningText) . ')) {jumpToUrl(\'' . $this->actionOnClick($params) . '\');}') . '">' .
+                        $this->iconFactory->getIcon('actions-edit-' . $actionName, Icon::SIZE_SMALL)->render() .
+                        '</a>';
+                }
             } else {
-                $titleOrig = BackendUtility::getRecordTitle($table, $row, false, true);
-                $title = GeneralUtility::slashJS(GeneralUtility::fixed_lgd_cs($titleOrig, $this->fixedL), true);
-                $warningText = $this->getLanguageService()->getLL($actionName . 'Warning') . ' "' . $title . '" ' . '[' . $table . ':' . $row['uid'] . ']' . $refCountMsg;
-                $linkTitle = $this->getLanguageService()->getLL($actionName, true);
-
-                $params = '&cmd[' . $table . '][' . $row['uid'] . '][delete]=1&SET[function]=action';
-                $deleteAction = '<a href="#" class="btn btn-default"' .
-                    ' title="' . $linkTitle . '"' .
-                    ' onclick="' . htmlspecialchars('if (confirm(' . GeneralUtility::quoteJSvalue($warningText) . ')) {jumpToUrl(\'' . $this->actionOnClick($params) . '\');}') . '">' .
-                    $this->iconFactory->getIcon('actions-edit-' . $actionName, Icon::SIZE_SMALL)->render() .
-                    '</a>';
+                $deleteAction = $this->spaceIcon;
             }
-        } else {
-            $deleteAction = $this->spaceIcon;
+            $this->addActionToCellGroup($cells, $deleteAction, 'delete');
         }
-        $this->addActionToCellGroup($cells, $deleteAction, 'delete');
 
         //TODO: only for admins or authorized user
         // swith user / switch user back
