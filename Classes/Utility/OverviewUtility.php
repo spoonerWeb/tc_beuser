@@ -1075,7 +1075,7 @@ class OverviewUtility
             // Initialize tree object:
         /** @var \dkd\TcBeuser\Utility\GroupTreeUtility $tree */
         $tree = GeneralUtility::makeInstance('dkd\\TcBeuser\\Utility\\GroupTreeUtility');
-        $tree->init('');
+        $tree->init();
         $tree->expandAll = true;
 
             // Creating top icon; the main group
