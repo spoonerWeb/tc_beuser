@@ -24,14 +24,17 @@ namespace dkd\TcBeuser\Utility;
 *  This copyright notice MUST APPEAR in all copies of the script!
 ***************************************************************/
 
-use TYPO3\CMS\Backend\Form\FormEngine;
+use TYPO3\CMS\Backend\Form\Utility\FormEngineUtility;
+use TYPO3\CMS\Backend\Module\ModuleLoader;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\DatabaseConnection;
 use TYPO3\CMS\Core\Imaging\Icon;
 use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser;
 use TYPO3\CMS\Core\Utility\DebugUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\Lang\LanguageService;
 
 /**
@@ -353,7 +356,7 @@ class OverviewUtility
                     )->render();
 
                     $items[] = '<tr><td>' .
-                        $fmIcon . $filemount['title'] .
+                        $fmIcon . $filemount['title'] . '&nbsp;' .
                         '</td><td>' .
                         $this->makeUserControl($filemount) .
                         '</td></tr>'."\n";
@@ -403,7 +406,7 @@ class OverviewUtility
                         Icon::SIZE_SMALL
                     )->render();
 
-                    $content .= $wmIcon.$webmount['title'].'<br />'."\n";
+                    $content .= $wmIcon . $webmount['title'] . '&nbsp;' . '<br />' . "\n";
                 }
             }
         }
@@ -445,7 +448,8 @@ class OverviewUtility
                         Icon::SIZE_SMALL
                     )->render();
 
-                    $content .= $ptIcon . $this->getLanguageService()->sL(BackendUtility::getLabelFromItemlist('pages', 'doktype', $vv));
+                    $content .= $ptIcon . '&nbsp;' .
+                        $this->getLanguageService()->sL(BackendUtility::getLabelFromItemlist('pages', 'doktype', $vv));
                     $content .= '<br />'."\n";
                 }
             }
@@ -487,7 +491,8 @@ class OverviewUtility
                     )->render();
 
                     $tableTitle = $GLOBALS['TCA'][$vv]['ctrl']['title'];
-                    $content .= $ptIcon . $this->getLanguageService()->sL($tableTitle);
+                    $content .= $ptIcon . '&nbsp;' .
+                        $this->getLanguageService()->sL($tableTitle);
                     $content .= '<br />'."\n";
                 }
             }
@@ -529,7 +534,7 @@ class OverviewUtility
                     )->render();
 
                     $tableTitle = $GLOBALS['TCA'][$vv]['ctrl']['title'];
-                    $content .= $ptIcon . $this->getLanguageService()->sL($tableTitle);
+                    $content .= $ptIcon . '&nbsp;' . $this->getLanguageService()->sL($tableTitle);
                     $content .= '<br />'."\n";
                 }
             }
@@ -567,7 +572,8 @@ class OverviewUtility
                     $data = explode(':', $vv);
                     $tableTitle = $GLOBALS['TCA'][$data[0]]['ctrl']['title'];
                     $fieldTitle = $GLOBALS['TCA'][$data[0]]['columns'][$data[1]]['label'];
-                    $content .= $this->getLanguageService()->sL($tableTitle).': '.rtrim($this->getLanguageService()->sL($fieldTitle), ':');
+                    $content .= $this->getLanguageService()->sL($tableTitle) . ': ' .
+                        rtrim($this->getLanguageService()->sL($fieldTitle), ':');
                     $content .= '<br />'."\n";
                 }
             }
@@ -591,8 +597,8 @@ class OverviewUtility
         $icon = $this->getTreeControlIcon($open);
 
         $adLabel = array(
-            'ALLOW' => $this->getLanguageService()->sl('LLL:EXT:lang/locallang_core.xml:labels.allow'),
-            'DENY' => $this->getLanguageService()->sl('LLL:EXT:lang/locallang_core.xml:labels.deny'),
+            'ALLOW' => $this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xml:labels.allow'),
+            'DENY' => $this->getLanguageService()->sL('LLL:EXT:lang/locallang_core.xml:labels.deny'),
         );
 
         $iconsPath = array(
@@ -661,15 +667,8 @@ class OverviewUtility
             foreach ($allowed_languages as $langId) {
                 foreach ($availLang as $availLangInfo) {
                     if ($availLangInfo[1] == $langId) {
-                        $dataIcon = array();
-                        if (isset($availLangInfo[2])) {
-                            $dataIcon = FormEngine::getIcon($availLangInfo[2]);
-                        }
-                        if (empty($dataIcon)) {
-                            $dataIcon[0]='clear.gif';
-                        }
-                        $data .= '<img src="'.$backPath.$dataIcon[0].'" '.$dataIcon[1][3].'/> '.
-                            $availLangInfo[0].'<br />';
+                        $iconFlag = FormEngineUtility::getIconHtml($availLangInfo[2]);
+                        $data .= $iconFlag . '&nbsp;' . $availLangInfo[0].'<br />';
                     }
                 }
             }
@@ -728,7 +727,7 @@ class OverviewUtility
 
         if ($open) {
             $content .= '<br />';
-            $userAuthGroup = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Core\\Authentication\\BackendUserAuthentication');
+            $userAuthGroup = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Authentication\\BackendUserAuthentication');
                 //get workspace perms
             $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'workspace_perms',
@@ -821,28 +820,41 @@ class OverviewUtility
 
         if ($open) {
             $content .='<br />';
-            $tceForms = GeneralUtility::makeInstance('\\TYPO3\\CMS\\Backend\\Form\\FormEngine');
-            $tceForms->backPath = $backPath;
-            $TCAconf = $GLOBALS['TCA']['be_groups']['columns']['groupMods'];
+
+            // get all modules
+            /** @var ModuleLoader $loadModules */
+            $loadModules = GeneralUtility::makeInstance(ModuleLoader::class);
+            $loadModules->load($GLOBALS['TBE_MODULES']);
+
             $table = 'be_groups';
+            // get selected module from the table (be_users or be_groups)
             $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 '*',
                 $table,
                 'uid = '.$groupId
             );
             $row = $this->getDatabaseConnection()->sql_fetch_assoc($res);
-            $allMods = $tceForms->addSelectOptionsToItemArray(
-                $tceForms->initItemArray($TCAconf),
-                $TCAconf,
-                $tceForms->setTSconfig($table, $row),
-                'groupMods'
-            );
 
+
+            //var_dump($allMods);
             $items = array();
-            foreach ($allMods as $id => $modsInfo) {
-                if (GeneralUtility::inList($row['groupMods'], $modsInfo[1])) {
-                    $modIcon = FormEngine::getIcon($modsInfo[2]);
-                    $items[] = '<img src="'.$backPath.$modIcon[0].'" '.$modIcon[1][3].'/> '.$modsInfo[0];
+            foreach ($loadModules->modListGroup as $id => $moduleName) {
+                if (GeneralUtility::inList($row['groupMods'], $moduleName)) {
+                    $moduleIcon = $this->getLanguageService()->moduleLabels['tabs_images'][$moduleName . '_tab'];
+                    if ($moduleIcon) {
+                        $moduleIcon  = '../' . PathUtility::stripPathSitePrefix($moduleIcon);
+                    }
+
+                    $moduleLabel = '';
+                    // Add label for main module:
+                    $pp = explode('_', $moduleName);
+                    if (count($pp) > 1) {
+                        $moduleLabel .= $this->getLanguageService()->moduleLabels['tabs'][$pp[0] . '_tab'] . '>';
+                    }
+                    // Add modules own label now:
+                    $moduleLabel .= $this->getLanguageService()->moduleLabels['tabs'][$moduleName . '_tab'];
+
+                    $items[] = '<img src="' . $moduleIcon . '" width="16" height="16"/>&nbsp;'. $moduleLabel;
                 }
             }
             $content .= implode('<br />', $items);
@@ -893,7 +905,7 @@ class OverviewUtility
         $icon = $this->getTreeControlIcon($open);
 
         if ($open) {
-            $tsparser = GeneralUtility::makeInstance('\TYPO3\CMS\Core\TypoScript\Parser\TypoScriptParser');
+            $tsparser = GeneralUtility::makeInstance(TypoScriptParser::class);
             $res = $this->getDatabaseConnection()->exec_SELECTquery(
                 'TSconfig',
                 'be_groups',
@@ -966,14 +978,11 @@ class OverviewUtility
     public function editOnClick($params, $requestUri = '')
     {
         $retUrl = '&returnUrl=' . ($requestUri == -1 ? "'+T3_THIS_LOCATION+'" : rawurlencode($requestUri ? $requestUri : GeneralUtility::getIndpEnv('REQUEST_URI')));
-        return "window.location.href='". BackendUtility::getModuleUrl('txtcbeuserM1_txtcbeuserM2') . $retUrl . $params . "'; return false;";
+        return "window.location.href='". BackendUtility::getModuleUrl('tcTools_UserAdmin') . $retUrl . $params . "'; return false;";
     }
 
     public function makeUserControl($userRecord)
     {
-        $doc = GeneralUtility::makeInstance('template');
-        $doc->backPath = $this->backPath;
-
         $this->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
         $permsEdit = $this->calcPerms&16;
 
@@ -1021,7 +1030,8 @@ class OverviewUtility
         if ($permsEdit) {
             $params = '&cmd[' . $this->table . '][' . $userRecord['uid'] . '][delete]=1&SET[function]=action';
             $redirect = '&redirect=\'+T3_THIS_LOCATION+\'&vC=' . rawurlencode($this->getBackendUser()->veriCode()) . '&prErr=1&uPT=1';
-            $control .= '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars('if (confirm(' .
+            $control .= '<a href="#" class="btn btn-default" onclick="' . htmlspecialchars(
+                'if (confirm(' .
                 GeneralUtility::quoteJSvalue(
                     $this->getLanguageService()->getLL('deleteWarning') .
                     BackendUtility::referenceCount(
