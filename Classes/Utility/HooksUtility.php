@@ -46,7 +46,10 @@ class HooksUtility
     {
         $access = $params['outputPermissions'];
 
-        if (is_array($GLOBALS['MCONF']) && GeneralUtility::isFirstPartOfStr($GLOBALS['MCONF']['name'], 'txtcbeuserM1') && $GLOBALS['BE_USER']->modAccess($GLOBALS['MCONF'], true)) {
+        if (is_array($GLOBALS['MCONF']) &&
+            GeneralUtility::isFirstPartOfStr($GLOBALS['MCONF']['name'], 'tcTools') &&
+            $GLOBALS['BE_USER']->modAccess($GLOBALS['MCONF'], true)
+        ) {
             $access = 31;
         }
 
@@ -72,7 +75,6 @@ class HooksUtility
     {
         if ($table == 'be_groups') {
             if (!empty($tce->datamap[$table][$id]['members'])) {
-
                 //get uid and title of group
                 if (strstr($id, 'NEW')) {
                     //if it's a new record
@@ -164,8 +166,4 @@ class HooksUtility
             ExtensionManagementUtility::addTCAcolumns("be_groups", $tempCol, 1);
         }
     }
-}
-
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_hooks.php']) {
-    include_once($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.tx_tcbeuser_hooks.php']);
 }

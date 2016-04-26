@@ -284,7 +284,7 @@ class RecordListUtility extends DatabaseRecordList
         }
 
             //ingo.renner@dkd.de
-        if ($GLOBALS['BE_USER']->user['admin'] == '0' && $table == 'be_users') {
+        if ($this->getBackendUserAuthentication()->user['admin'] == '0' && $table == 'be_users') {
             $addWhere .= ' AND admin = 0';
             $addWhere .= ' AND username NOT LIKE ("_cli%") ';
         }
@@ -297,7 +297,7 @@ class RecordListUtility extends DatabaseRecordList
 
         //dkd-kartolo
         //mod3, config dontShowPrefix
-        if ($table == 'be_groups' && $GLOBALS['BE_USER']->user['admin']!= '1') {
+        if ($table == 'be_groups' && $this->getBackendUserAuthentication()->user['admin']!= '1') {
             $groupID = implode(',', TcBeuserUtility::showGroupID());
             if (!empty($groupID)) {
                 $addWhere .= ' AND uid in ('.$groupID.')';
@@ -865,7 +865,7 @@ class RecordListUtility extends DatabaseRecordList
     {
         $allGroups = explode(',', $allGroups);
         if (!empty($allGroups[0])) {
-            $mainGroup = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+            $mainGroup = $this->getDatabaseConnection()->exec_SELECTgetRows(
                 'title',
                 'be_groups',
                 'uid = '.$allGroups[0]
@@ -920,7 +920,7 @@ class RecordListUtility extends DatabaseRecordList
 
         // If the listed table is 'pages' we have to request the permission settings for each page:
         if ($table == 'pages') {
-            $localCalcPerms = $GLOBALS['BE_USER']->calcPerms(BackendUtility::getRecord('pages', $row['uid']));
+            $localCalcPerms = $this->getBackendUserAuthentication()->calcPerms(BackendUtility::getRecord('pages', $row['uid']));
         }
 
         // This expresses the edit permissions for this particular element:
@@ -961,7 +961,7 @@ class RecordListUtility extends DatabaseRecordList
             $params = '&SET[function]=import&feID=' . $row['uid'];
             $importAction = '<a href="#" class="btn btn-default" onclick="' .
                 htmlspecialchars(self::editOnClick($params)) .
-                '" title="' . $GLOBALS['LANG']->getLL('import', 1) .'">' .
+                '" title="' . $this->getLanguageService()->getLL('import', 1) .'">' .
                 $this->iconFactory->getIcon('actions-document-import-t3d', Icon::SIZE_SMALL)->render() .
                 '</a>';
             $this->addActionToCellGroup($cells, $importAction, 'import');
@@ -1057,7 +1057,7 @@ class RecordListUtility extends DatabaseRecordList
         //TODO: only for admins or authorized user
         // swith user / switch user back
         if ($table == 'be_users') {
-            if (!$row[$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled']] && ($GLOBALS['BE_USER']->user['tc_beuser_switch_to'] || $GLOBALS['BE_USER']->isAdmin())) {
+            if (!$row[$GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled']] && ($this->getBackendUserAuthentication()->user['tc_beuser_switch_to'] || $this->getBackendUserAuthentication()->isAdmin())) {
                 if ($this->isRecordCurrentBackendUser($table, $row)) {
                     $switchAction = $this->spaceIcon;
                 } else {

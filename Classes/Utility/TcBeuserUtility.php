@@ -25,6 +25,8 @@ namespace dkd\TcBeuser\Utility;
 ***************************************************************/
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Database\DatabaseConnection;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\HttpUtility;
 
@@ -42,22 +44,22 @@ class TcBeuserUtility
 
     public static function fakeAdmin()
     {
-        $GLOBALS['BE_USER']->user['admin'] = 1;
+        self::getBackendUser()->user['admin'] = 1;
     }
 
     public static function removeFakeAdmin()
     {
-        $GLOBALS['BE_USER']->user['admin'] = 0;
+        self::getBackendUser()->user['admin'] = 0;
     }
 
     public static function getSubgroup($id)
     {
-        $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+        $res = self::getDatabaseConnection()->exec_SELECTquery(
             'uid,title,subgroup',
             'be_groups',
             'deleted = 0 AND uid ='.$id
         );
-        $row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+        $row = self::getDatabaseConnection()->sql_fetch_assoc($res);
         $uid = '';
         if ($row['subgroup']) {
             $subGroup = GeneralUtility::intExplode(',', $row['subgroup']);
@@ -72,7 +74,7 @@ class TcBeuserUtility
 
     public static function allowWhereMember($TSconfig)
     {
-        $userGroup = explode(',', $GLOBALS['BE_USER']->user['usergroup']);
+        $userGroup = explode(',', self::getBackendUser()->user['usergroup']);
 
         $allowWhereMember = array();
         foreach ($userGroup as $uid) {
@@ -84,20 +86,20 @@ class TcBeuserUtility
                 $allowWhereMember[] = $groupID;
             }
         }
-        $allowWhereMember = GeneralUtility::removeArrayEntryByValue($allowWhereMember, '');
+        $allowWhereMember = ArrayUtility::removeArrayEntryByValue($allowWhereMember, '');
 
         return $allowWhereMember;
     }
 
     public static function allowCreated($TSconfig, $where)
     {
-        $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+        $res = self::getDatabaseConnection()->exec_SELECTquery(
             'uid',
             'be_groups',
-            $where.' AND cruser_id = '.$GLOBALS['BE_USER']->user['uid']
+            $where.' AND cruser_id = '.self::getBackendUser()->user['uid']
         );
-        if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) > 0) {
-            while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+        if (self::getDatabaseConnection()->sql_num_rows($res) > 0) {
+            while ($row = self::getDatabaseConnection()->sql_fetch_assoc($res)) {
                 $allowCreated[] = $row['uid'];
             }
         } else {
@@ -112,13 +114,13 @@ class TcBeuserUtility
         if (isset($TSconfig['allow']) && !empty($TSconfig['allow'])) {
             if ($TSconfig['allow'] == 'all') {
                 $addWhere = empty($showGroupID) ? '' : ' AND uid not in ('.implode(',', $showGroupID).')';
-                $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+                $res = self::getDatabaseConnection()->exec_SELECTquery(
                     'uid',
                     'be_groups',
                     $where.$addWhere
                 );
-                if ($GLOBALS['TYPO3_DB']->sql_num_rows($res)>0) {
-                    while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+                if (self::getDatabaseConnection()->sql_num_rows($res)>0) {
+                    while ($row = self::getDatabaseConnection()->sql_fetch_assoc($res)) {
                         $allowID[] = $row['uid'];
                     }
                 }
@@ -155,20 +157,20 @@ class TcBeuserUtility
             if (strstr($TSconfig[$mode], ',')) {
                 $prefix = explode(',', $TSconfig[$mode]);
                 foreach ($prefix as $pre) {
-                    $whereTemp[] = 'title like '.$GLOBALS['TYPO3_DB']->fullQuoteStr(trim($pre).'%', 'be_groups');
+                    $whereTemp[] = 'title like '.self::getDatabaseConnection()->fullQuoteStr(trim($pre).'%', 'be_groups');
                 }
                 $addWhere .= ' AND ('.implode(' OR ', $whereTemp).')';
             } else {
-                $addWhere .= ' AND '.'title like '.$GLOBALS['TYPO3_DB']->fullQuoteStr($TSconfig[$mode].'%', 'be_groups');
+                $addWhere .= ' AND '.'title like '.self::getDatabaseConnection()->fullQuoteStr($TSconfig[$mode].'%', 'be_groups');
             }
 
-            $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+            $res = self::getDatabaseConnection()->exec_SELECTquery(
                 'uid',
                 'be_groups',
                 $where.$addWhere
             );
-            if ($GLOBALS['TYPO3_DB']->sql_num_rows($res) > 0) {
-                while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+            if (self::getDatabaseConnection()->sql_num_rows($res) > 0) {
+                while ($row = self::getDatabaseConnection()->sql_fetch_assoc($res)) {
                     $showPrefixID[] = $row['uid'];
                 }
             } else {
@@ -182,7 +184,7 @@ class TcBeuserUtility
 
     public static function showGroupID()
     {
-        $TSconfig = $GLOBALS['BE_USER']->userTS['tx_tcbeuser.'] ? $GLOBALS['BE_USER']->userTS['tx_tcbeuser.'] : array();
+        $TSconfig = self::getBackendUser()->userTS['tx_tcbeuser.'] ? self::getBackendUser()->userTS['tx_tcbeuser.'] : array();
             // default value
         $TSconfig['allowCreated'] = (strlen(trim($TSconfig['allowCreated'])) > 0)? $TSconfig['allowCreated'] : '1';
         $TSconfig['allowWhereMember'] = (strlen(trim($TSconfig['allowWhereMember'])) > 0)? $TSconfig['allowWhereMember'] : '1';
@@ -243,7 +245,7 @@ class TcBeuserUtility
                 //remove $denyGroupID from $showGroupID
             $showGroupID = array_diff($showGroupID, $denyGroupID);
         }
-//debug($showGroupID,'final');
+
         return $showGroupID;
     }
 
@@ -252,7 +254,7 @@ class TcBeuserUtility
      */
     public static function getGroupsID(&$param, &$pObj)
     {
-        if ($GLOBALS['BE_USER']->user['admin'] == '0') {
+        if (self::getBackendUser()->user['admin'] == '0') {
             $where = 'pid = 0 '.BackendUtility::deleteClause('be_groups');
             $groupID = implode(',', self::showGroupID());
             if (!empty($groupID)) {
@@ -264,7 +266,7 @@ class TcBeuserUtility
             $where = '1'.BackendUtility::deleteClause('be_groups');
         }
 
-        $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+        $res = self::getDatabaseConnection()->exec_SELECTquery(
             '*',
             'be_groups',
             $where,
@@ -273,7 +275,7 @@ class TcBeuserUtility
         );
         $param['items'] = array();
 
-        while ($row=$GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+        while ($row=self::getDatabaseConnection()->sql_fetch_assoc($res)) {
             $param['items'][]= array($GLOBALS['LANG']->sL($row['title']),$row['uid'],'');
         }
         return $param;
@@ -284,13 +286,13 @@ class TcBeuserUtility
      */
     public static function getAllGroupsID()
     {
-        $res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+        $res = self::getDatabaseConnection()->exec_SELECTquery(
             'uid',
             'be_groups',
             '1'.BackendUtility::deleteClause('be_groups')
         );
         $id = array();
-        while ($row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+        while ($row = self::getDatabaseConnection()->sql_fetch_assoc($res)) {
             $id[] = $row['uid'];
         }
         return implode(',', $id);
@@ -298,7 +300,8 @@ class TcBeuserUtility
 
 
     /**
-     * Switches to a given user (SU-mode) and then redirects to the start page of the backend to refresh the navigation etc.
+     * Switches to a given user (SU-mode) and then redirects to the start page
+     * of the backend to refresh the navigation etc.
      *
      * @param string $switchUser BE-user record that will be switched to
      * @return void
@@ -308,17 +311,17 @@ class TcBeuserUtility
         $targetUser = BackendUtility::getRecord('be_users', $switchUser);
         if (is_array($targetUser)) {
             $updateData['ses_userid'] = (int)$targetUser['uid'];
-            $updateData['ses_backuserid'] = intval($GLOBALS['BE_USER']->user['uid']);
+            $updateData['ses_backuserid'] = intval(self::getBackendUser()->user['uid']);
 
             // Set backend user listing module as starting module for switchback
-            $GLOBALS['BE_USER']->uc['startModuleOnFirstLogin'] = 'tctools_UserAdmin';
-            $GLOBALS['BE_USER']->writeUC();
+            self::getBackendUser()->uc['startModuleOnFirstLogin'] = 'tctools_UserAdmin';
+            self::getBackendUser()->writeUC();
 
-            $whereClause = 'ses_id=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($GLOBALS['BE_USER']->id, 'be_sessions');
-            $whereClause .= ' AND ses_name=' . $GLOBALS['TYPO3_DB']->fullQuoteStr(BackendUserAuthentication::getCookieName(), 'be_sessions');
-            $whereClause .= ' AND ses_userid=' . (int)$GLOBALS['BE_USER']->user['uid'];
+            $whereClause = 'ses_id=' . self::getDatabaseConnection()->fullQuoteStr(self::getBackendUser()->id, 'be_sessions');
+            $whereClause .= ' AND ses_name=' . self::getDatabaseConnection()->fullQuoteStr(BackendUserAuthentication::getCookieName(), 'be_sessions');
+            $whereClause .= ' AND ses_userid=' . (int)self::getBackendUser()->user['uid'];
 
-            $GLOBALS['TYPO3_DB']->exec_UPDATEquery(
+            self::getDatabaseConnection()->exec_UPDATEquery(
                 'be_sessions',
                 $whereClause,
                 $updateData
@@ -328,8 +331,21 @@ class TcBeuserUtility
             HttpUtility::redirect($redirectUrl);
         }
     }
-}
 
-if (defined('TYPO3_MODE') && $GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.self.php']) {
-    include_once($GLOBALS['TYPO3_CONF_VARS'][TYPO3_MODE]['XCLASS']['ext/tc_beuser/class.self.php']);
+    /**
+     * Returns the Backend User
+     * @return BackendUserAuthentication
+     */
+    protected function getBackendUser()
+    {
+        return $GLOBALS['BE_USER'];
+    }
+
+    /**
+     * @return DatabaseConnection
+     */
+    protected function getDatabaseConnection()
+    {
+        return $GLOBALS['TYPO3_DB'];
+    }
 }

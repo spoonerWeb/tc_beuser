@@ -25,6 +25,8 @@
 			<label index="not-found">No user found</label>
 			<label index="data-sync">Backend User data is not synchronous with Frontend User data.</label>
 			<label index="fe-exist">FE-User with the same username is existed.</label>
+			<label index="password-wizard-notif-header">Generated Password</label>
+			<label index="password-wizard-notif-Text">Following password is generated: </label>
 		</languageKey>
 		<languageKey index="de" type="array">
 			<label index="list-users">Benutzer auflisten</label>
@@ -44,6 +46,8 @@
 			<label index="not-found">Keine Benutzer gefunden</label>
 			<label index="data-sync">Backend Benutzerdaten sind nicht synchron mit Frontend Benutzerdaten.</label>
 			<label index="fe-exist">Es existiert FE-Benutzer mit dem selben Benutzername.</label>
+			<label index="password-wizard-notif-header">Generierte Passwort</label>
+			<label index="password-wizard-notif-Text">Folgende Passwort ist generiert: </label>
 		</languageKey>
 	</data>
 </T3locallang>
