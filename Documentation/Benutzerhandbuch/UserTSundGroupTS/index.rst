@@ -55,6 +55,10 @@ werden.
                  - email
                  - lang
 
+ - :Property:    passwordWizard
+   :Description: wenn auf 0 gesetzt, dann ist das Passwort-Wizard
+                 ausgeblendet.
+
 
 Bsp:
 

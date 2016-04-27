@@ -422,6 +422,15 @@ class FilemountsViewController extends AbstractModuleController
 
     public function getFilemountEdit()
     {
+        // lets fake admin
+        $fakeAdmin = false;
+
+        if ($this->getBackendUser()->user['admin'] != 1) {
+            //make fake Admin
+            TcBeuserUtility::fakeAdmin();
+            $fakeAdmin = true;
+        }
+
         $content = '';
 
         //show warning
@@ -474,6 +483,10 @@ class FilemountsViewController extends AbstractModuleController
             $content .= $this->compileForm($editForm);
             $content .= $formResultCompiler->printNeededJSFunctions();
             $content .= '</form>';
+        }
+
+        if ($fakeAdmin) {
+            TcBeuserUtility::removeFakeAdmin();
         }
 
         return $content;

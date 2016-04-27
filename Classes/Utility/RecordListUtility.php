@@ -1074,12 +1074,14 @@ class RecordListUtility extends DatabaseRecordList
 
             // If the record is edit-locked	by another user, we will show a little warning sign:
         if ($lockInfo = BackendUtility::isRecordLocked($table, $row['uid'])) {
-            $lockAction ='<a href="#" onclick="'.htmlspecialchars('alert('.GeneralUtility::quoteJSvalue($lockInfo['msg']).');return false;').'" ' .
+            $lockAction ='<a href="#" class="btn btn-default" onclick="'.htmlspecialchars('alert('.GeneralUtility::quoteJSvalue($lockInfo['msg']).');return false;').'" ' .
                 ' title="'.htmlspecialchars($lockInfo['msg']).'" >'.
                 $this->iconFactory->getIcon('status-warning-lock', Icon::SIZE_SMALL)->render() .
                 '</a>';
-            $this->addActionToCellGroup($cells, $lockAction, 'lock');
+        } else {
+            $lockAction = $this->spaceIcon;
         }
+        $this->addActionToCellGroup($cells, $lockAction, 'lock');
 
 
             // Compile items into a DIV-element:

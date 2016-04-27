@@ -13,4 +13,7 @@ if (TYPO3_MODE) {
         //registering hooks for be_groups form mod3
     $TYPO3_CONF_VARS['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass']['tc_beuser'] =
         'dkd\\TcBeuser\\Utility\\HooksUtility';
+
+    // add UserTS to automatically enable the password wizard for be_users
+    \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addUserTSConfig('tc_beuser.passwordWizard = 1');
 }

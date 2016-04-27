@@ -544,6 +544,16 @@ class UserAdminController extends AbstractModuleController
      */
     public function getUserEdit()
     {
+
+        // lets fake admin
+        $fakeAdmin = false;
+
+        if ($this->getBackendUser()->user['admin'] != 1) {
+            //make fake Admin
+            TcBeuserUtility::fakeAdmin();
+            $fakeAdmin = true;
+        }
+
         $content = '';
 
         // the default field to show
@@ -596,6 +606,10 @@ class UserAdminController extends AbstractModuleController
             $content .= $this->compileForm($editForm);
             $content .= $formResultCompiler->printNeededJSFunctions();
             $content .= '</form>';
+        }
+
+        if ($fakeAdmin) {
+            TcBeuserUtility::removeFakeAdmin();
         }
 
         return $content;
