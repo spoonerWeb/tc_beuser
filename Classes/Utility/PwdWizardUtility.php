@@ -50,15 +50,15 @@ class PwdWizardUtility
                     'document.'.$PA['formName'].'[\''.$PA['itemName'].'\'].value = pass;';
         $onclick .= implode('', $PA['fieldChangeFunc']);
         $onclick .= 'top.TYPO3.Notification.success(\'' .
-            $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xml:password-wizard-notif-header', 1) .
+            $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:password-wizard-notif-header', 1) .
             '\', ' .
-            '\'' . $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xml:password-wizard-notif-Text', 1) . '\'' .
+            '\'' . $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:password-wizard-notif-Text', 1) . '\'' .
             ' + pass, 0);';
 
 
 
         $output .= '<a href="#" class="btn btn-default" onclick="'.htmlspecialchars($onclick).'" title="' .
-            $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xml:password-wizard', 1) .'">'.
+            $GLOBALS['LANG']->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:password-wizard', 1) .'">'.
             $iconFactory->getIcon('actions-move-left', Icon::SIZE_SMALL)->render() .
             '</a>';
         return $output;

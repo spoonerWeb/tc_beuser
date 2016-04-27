@@ -106,7 +106,7 @@ class UserAdminController extends AbstractModuleController
      */
     public function loadLocallang()
     {
-        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xml');
+        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf');
         $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
     }
 

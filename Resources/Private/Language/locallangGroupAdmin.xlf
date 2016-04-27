@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+	<file source-language="en" datatype="plaintext" original="messages" date="2016-04-27T09:21:52Z">
+		<header>
+			<type>module</type>
+			<description>Language labels for module GroupAdmin</description>
+			<authorName>Ivan Kartolo</authorName>
+			<authorEmail>ivan.kartolo@dkd.de</authorEmail>
+			<generator>LFEditor</generator>
+		</header>
+		<body>
+		<trans-unit id="analyze">
+			<source>Analyze</source>
+		</trans-unit>
+		<trans-unit id="create-group">
+			<source>Create a new group</source>
+		</trans-unit>
+		<trans-unit id="delete">
+			<source>Delete record (!)</source>
+		</trans-unit>
+		<trans-unit id="edit">
+			<source>Edit record</source>
+		</trans-unit>
+		<trans-unit id="edit-group">
+			<source>Edit a group</source>
+		</trans-unit>
+		<trans-unit id="group-exists">
+			<source>A group with the same name is existed.</source>
+		</trans-unit>
+		<trans-unit id="hide">
+			<source>Hide record</source>
+		</trans-unit>
+		<trans-unit id="list-groups">
+			<source>List groups</source>
+		</trans-unit>
+		<trans-unit id="not-found">
+			<source>No groups found</source>
+		</trans-unit>
+		<trans-unit id="search-group">
+			<source>Search group:</source>
+		</trans-unit>
+		<trans-unit id="showInfo">
+			<source>Display Information</source>
+		</trans-unit>
+		<trans-unit id="title">
+			<source>Group Admin</source>
+		</trans-unit>
+		<trans-unit id="tsconfig-disabled">
+			<source>TSconfig field is disabled.</source>
+		</trans-unit>
+		<trans-unit id="unHide">
+			<source>Un-hide record</source>
+		</trans-unit>
+		</body>
+	</file>
+</xliff>

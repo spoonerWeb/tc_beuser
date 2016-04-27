@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+	<file source-language="en" target-language="de" datatype="plaintext" original="messages" date="2016-04-27T09:18:32Z">
+		<header>
+			<type>module</type>
+			<description>Language labels for module UserAdmin</description>
+			<authorName>Ivan Kartolo</authorName>
+			<authorEmail>ivan.kartolo@dkd.de</authorEmail>
+			<generator>LFEditor</generator>
+		</header>
+		<body>
+		<trans-unit id="analyze" approved="yes">
+			<source>Analyze</source>
+			<target>Analysieren</target>
+		</trans-unit>
+		<trans-unit id="create-user" approved="yes">
+			<source>Create a new user</source>
+			<target>Einen neuen Benutzer anlegen</target>
+		</trans-unit>
+		<trans-unit id="create-user-wizard" approved="yes">
+			<source>Import frontend user</source>
+			<target>Frontend Benutzer importieren</target>
+		</trans-unit>
+		<trans-unit id="data-sync" approved="yes">
+			<source>Backend User data is not synchronous with Frontend User data.</source>
+			<target>Backend Benutzerdaten sind nicht synchron mit Frontend Benutzerdaten.</target>
+		</trans-unit>
+		<trans-unit id="delete" approved="yes">
+			<source>Delete record (!)</source>
+			<target>Datensatz löschen (!)</target>
+		</trans-unit>
+		<trans-unit id="edit" approved="yes">
+			<source>Edit record</source>
+			<target>Datensatz bearbeiten</target>
+		</trans-unit>
+		<trans-unit id="edit-user" approved="yes">
+			<source>Edit a user</source>
+			<target>Einen Benutzer bearbeiten</target>
+		</trans-unit>
+		<trans-unit id="fe-exist" approved="yes">
+			<source>FE-User with the same username is existed.</source>
+			<target>Es existiert FE-Benutzer mit dem selben Benutzername.</target>
+		</trans-unit>
+		<trans-unit id="hide" approved="yes">
+			<source>Hide record</source>
+			<target>Datensatz verbergen</target>
+		</trans-unit>
+		<trans-unit id="hide-deaktivated-users" approved="yes">
+			<source>Hide deactivated users</source>
+			<target>Deaktivierte Benutzer ausblenden</target>
+		</trans-unit>
+		<trans-unit id="import" approved="yes">
+			<source>Import this record</source>
+			<target>Dieses Datensatz importieren</target>
+		</trans-unit>
+		<trans-unit id="list-users" approved="yes">
+			<source>List Users</source>
+			<target>Benutzer auflisten</target>
+		</trans-unit>
+		<trans-unit id="not-found" approved="yes">
+			<source>No user found</source>
+			<target>Keine Benutzer gefunden</target>
+		</trans-unit>
+		<trans-unit id="password-wizard" approved="yes">
+			<source>Generate password</source>
+			<target>Kennwort generieren</target>
+		</trans-unit>
+		<trans-unit id="password-wizard-notif-Text" approved="yes">
+			<source>Following password is generated: </source>
+			<target>Folgende Passwort ist generiert: </target>
+		</trans-unit>
+		<trans-unit id="password-wizard-notif-header" approved="yes">
+			<source>Generated Password</source>
+			<target>Generierte Passwort</target>
+		</trans-unit>
+		<trans-unit id="search-user" approved="yes">
+			<source>Search user:</source>
+			<target>Benutzer suchen:</target>
+		</trans-unit>
+		<trans-unit id="showInfo" approved="yes">
+			<source>Display Information</source>
+			<target>Informationen anzeigen</target>
+		</trans-unit>
+		<trans-unit id="title" approved="yes">
+			<source>Backend User Administration</source>
+			<target>Backend Benutzer Administration</target>
+		</trans-unit>
+		<trans-unit id="unHide" approved="yes">
+			<source>Un-hide record</source>
+			<target>Datensatz nicht verbergen</target>
+		</trans-unit>
+		</body>
+	</file>
+</xliff>

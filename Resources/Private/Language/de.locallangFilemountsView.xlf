@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+	<file source-language="en" target-language="de" datatype="plaintext" original="messages" date="2016-04-27T09:15:38Z">
+		<header>
+			<type>module</type>
+			<description>Language labels for module Filemounts view</description>
+			<authorName>Ivan Kartolo</authorName>
+			<authorEmail>ivan.kartolo@dkd.de</authorEmail>
+			<generator>LFEditor</generator>
+		</header>
+		<body>
+		<trans-unit id="create-filemount" approved="yes">
+			<source>Create new filemount</source>
+			<target>Einen neuen Filemount anlegen</target>
+		</trans-unit>
+		<trans-unit id="delete" approved="yes">
+			<source>Delete record (!)</source>
+			<target>Datensatz löschen (!)</target>
+		</trans-unit>
+		<trans-unit id="error-path" approved="yes">
+			<source>Path exists</source>
+			<target>Pfad existiert</target>
+		</trans-unit>
+		<trans-unit id="filemount-msg" approved="yes">
+			<source>The path is relative to fileadmin</source>
+			<target>Der Pfad ist relativ zum fileadmin</target>
+		</trans-unit>
+		<trans-unit id="hide" approved="yes">
+			<source>Hide record</source>
+			<target>Datensatz verbergen</target>
+		</trans-unit>
+		<trans-unit id="list-filemounts" approved="yes">
+			<source>List filemounts</source>
+			<target>Filemounts auflisten</target>
+		</trans-unit>
+		<trans-unit id="search-filemount" approved="yes">
+			<source>Search filemount:</source>
+			<target>Filemount suchen:</target>
+		</trans-unit>
+		<trans-unit id="showInfo" approved="yes">
+			<source>Display Information</source>
+			<target>Informationen anzeigen</target>
+		</trans-unit>
+		<trans-unit id="title" approved="yes">
+			<source>Filemounts View</source>
+			<target>Filemounts Übersicht</target>
+		</trans-unit>
+		<trans-unit id="unHide" approved="yes">
+			<source>Un-hide record</source>
+			<target>Datensatz nicht verbergen</target>
+		</trans-unit>
+		</body>
+	</file>
+</xliff>

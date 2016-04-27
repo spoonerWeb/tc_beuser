@@ -65,7 +65,7 @@ class OverviewController extends AbstractModuleController
      */
     public function loadLocallang()
     {
-        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangOverview.xml');
+        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangOverview.xlf');
         $this->getLanguageService()->includeLLFile('EXT:lang/locallang_alt_doc.xml');
     }
 
@@ -303,7 +303,7 @@ class OverviewController extends AbstractModuleController
             $dblist->disableControls = array('edit' => true, 'hide' => true, 'delete' => true, 'import' => true);
 
             //Setup for analyze Icon
-            $dblist->analyzeLabel = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/mod2/locallang.xml:analyze', 1);
+            $dblist->analyzeLabel = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangUserAdmin.xlf:analyze', 1);
             $dblist->analyzeParam = 'beUser';
 
             $dblist->start(0, $this->table, $this->pointer, $this->search_field);
@@ -397,13 +397,13 @@ class OverviewController extends AbstractModuleController
             );
 
             //Setup for analyze Icon
-            $dblist->analyzeLabel = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:analyze', 1);
+            $dblist->analyzeLabel = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf:analyze', 1);
             $dblist->analyzeParam = 'beGroup';
 
             $dblist->start(0, $this->table, $this->pointer, $this->search_field);
             $dblist->generateList();
 
-            $content .= $dblist->HTMLcode ? $dblist->HTMLcode : '<br />'.$this->getLanguageService()->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:not-found').'<br />';
+            $content .= $dblist->HTMLcode ? $dblist->HTMLcode : '<br />'.$this->getLanguageService()->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf:not-found').'<br />';
 
             // searchbox toolbar
             if (!$this->modTSconfig['properties']['disableSearchBox'] && ($dblist->HTMLcode || !empty($dblist->searchString))) {

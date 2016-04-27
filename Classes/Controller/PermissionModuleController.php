@@ -165,7 +165,7 @@ class PermissionModuleController
     public function __construct()
     {
         $GLOBALS['LANG']->includeLLFile('EXT:beuser/Resources/Private/Language/locallang_mod_permission.xlf');
-        $GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangPermission.xml');
+        $GLOBALS['LANG']->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangPermission.xlf');
 
         $this->MCONF = array(
             'name' => $this->moduleName

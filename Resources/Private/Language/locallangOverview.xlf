@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+	<file source-language="en" datatype="plaintext" original="messages" date="2016-04-27T09:18:58Z">
+		<header>
+			<type>module</type>
+			<description>Language labels for module Overview</description>
+			<authorName>Ivan Kartolo</authorName>
+			<authorEmail>ivan.kartolo@dkd.de</authorEmail>
+			<generator>LFEditor</generator>
+		</header>
+		<body>
+		<trans-unit id="analyze">
+			<source>Analyze</source>
+		</trans-unit>
+		<trans-unit id="overview-groups">
+			<source>Group Overview</source>
+		</trans-unit>
+		<trans-unit id="overview-users">
+			<source>User Overview</source>
+		</trans-unit>
+		<trans-unit id="search-group">
+			<source>Search a group</source>
+		</trans-unit>
+		<trans-unit id="search-user">
+			<source>Search a user</source>
+		</trans-unit>
+		<trans-unit id="select-group">
+			<source>Select a group</source>
+		</trans-unit>
+		<trans-unit id="select-user">
+			<source>Select a user</source>
+		</trans-unit>
+		<trans-unit id="showCol-description">
+			<source>Description</source>
+		</trans-unit>
+		<trans-unit id="showCol-explicitallowdeny">
+			<source>Explicit Allow/Deny</source>
+		</trans-unit>
+		<trans-unit id="showCol-filemounts">
+			<source>Filemounts</source>
+		</trans-unit>
+		<trans-unit id="showCol-groups">
+			<source>Groups</source>
+		</trans-unit>
+		<trans-unit id="showCol-limittolanguages">
+			<source>Limit to languages</source>
+		</trans-unit>
+		<trans-unit id="showCol-members">
+			<source>Members</source>
+		</trans-unit>
+		<trans-unit id="showCol-modifytables">
+			<source>Modify tables</source>
+		</trans-unit>
+		<trans-unit id="showCol-modules">
+			<source>Modules</source>
+		</trans-unit>
+		<trans-unit id="showCol-nonexcludefields">
+			<source>Non-exclude fields</source>
+		</trans-unit>
+		<trans-unit id="showCol-pagetypes">
+			<source>Page types access</source>
+		</trans-unit>
+		<trans-unit id="showCol-selecttables">
+			<source>Select tables</source>
+		</trans-unit>
+		<trans-unit id="showCol-tsconfig">
+			<source>TSconfig</source>
+		</trans-unit>
+		<trans-unit id="showCol-tsconfighl">
+			<source>TSconfig HL</source>
+		</trans-unit>
+		<trans-unit id="showCol-webmounts">
+			<source>Webmounts</source>
+		</trans-unit>
+		<trans-unit id="showCol-workspacememship">
+			<source>Workspace membership</source>
+		</trans-unit>
+		<trans-unit id="showCol-workspaceperms">
+			<source>Workspace permissions</source>
+		</trans-unit>
+		<trans-unit id="showInfo">
+			<source>Display Information</source>
+		</trans-unit>
+		</body>
+	</file>
+</xliff>

@@ -119,7 +119,7 @@ class OverviewUtility
     public function handleMethod($method, $groupId, $open = false, $backPath = '')
     {
 
-        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/mod4/locallang.xml');
+        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangOverview.xlf');
 
         $content = '';
         $method = trim(strval($method));
@@ -162,7 +162,7 @@ class OverviewUtility
                 }
             } else {
                 return '<br /><br />' .
-                $this->getLanguageService()->sL('LLL:EXT:tc_beuser/mod3/locallang.xml:not-found') .
+                $this->getLanguageService()->sL('LLL:EXT:tc_beuser/Resources/Private/Language/locallangGroupAdmin.xlf:not-found') .
                 '<br />';
             }
         }
@@ -216,7 +216,6 @@ class OverviewUtility
         $content .= '<tr>'."\n";
 
             // always show groups and Id
-        #$label = $this->getLanguageService()->sL('LLL:EXT:tc_beuser/mod4/locallang.xml:showCol-groups', 1);
         $label = $this->getLanguageService()->getLL('showCol-groups');
         $content .= $this->wrapTd($label.':', 'class="c-headLine"');
         $content .= $this->wrapTd('ID:', 'class="c-headLine"');

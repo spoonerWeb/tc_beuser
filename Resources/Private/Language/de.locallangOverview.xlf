@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+	<file source-language="en" target-language="de" datatype="plaintext" original="messages" date="2016-04-27T09:18:58Z">
+		<header>
+			<type>module</type>
+			<description>Language labels for module Overview</description>
+			<authorName>Ivan Kartolo</authorName>
+			<authorEmail>ivan.kartolo@dkd.de</authorEmail>
+			<generator>LFEditor</generator>
+		</header>
+		<body>
+		<trans-unit id="analyze" approved="yes">
+			<source>Analyze</source>
+			<target>Analysieren</target>
+		</trans-unit>
+		<trans-unit id="overview-groups" approved="yes">
+			<source>Group Overview</source>
+			<target>Gruppen Übersicht</target>
+		</trans-unit>
+		<trans-unit id="overview-users" approved="yes">
+			<source>User Overview</source>
+			<target>Benutzer Übersicht</target>
+		</trans-unit>
+		<trans-unit id="search-group" approved="yes">
+			<source>Search a group</source>
+			<target>Eine Gruppe suchen</target>
+		</trans-unit>
+		<trans-unit id="search-user" approved="yes">
+			<source>Search a user</source>
+			<target>Ein Benutzer suchen</target>
+		</trans-unit>
+		<trans-unit id="select-group" approved="yes">
+			<source>Select a group</source>
+			<target>Eine Gruppe auswählen</target>
+		</trans-unit>
+		<trans-unit id="select-user" approved="yes">
+			<source>Select a user</source>
+			<target>Ein Benutzer auswählen</target>
+		</trans-unit>
+		<trans-unit id="showCol-description" approved="yes">
+			<source>Description</source>
+			<target>Beschreibung</target>
+		</trans-unit>
+		<trans-unit id="showCol-explicitallowdeny" approved="yes">
+			<source>Explicit Allow/Deny</source>
+			<target>Explizit erlaubt/verboten</target>
+		</trans-unit>
+		<trans-unit id="showCol-filemounts" approved="yes">
+			<source>Filemounts</source>
+			<target>Filemounts</target>
+		</trans-unit>
+		<trans-unit id="showCol-groups" approved="yes">
+			<source>Groups</source>
+			<target>Gruppen</target>
+		</trans-unit>
+		<trans-unit id="showCol-limittolanguages" approved="yes">
+			<source>Limit to languages</source>
+			<target>Sprachenbeschränkung</target>
+		</trans-unit>
+		<trans-unit id="showCol-members" approved="yes">
+			<source>Members</source>
+			<target>Mitglieder</target>
+		</trans-unit>
+		<trans-unit id="showCol-modifytables" approved="yes">
+			<source>Modify tables</source>
+			<target>Tabellen (modify)</target>
+		</trans-unit>
+		<trans-unit id="showCol-modules" approved="yes">
+			<source>Modules</source>
+			<target>Module</target>
+		</trans-unit>
+		<trans-unit id="showCol-nonexcludefields" approved="yes">
+			<source>Non-exclude fields</source>
+			<target>Erlaubte Excludefelder</target>
+		</trans-unit>
+		<trans-unit id="showCol-pagetypes" approved="yes">
+			<source>Page types access</source>
+			<target>Seiten Typen</target>
+		</trans-unit>
+		<trans-unit id="showCol-selecttables" approved="yes">
+			<source>Select tables</source>
+			<target>Tabellen (listing)</target>
+		</trans-unit>
+		<trans-unit id="showCol-tsconfig" approved="yes">
+			<source>TSconfig</source>
+			<target>TSconfig</target>
+		</trans-unit>
+		<trans-unit id="showCol-tsconfighl" approved="yes">
+			<source>TSconfig HL</source>
+			<target>TSconfig HL</target>
+		</trans-unit>
+		<trans-unit id="showCol-webmounts" approved="yes">
+			<source>Webmounts</source>
+			<target>Webmounts</target>
+		</trans-unit>
+		<trans-unit id="showCol-workspacememship" approved="yes">
+			<source>Workspace membership</source>
+			<target>Workspace Mitgliedschaft</target>
+		</trans-unit>
+		<trans-unit id="showCol-workspaceperms" approved="yes">
+			<source>Workspace permissions</source>
+			<target>Workspace Zugriff</target>
+		</trans-unit>
+		<trans-unit id="showInfo" approved="yes">
+			<source>Display Information</source>
+			<target>Informationen anzeigen</target>
+		</trans-unit>
+		</body>
+	</file>
+</xliff>

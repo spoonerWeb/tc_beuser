@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+	<file source-language="en" target-language="de" datatype="plaintext" original="messages" date="2016-04-27T09:21:52Z">
+		<header>
+			<type>module</type>
+			<description>Language labels for module GroupAdmin</description>
+			<authorName>Ivan Kartolo</authorName>
+			<authorEmail>ivan.kartolo@dkd.de</authorEmail>
+			<generator>LFEditor</generator>
+		</header>
+		<body>
+		<trans-unit id="analyze" approved="yes">
+			<source>Analyze</source>
+			<target>Analysieren</target>
+		</trans-unit>
+		<trans-unit id="create-group" approved="yes">
+			<source>Create a new group</source>
+			<target>Eine neue Gruppe anlegen</target>
+		</trans-unit>
+		<trans-unit id="delete" approved="yes">
+			<source>Delete record (!)</source>
+			<target>Datensatz löschen (!)</target>
+		</trans-unit>
+		<trans-unit id="edit" approved="yes">
+			<source>Edit record</source>
+			<target>Datensatz bearbeiten</target>
+		</trans-unit>
+		<trans-unit id="edit-group" approved="yes">
+			<source>Edit a group</source>
+			<target>Eine Gruppe bearbeiten</target>
+		</trans-unit>
+		<trans-unit id="group-exists" approved="yes">
+			<source>A group with the same name is existed.</source>
+			<target>Es existiert BE-Gruppe mit dem selben Name</target>
+		</trans-unit>
+		<trans-unit id="hide" approved="yes">
+			<source>Hide record</source>
+			<target>Datensatz verbergen</target>
+		</trans-unit>
+		<trans-unit id="list-groups" approved="yes">
+			<source>List groups</source>
+			<target>Gruppen auflisten</target>
+		</trans-unit>
+		<trans-unit id="not-found" approved="yes">
+			<source>No groups found</source>
+			<target>Keine Gruppe gefunden</target>
+		</trans-unit>
+		<trans-unit id="search-group" approved="yes">
+			<source>Search group:</source>
+			<target>Gruppe suchen:</target>
+		</trans-unit>
+		<trans-unit id="showInfo" approved="yes">
+			<source>Display Information</source>
+			<target>Informationen anzeigen</target>
+		</trans-unit>
+		<trans-unit id="title" approved="yes">
+			<source>Group Admin</source>
+			<target>Gruppen Administrator</target>
+		</trans-unit>
+		<trans-unit id="tsconfig-disabled" approved="yes">
+			<source>TSconfig field is disabled.</source>
+			<target>Die Bearbeitung des TSconfigs steht nicht zur Verfügung</target>
+		</trans-unit>
+		<trans-unit id="unHide" approved="yes">
+			<source>Un-hide record</source>
+			<target>Datensatz nicht verbergen</target>
+		</trans-unit>
+		</body>
+	</file>
+</xliff>

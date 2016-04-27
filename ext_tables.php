@@ -33,7 +33,7 @@ if (TYPO3_MODE == 'BE') {
                 'tabs_images' => array(
                     'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleTcTools.gif',
                 ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangTcTools.xml',
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangTcTools.xlf',
             ),
         )
     );
@@ -53,7 +53,7 @@ if (TYPO3_MODE == 'BE') {
                 'tabs_images' => array(
                     'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleUserAdmin.gif',
                 ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleUserAdmin.xml',
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleUserAdmin.xlf',
             )
         )
     );
@@ -73,7 +73,7 @@ if (TYPO3_MODE == 'BE') {
                 'tabs_images' => array(
                     'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleGroupAdmin.gif',
                 ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleGroupAdmin.xml',
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleGroupAdmin.xlf',
             )
         )
     );
@@ -93,7 +93,7 @@ if (TYPO3_MODE == 'BE') {
                 'tabs_images' => array(
                     'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleFilemountsView.gif',
                 ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleFilemountsView.xml',
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleFilemountsView.xlf',
             )
         )
     );
@@ -113,7 +113,7 @@ if (TYPO3_MODE == 'BE') {
                 'tabs_images' => array(
                     'tab' => 'EXT:tc_beuser/Resources/Public/Images/moduleOverview.gif',
                 ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleOverview.xml',
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModuleOverview.xlf',
             )
         )
     );
@@ -133,7 +133,7 @@ if (TYPO3_MODE == 'BE') {
                 'tabs_images' => array(
                     'tab' => 'EXT:tc_beuser/Resources/Public/Images/modulePermission.png',
                 ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xml',
+                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xlf',
             )
         )
     );

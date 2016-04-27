@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+	<file source-language="en" datatype="plaintext" original="messages" date="2016-04-27T09:15:38Z">
+		<header>
+			<type>module</type>
+			<description>Language labels for module Filemounts view</description>
+			<authorName>Ivan Kartolo</authorName>
+			<authorEmail>ivan.kartolo@dkd.de</authorEmail>
+			<generator>LFEditor</generator>
+		</header>
+		<body>
+		<trans-unit id="create-filemount">
+			<source>Create new filemount</source>
+		</trans-unit>
+		<trans-unit id="delete">
+			<source>Delete record (!)</source>
+		</trans-unit>
+		<trans-unit id="error-path">
+			<source>Path exists</source>
+		</trans-unit>
+		<trans-unit id="filemount-msg">
+			<source>The path is relative to fileadmin</source>
+		</trans-unit>
+		<trans-unit id="hide">
+			<source>Hide record</source>
+		</trans-unit>
+		<trans-unit id="list-filemounts">
+			<source>List filemounts</source>
+		</trans-unit>
+		<trans-unit id="search-filemount">
+			<source>Search filemount:</source>
+		</trans-unit>
+		<trans-unit id="showInfo">
+			<source>Display Information</source>
+		</trans-unit>
+		<trans-unit id="title">
+			<source>Filemounts View</source>
+		</trans-unit>
+		<trans-unit id="unHide">
+			<source>Un-hide record</source>
+		</trans-unit>
+		</body>
+	</file>
+</xliff>

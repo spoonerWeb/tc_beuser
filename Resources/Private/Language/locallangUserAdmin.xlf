@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+	<file source-language="en" datatype="plaintext" original="messages" date="2016-04-27T09:17:33Z">
+		<header>
+			<type>module</type>
+			<description>Language labels for module UserAdmin</description>
+			<authorName>Ivan Kartolo</authorName>
+			<authorEmail>ivan.kartolo@dkd.de</authorEmail>
+			<generator>LFEditor</generator>
+		</header>
+		<body>
+		<trans-unit id="analyze">
+			<source>Analyze</source>
+		</trans-unit>
+		<trans-unit id="create-user">
+			<source>Create a new user</source>
+		</trans-unit>
+		<trans-unit id="create-user-wizard">
+			<source>Import frontend user</source>
+		</trans-unit>
+		<trans-unit id="data-sync">
+			<source>Backend User data is not synchronous with Frontend User data.</source>
+		</trans-unit>
+		<trans-unit id="delete">
+			<source>Delete record (!)</source>
+		</trans-unit>
+		<trans-unit id="edit">
+			<source>Edit record</source>
+		</trans-unit>
+		<trans-unit id="edit-user">
+			<source>Edit a user</source>
+		</trans-unit>
+		<trans-unit id="fe-exist">
+			<source>FE-User with the same username is existed.</source>
+		</trans-unit>
+		<trans-unit id="hide">
+			<source>Hide record</source>
+		</trans-unit>
+		<trans-unit id="hide-deaktivated-users">
+			<source>Hide deactivated users</source>
+		</trans-unit>
+		<trans-unit id="import">
+			<source>Import this record</source>
+		</trans-unit>
+		<trans-unit id="list-users">
+			<source>List Users</source>
+		</trans-unit>
+		<trans-unit id="not-found">
+			<source>No user found</source>
+		</trans-unit>
+		<trans-unit id="password-wizard">
+			<source>Generate password</source>
+		</trans-unit>
+		<trans-unit id="password-wizard-notif-Text">
+			<source>Following password is generated: </source>
+		</trans-unit>
+		<trans-unit id="password-wizard-notif-header">
+			<source>Generated Password</source>
+		</trans-unit>
+		<trans-unit id="search-user">
+			<source>Search user:</source>
+		</trans-unit>
+		<trans-unit id="showInfo">
+			<source>Display Information</source>
+		</trans-unit>
+		<trans-unit id="title">
+			<source>Backend User Administration</source>
+		</trans-unit>
+		<trans-unit id="unHide">
+			<source>Un-hide record</source>
+		</trans-unit>
+		</body>
+	</file>
+</xliff>

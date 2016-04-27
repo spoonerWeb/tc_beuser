@@ -24,7 +24,7 @@ if (TYPO3_MODE == 'BE') {
 // fe_users modified
 $be_users_cols = array(
     'tc_beuser_switch_to' => array(
-        'label' => 'LLL:EXT:tc_beuser/locallang_tca.xml:be_users.tc_beuser_switch_to',
+        'label' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallang_tca.xlf:be_users.tc_beuser_switch_to',
         'exclude' => '1',
         'config' => array(
             'type' => 'check'
