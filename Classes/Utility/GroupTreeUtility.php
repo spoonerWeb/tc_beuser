@@ -160,7 +160,6 @@ class GroupTreeUtility extends AbstractTreeView
                 $treeIcon = $depthData . '<span class="treeline-icon treeline-icon-joinbottom"></span>';
             }
 
-
             // Set HTML-icons, if any:
             if ($this->makeHTML) {
                 $HTML = $treeIcon . $this->PMicon($row, $a, $c, $nextCount, $isOpen) . $this->wrapStop($this->getIcon($row), $row);
@@ -181,5 +180,28 @@ class GroupTreeUtility extends AbstractTreeView
         $this->getDataFree($res);
         $this->buffer_idH = $idH;
         return $c;
+    }
+
+
+    /**
+     * Wrap the plus/minus icon in a link
+     *
+     * @param string $icon HTML string to wrap, probably an image tag.
+     * @param string $cmd Command for 'PM' get var
+     * @param string $bMark If set, the link will have an anchor point (=$bMark) and a name attribute (=$bMark)
+     * @param bool $isOpen
+     * @return string Link-wrapped input string
+     * @access private
+     */
+    public function PM_ATagWrap($icon, $cmd, $bMark = '', $isOpen = false)
+    {
+        if ($this->thisScript) {
+            $anchor = $bMark ? '#' . $bMark : '';
+            $name = $bMark ? ' name="' . $bMark . '"' : '';
+            $aUrl = $this->getThisScript() . 'PM=' . $cmd . $anchor;
+            return '<span class="list-tree-control ' . ($isOpen ? 'list-tree-control-open' : 'list-tree-control-closed') . '" ' . $name . '><i class="fa"></i></span>';
+        } else {
+            return $icon;
+        }
     }
 }
