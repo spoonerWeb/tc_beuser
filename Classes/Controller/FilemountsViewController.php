@@ -359,7 +359,7 @@ class FilemountsViewController extends AbstractModuleController
         $dblist->calcPerms = $this->getBackendUser()->calcPerms($this->pageinfo);
         $dblist->showFields = array('title', 'path');
         $dblist->disableControls = array(
-            'edit' => true,
+            'edit' => false,
             'detail' => true,
             'import' => true,
             'delete' => false,
