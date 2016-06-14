@@ -119,22 +119,20 @@ if (TYPO3_MODE == 'BE') {
     );
 
     # Overview Module
-    TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addModule(
+    // Module Web > Access
+    \TYPO3\CMS\Extbase\Utility\ExtensionUtility::registerModule(
+        'dkd.TcBeuser',
         'web',
-        'PermissionModule',
+        'tx_Permission',
         'bottom',
-        '',
         array(
-            'routeTarget' => dkd\TcBeuser\Controller\PermissionModuleController::class . '::mainAction',
+            'Permission' => 'index, edit, update'
+        ),
+        array(
             'access' => 'group,user',
-            'name' => 'web_PermissionModule',
-            'workspaces' => 'online',
-            'labels' => array(
-                'tabs_images' => array(
-                    'tab' => 'EXT:tc_beuser/Resources/Public/Images/modulePermission.png',
-                ),
-                'll_ref' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xlf',
-            )
+            'icon' => 'EXT:beuser/Resources/Public/Icons/module-permission.svg',
+            'labels' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xlf',
+            'navigationComponentId' => 'typo3-pagetree'
         )
     );
 

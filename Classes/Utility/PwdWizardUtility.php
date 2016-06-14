@@ -50,7 +50,7 @@ class PwdWizardUtility
         if ($this->getBackendUser()->userTS['tc_beuser.']['passwordWizard']) {
             $iconFactory = GeneralUtility::makeInstance(IconFactory::class);
             $output .= '<script src="' . ExtensionManagementUtility::extRelPath('tc_beuser') .
-                'Resources/Public/Javascript/pwdgen.js" type="text/javascript"></script>';
+                'Resources/Public/JavaScript/pwdgen.js" type="text/javascript"></script>';
             $onclick = 'pass = mkpass();' .
                 'document.'.$PA['formName'].'[\''.$PA['itemName'].'\'].value = pass;';
             $onclick .= 'top.TYPO3.Notification.success(\'' .

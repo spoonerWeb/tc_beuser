@@ -149,10 +149,10 @@ class OverviewController extends AbstractModuleController
             // set JS for the AJAX call on overview
             // TODO: rewrite JS?
             $this->moduleTemplate->getPageRenderer()->addJsFile(
-                ExtensionManagementUtility::extRelPath('tc_beuser') . 'Resources/Public/Javascript/prototype.js'
+                ExtensionManagementUtility::extRelPath('tc_beuser') . 'Resources/Public/JavaScript/prototype.js'
             );
             $this->moduleTemplate->getPageRenderer()->addJsFile(
-                ExtensionManagementUtility::extRelPath('tc_beuser') . 'Resources/Public/Javascript/ajax.js'
+                ExtensionManagementUtility::extRelPath('tc_beuser') . 'Resources/Public/JavaScript/ajax.js'
             );
 
             $this->content = $this->moduleTemplate->header($title);
