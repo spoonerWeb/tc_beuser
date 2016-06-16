@@ -1086,12 +1086,22 @@ class OverviewUtility
 
         $dataTree = array();
         $dataTree[$groupId] = $tree->buildTree($groupId);
-
         $tree->setDataFromArray($dataTree);
-
             // Create the tree from starting point:
         if ($depth > 0) {
+            // need to fake admin because getTree check if pid in webmount
+            if ($this->getBackendUser()->user['admin'] != 1) {
+                //make fake Admin
+                TcBeuserUtility::fakeAdmin();
+                $fakeAdmin = 1;
+            }
+
             $tree->getTree($treeStartingPoint, $depth);
+
+            // remove fake admin access
+            if ($fakeAdmin) {
+                TcBeuserUtility::removeFakeAdmin();
+            }
         }
 
         return $tree->tree;

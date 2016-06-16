@@ -449,7 +449,7 @@ class OverviewController extends AbstractModuleController
         $i = 0;
 
         foreach ($this->MOD_MENU['showCols'] as $key => $label) {
-            $content .= '<span style="display: block; float: left; width: 180px;">'
+            $content .= '<span style="display: block; float: left; min-width: 200px;">'
                 .'<input type="checkbox" value="1" name="compareFlags['.$key.']" id="compareFlags['.$key.']"'.($this->compareFlags[$key]?' checked="checked"':'').' />'
                 .'&nbsp;'
                 . '<label for="compareFlags['.$key.']">' . $label . '</label>'
