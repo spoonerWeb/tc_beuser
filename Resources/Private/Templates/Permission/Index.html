@@ -35,28 +35,69 @@
 								</f:comment>
 
 								<td align="left" nowrap="nowrap">
-									<f:link.action
-										action="edit"
-										arguments="{id: '{f:if(condition: data.row._ORIG_uid, then: data.row._ORIG_uid, else: data.row.uid)}', depth: depth}"
-										title="{f:translate(key: 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xlf:ch_permissions')}"
-									>
-										<f:format.raw>{data.depthData}{data.HTML}</f:format.raw>
-										{data.row.title -> f:format.crop(maxCharacters:20)}
-									</f:link.action>
+									<f:if condition="{data.row.perms_userid} == {userData.uid}">
+										<f:then>
+											<f:link.action
+													action="edit"
+													arguments="{id: '{f:if(condition: data.row._ORIG_uid, then: data.row._ORIG_uid, else: data.row.uid)}', depth: depth}"
+													title="{f:translate(key: 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xlf:ch_permissions')}"
+											>
+												<f:format.raw>{data.depthData}{data.HTML}</f:format.raw>
+												{data.row.title -> f:format.crop(maxCharacters:20)}
+											</f:link.action>
+										</f:then>
+										<f:else>
+											<f:if condition="{userData.admin}">
+												<f:then>
+													<f:link.action
+															action="edit"
+															arguments="{id: '{f:if(condition: data.row._ORIG_uid, then: data.row._ORIG_uid, else: data.row.uid)}', depth: depth}"
+															title="{f:translate(key: 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xlf:ch_permissions')}"
+													>
+														<f:format.raw>{data.depthData}{data.HTML}</f:format.raw>
+														{data.row.title -> f:format.crop(maxCharacters:20)}
+													</f:link.action>
+												</f:then>
+												<f:else>
+													<f:format.raw>{data.depthData}{data.HTML}</f:format.raw>
+													{data.row.title -> f:format.crop(maxCharacters:20)}
+												</f:else>
+											</f:if>
+										</f:else>
+									</f:if>
+
 								</td>
 
 								<td>
 									<f:comment>
 										Edit link is workspace aware: If in ws, link to edit the ws overlay record is rendered
 									</f:comment>
-									<f:link.action
-										action="edit"
-										arguments="{id: '{f:if(condition: data.row._ORIG_uid, then: data.row._ORIG_uid, else: data.row.uid)}', depth: depth}"
-										class="btn btn-default"
-										title="{f:translate(key: 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xlf:ch_permissions')}"
-									>
-										<core:icon identifier="actions-document-open" />
-									</f:link.action>
+									<f:if condition="{data.row.perms_userid} == {userData.uid}">
+										<f:then>
+											<f:link.action
+													action="edit"
+													arguments="{id: '{f:if(condition: data.row._ORIG_uid, then: data.row._ORIG_uid, else: data.row.uid)}', depth: depth}"
+													class="btn btn-default"
+													title="{f:translate(key: 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xlf:ch_permissions')}"
+											>
+												<core:icon identifier="actions-document-open" />
+											</f:link.action>
+										</f:then>
+										<f:else>
+											<f:if condition="{userData.admin}">
+												<f:then>
+													<f:link.action
+															action="edit"
+															arguments="{id: '{f:if(condition: data.row._ORIG_uid, then: data.row._ORIG_uid, else: data.row.uid)}', depth: depth}"
+															class="btn btn-default"
+															title="{f:translate(key: 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xlf:ch_permissions')}"
+													>
+														<core:icon identifier="actions-document-open" />
+													</f:link.action>
+												</f:then>
+											</f:if>
+										</f:else>
+									</f:if>
 								</td>
 
 								<td nowrap="nowrap">

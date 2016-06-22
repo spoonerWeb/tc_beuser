@@ -12,7 +12,7 @@
  */
 
 /**
- * Module: dkd/TcBeuser/Permissions
+ * Module: TYPO3/CMS/TcBeuser/Permissions
  * Javascript functions regarding the permissions module
  */
 define(['jquery'], function($) {
@@ -20,14 +20,14 @@ define(['jquery'], function($) {
 	/**
 	 *
 	 * @type {{options: {containerSelector: string}}}
-	 * @exports dkd/TcBeuser/Permissons
+	 * @exports TYPO3/CMS/TcBeuser/Permissions
 	 */
 	var Permissions = {
 		options: {
 			containerSelector: '#typo3-permissionList'
 		}
 	};
-	var ajaxUrl = TYPO3.settings.ajaxUrls['user_access_permissions'];
+	var ajaxUrl = TYPO3.settings.ajaxUrls['tcbeuser_access_permissions'];
 
 	/**
 	 * Changes the value of the permissions in the form
@@ -92,6 +92,8 @@ define(['jquery'], function($) {
 		}).done(function(data) {
 			// Replace content
 			$('#' + page + '_' + who).replaceWith(data);
+		}).fail(function(xhr, textStatus, errorThrown){
+			top.TYPO3.Notification.error(xhr.responseText);
 		});
 	};
 
@@ -116,6 +118,8 @@ define(['jquery'], function($) {
 		}).done(function(data) {
 			// Replace content
 			$('#el_' + page).replaceWith(data);
+		}).fail(function(xhr, textStatus, errorThrown){
+			top.TYPO3.Notification.error(xhr.responseText);
 		});
 	};
 
@@ -141,6 +145,8 @@ define(['jquery'], function($) {
 		}).done(function(data) {
 			// Replace content
 			$('#o_' + page).replaceWith(data);
+		}).fail(function(xhr, textStatus, errorThrown){
+			top.TYPO3.Notification.error(xhr.responseText);
 		});
 	};
 
@@ -167,6 +173,8 @@ define(['jquery'], function($) {
 		}).done(function(data) {
 			// Replace content
 			$('#o_' + page).replaceWith(data);
+		}).fail(function(xhr){
+			top.TYPO3.Notification.error(xhr.responseText);
 		});
 	};
 
@@ -226,6 +234,8 @@ define(['jquery'], function($) {
 		}).done(function(data) {
 			// Replace content
 			$('#g_' + page).replaceWith(data);
+		}).fail(function(xhr){
+			top.TYPO3.Notification.error(xhr.responseText);
 		});
 	};
 
@@ -251,6 +261,8 @@ define(['jquery'], function($) {
 		}).done(function(data) {
 			// Replace content
 			$('#g_' + page).replaceWith(data);
+		}).fail(function(xhr, textStatus, errorThrown){
+			top.TYPO3.Notification.error(xhr.responseText);
 		});
 	};
 

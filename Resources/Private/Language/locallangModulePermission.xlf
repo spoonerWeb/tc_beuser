@@ -117,6 +117,9 @@
 			<trans-unit id="deleted" xml:space="preserve">
 				<source>deleted</source>
 			</trans-unit>
+			<trans-unit id="ajaxNoAccess" xml:space="preserve">
+				<source>No access</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>

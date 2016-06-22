@@ -49,7 +49,7 @@ class PermissionAjaxController
     public function __construct()
     {
         $this->iconFactory = GeneralUtility::makeInstance(IconFactory::class);
-        $this->getLanguageService()->includeLLFile('EXT:lang/locallang_mod_web_perm.xlf');
+        $this->getLanguageService()->includeLLFile('EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xlf');
         // Configuration, variable assignment
         $this->conf['page'] = GeneralUtility::_POST('page');
         $this->conf['who'] = GeneralUtility::_POST('who');
@@ -82,87 +82,97 @@ class PermissionAjaxController
         $view->assign('pageId', $this->conf['page']);
 
         $content = '';
+
+        $allowed = $this->checkPageOwner($this->conf['page']);
+
         // Basic test for required value
         if ($this->conf['page'] > 0) {
-            // Init TCE for execution of update
-            /** @var $tce DataHandler */
-            $tce = GeneralUtility::makeInstance(DataHandler::class);
-            $tce->stripslashes_values = false;
-            // Determine the scripts to execute
-            switch ($this->conf['action']) {
-                case 'show_change_owner_selector':
-                    $content = $this->renderUserSelector($this->conf['page'], $this->conf['ownerUid'], $this->conf['username']);
-                    break;
-                case 'change_owner':
-                    $userId = $this->conf['new_owner_uid'];
-                    if (is_int($userId)) {
+            if ($allowed) {
+                // if user is allowed to change the properties of current page
+                // Init TCE for execution of update
+                /** @var $tce DataHandler */
+                $tce = GeneralUtility::makeInstance(DataHandler::class);
+                $tce->stripslashes_values = false;
+                // Determine the scripts to execute
+                switch ($this->conf['action']) {
+                    case 'show_change_owner_selector':
+                        $content = $this->renderUserSelector($this->conf['page'], $this->conf['ownerUid'], $this->conf['username']);
+                        break;
+                    case 'change_owner':
+                        $userId = $this->conf['new_owner_uid'];
+                        if (is_int($userId)) {
+                            // Prepare data to change
+                            $data = array();
+                            $data['pages'][$this->conf['page']]['perms_userid'] = $userId;
+                            // Execute TCE Update
+                            $tce->start($data, array());
+                            $tce->process_datamap();
+
+                            $view->setTemplatePathAndFilename($extPath . 'Resources/Private/Templates/PermissionAjax/ChangeOwner.html');
+                            $view->assign('userId', $userId);
+                            $usernameArray = BackendUtility::getUserNames('username', ' AND uid = ' . $userId);
+                            $view->assign('username', $usernameArray[$userId]['username']);
+                            $content = $view->render();
+                        } else {
+                            $response->getBody()->write('An error occurred: No page owner uid specified');
+                            $response = $response->withStatus(500);
+                        }
+                        break;
+                    case 'show_change_group_selector':
+                        $content = $this->renderGroupSelector($this->conf['page'], $this->conf['groupUid'], $this->conf['groupname']);
+                        break;
+                    case 'change_group':
+                        $groupId = $this->conf['new_group_uid'];
+                        if (is_int($groupId)) {
+                            // Prepare data to change
+                            $data = array();
+                            $data['pages'][$this->conf['page']]['perms_groupid'] = $groupId;
+                            // Execute TCE Update
+                            $tce->start($data, array());
+                            $tce->process_datamap();
+
+                            $view->setTemplatePathAndFilename($extPath . 'Resources/Private/Templates/PermissionAjax/ChangeGroup.html');
+                            $view->assign('groupId', $groupId);
+                            $groupnameArray = BackendUtility::getGroupNames('title', ' AND uid = ' . $groupId);
+                            $view->assign('groupname', $groupnameArray[$groupId]['title']);
+                            $content = $view->render();
+                        } else {
+                            $response->getBody()->write('An error occurred: No page group uid specified');
+                            $response = $response->withStatus(500);
+                        }
+                        break;
+                    case 'toggle_edit_lock':
                         // Prepare data to change
                         $data = array();
-                        $data['pages'][$this->conf['page']]['perms_userid'] = $userId;
+                        $data['pages'][$this->conf['page']]['editlock'] = $this->conf['editLockState'] === 1 ? 0 : 1;
+                        // Execute TCE Update
+                        $tce->start($data, array());
+                        $tce->process_datamap();
+                        $content = $this->renderToggleEditLock($this->conf['page'], $data['pages'][$this->conf['page']]['editlock']);
+                        break;
+                    default:
+                        if ($this->conf['mode'] === 'delete') {
+                            $this->conf['permissions'] = (int)($this->conf['permissions'] - $this->conf['bits']);
+                        } else {
+                            $this->conf['permissions'] = (int)($this->conf['permissions'] + $this->conf['bits']);
+                        }
+                        // Prepare data to change
+                        $data = array();
+                        $data['pages'][$this->conf['page']]['perms_' . $this->conf['who']] = $this->conf['permissions'];
                         // Execute TCE Update
                         $tce->start($data, array());
                         $tce->process_datamap();
 
-                        $view->setTemplatePathAndFilename($extPath . 'Resources/Private/Templates/PermissionAjax/ChangeOwner.html');
-                        $view->assign('userId', $userId);
-                        $usernameArray = BackendUtility::getUserNames('username', ' AND uid = ' . $userId);
-                        $view->assign('username', $usernameArray[$userId]['username']);
+                        $view->setTemplatePathAndFilename($extPath . 'Resources/Private/Templates/PermissionAjax/ChangePermission.html');
+                        $view->assign('permission', $this->conf['permissions']);
+                        $view->assign('scope', $this->conf['who']);
                         $content = $view->render();
-                    } else {
-                        $response->getBody()->write('An error occurred: No page owner uid specified');
-                        $response = $response->withStatus(500);
-                    }
-                    break;
-                case 'show_change_group_selector':
-                    $content = $this->renderGroupSelector($this->conf['page'], $this->conf['groupUid'], $this->conf['groupname']);
-                    break;
-                case 'change_group':
-                    $groupId = $this->conf['new_group_uid'];
-                    if (is_int($groupId)) {
-                        // Prepare data to change
-                        $data = array();
-                        $data['pages'][$this->conf['page']]['perms_groupid'] = $groupId;
-                        // Execute TCE Update
-                        $tce->start($data, array());
-                        $tce->process_datamap();
-
-                        $view->setTemplatePathAndFilename($extPath . 'Resources/Private/Templates/PermissionAjax/ChangeGroup.html');
-                        $view->assign('groupId', $groupId);
-                        $groupnameArray = BackendUtility::getGroupNames('title', ' AND uid = ' . $groupId);
-                        $view->assign('groupname', $groupnameArray[$groupId]['title']);
-                        $content = $view->render();
-                    } else {
-                        $response->getBody()->write('An error occurred: No page group uid specified');
-                        $response = $response->withStatus(500);
-                    }
-                    break;
-                case 'toggle_edit_lock':
-                    // Prepare data to change
-                    $data = array();
-                    $data['pages'][$this->conf['page']]['editlock'] = $this->conf['editLockState'] === 1 ? 0 : 1;
-                    // Execute TCE Update
-                    $tce->start($data, array());
-                    $tce->process_datamap();
-                    $content = $this->renderToggleEditLock($this->conf['page'], $data['pages'][$this->conf['page']]['editlock']);
-                    break;
-                default:
-                    if ($this->conf['mode'] === 'delete') {
-                        $this->conf['permissions'] = (int)($this->conf['permissions'] - $this->conf['bits']);
-                    } else {
-                        $this->conf['permissions'] = (int)($this->conf['permissions'] + $this->conf['bits']);
-                    }
-                    // Prepare data to change
-                    $data = array();
-                    $data['pages'][$this->conf['page']]['perms_' . $this->conf['who']] = $this->conf['permissions'];
-                    // Execute TCE Update
-                    $tce->start($data, array());
-                    $tce->process_datamap();
-
-                    $view->setTemplatePathAndFilename($extPath . 'Resources/Private/Templates/PermissionAjax/ChangePermission.html');
-                    $view->assign('permission', $this->conf['permissions']);
-                    $view->assign('scope', $this->conf['who']);
-                    $content = $view->render();
+                }
+            } else {
+                $response->getBody()->write($this->getLanguageService()->getLL('ajaxNoAccess'));
+                $response = $response->withStatus(403);
             }
+
         } else {
             $response->getBody()->write('This script cannot be called directly');
             $response = $response->withStatus(500);
@@ -170,6 +180,26 @@ class PermissionAjaxController
         $response->getBody()->write($content);
         $response = $response->withHeader('Content-Type', 'text/html; charset=utf-8');
         return $response;
+    }
+
+    /**
+     * Check if user can changed the properties of current page
+     *
+     * @param int $pageUid the current page UID
+     * @return bool
+     */
+    protected function checkPageOwner($pageUid)
+    {
+        $allowed = false;
+
+        $pageProperties = BackendUtility::getRecord('pages', $pageUid);
+        if (($pageProperties['perms_userid'] == $this->getBackendUser()->user['uid']) ||
+            $this->getBackendUser()->isAdmin()
+        ) {
+            $allowed = true;
+        }
+
+        return $allowed;
     }
 
     /**

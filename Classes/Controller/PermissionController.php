@@ -128,7 +128,7 @@ class PermissionController extends ActionController
 
         // the view of the update action has a different view class
         if ($view instanceof BackendTemplateView) {
-            $view->getModuleTemplate()->getPageRenderer()->loadRequireJsModule('dkd/TcBeuser/Permissions');
+            $view->getModuleTemplate()->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/TcBeuser/Permissions');
             $view->getModuleTemplate()->getPageRenderer()->loadRequireJsModule('TYPO3/CMS/Backend/Tooltip');
             $view->getModuleTemplate()->addJavaScriptCode(
                 'jumpToUrl',
@@ -258,6 +258,8 @@ class PermissionController extends ActionController
         $beGroupArray = BackendUtility::getGroupNames();
         $this->view->assign('beGroups', $beGroupArray);
 
+        $this->view->assign('userData', $this->getBackendUser()->user);
+
         /** @var $tree PageTreeView */
         $tree = GeneralUtility::makeInstance(PageTreeView::class);
         $tree->init();
@@ -350,24 +352,50 @@ class PermissionController extends ActionController
                 if ((int)$properties['perms_groupid'] === -1) {
                     unset($properties['perms_groupid']);
                 }
-                $this->getDatabaseConnection()->exec_UPDATEquery(
-                    'pages',
-                    'uid = ' . (int)$pageUid,
-                    $properties
-                );
-                if (!empty($mirror['pages'][$pageUid])) {
-                    $mirrorPages = GeneralUtility::trimExplode(',', $mirror['pages'][$pageUid]);
-                    foreach ($mirrorPages as $mirrorPageUid) {
-                        $this->getDatabaseConnection()->exec_UPDATEquery(
-                            'pages',
-                            'uid = ' . (int)$mirrorPageUid,
-                            $properties
-                        );
+
+                // only changed page data, which the user is the owner
+                if ($this->checkUserPermission($pageUid)) {
+                    $this->getDatabaseConnection()->exec_UPDATEquery(
+                        'pages',
+                        'uid = ' . (int)$pageUid,
+                        $properties
+                    );
+                    if (!empty($mirror['pages'][$pageUid])) {
+                        $mirrorPages = GeneralUtility::trimExplode(',', $mirror['pages'][$pageUid]);
+                        foreach ($mirrorPages as $mirrorPageUid) {
+                            if ($this->checkUserPermission($mirrorPageUid)) {
+                                $this->getDatabaseConnection()->exec_UPDATEquery(
+                                    'pages',
+                                    'uid = ' . (int)$mirrorPageUid,
+                                    $properties
+                                );
+                            }
+                        }
                     }
                 }
             }
+            $this->redirect('index', null, null, array('id' => $this->returnId, 'depth' => $this->depth));
         }
-        $this->redirect('index', null, null, array('id' => $this->returnId, 'depth' => $this->depth));
+    }
+
+    /**
+     * Check if user has access to change the page properties.
+     *
+     * @param int $pageUid the page UID to be checked
+     * @return bool
+     */
+    protected function checkUserPermission($pageUid)
+    {
+        $allowed = false;
+        $pageProperties = BackendUtility::getRecord('pages', $pageUid);
+
+        if (($pageProperties['perms_userid'] == $this->getBackendUser()->user['uid']) ||
+            $this->getBackendUser()->isAdmin()
+        ) {
+            $allowed = true;
+        }
+
+        return $allowed;
     }
 
     /**
