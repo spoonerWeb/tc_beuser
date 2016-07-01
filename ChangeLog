@@ -1,3 +1,8 @@
+2016-07-01 Ivan Kartolo <ivan.kartolo@dkd.de>
+	* rewriting modules.
+	* compatible only with TYPO3 CMS 7.6 LTS
+	* sponsored by RRZN Uni Hannover
+
 2014-10-06 Ivan Kartolo <ivan.kartolo@dkd.de>
 	* compatible only with TYPO3 6.2
 	* introducing namespacing

@@ -12,10 +12,10 @@
 
 $EM_CONF[$_EXTKEY] = array(
     'title' => 'TC BE User Admin',
-    'description' => 'A Module for administer BE users more comfortably',
+    'description' => 'A collection of modules for administer BE users more comfortably',
     'category' => 'module',
     'shy' => 0,
-    'version' => '3.0.0-dev',
+    'version' => '3.0.0',
     'dependencies' => '',
     'conflicts' => '',
     'priority' => '',
