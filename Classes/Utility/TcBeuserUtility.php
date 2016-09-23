@@ -336,7 +336,7 @@ class TcBeuserUtility
      * Returns the Backend User
      * @return BackendUserAuthentication
      */
-    protected function getBackendUser()
+    protected static function getBackendUser()
     {
         return $GLOBALS['BE_USER'];
     }
@@ -344,7 +344,7 @@ class TcBeuserUtility
     /**
      * @return DatabaseConnection
      */
-    protected function getDatabaseConnection()
+    protected static function getDatabaseConnection()
     {
         return $GLOBALS['TYPO3_DB'];
     }

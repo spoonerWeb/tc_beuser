@@ -135,7 +135,7 @@ class RecordListUtility extends DatabaseRecordList
      * Pseudo fields will be added including the record header.
      * @return string $out: HTML table with the listing for the record.
      */
-    public function getTable($table, $id, $rowList)
+    public function getTable($table, $id, $rowList = '')
     {
         $rowListArray = GeneralUtility::trimExplode(',', $rowList, true);
         // if no columns have been specified, show description (if configured)
