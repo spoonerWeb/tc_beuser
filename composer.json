@@ -31,7 +31,7 @@
     }
   },
   "replace": {
-    "tc-beuser": "self.version",
+    "tc_beuser": "self.version",
     "typo3-ter/tc-beuser": "self.version"
   }
 }
