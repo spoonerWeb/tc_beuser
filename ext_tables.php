@@ -130,7 +130,7 @@ if (TYPO3_MODE == 'BE') {
         ),
         array(
             'access' => 'group,user',
-            'icon' => 'EXT:beuser/Resources/Public/Icons/module-permission.svg',
+            //'icon' => 'EXT:beuser/Resources/Public/Icons/module-permission.svg',
             'labels' => 'LLL:EXT:tc_beuser/Resources/Private/Language/locallangModulePermission.xlf',
             'navigationComponentId' => 'typo3-pagetree'
         )
